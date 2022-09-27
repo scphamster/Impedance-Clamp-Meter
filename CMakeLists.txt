@@ -23,7 +23,7 @@ set(ATMEL_ARCHITECTURE SAM4E)
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
 
-set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -DDEBUG -O3 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
+set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} ${COMPILER_OPTIMIZATION_OPTIONS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu11")
 set(CXX_COMPILE_FLAGS "-fno-rtti -fno-exceptions -std=c++14")
 
@@ -38,11 +38,12 @@ set(MY_LINK_FLAGS "${LINKER_VERBOSE_CMD} --specs=nosys.specs -mfloat-abi=softfp 
 message(DEBUG "link flags: ${MY_LINK_FLAGS}")
 
 set(CXX_SOURCES ${SOURCES_DIRECTORY}/main.cpp)
+set(C_SOURCES src/main_blinky.c src/main_blinky.h src/freertos_handlers.c src/exception_handlers.c)
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")
+set_source_files_properties(${C_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${C_COMPILE_FLAGS}")
 
-
-add_sam_executable(${EXECUTABLE_NAME} ${CXX_SOURCES})
+add_sam_executable(${EXECUTABLE_NAME} ${CXX_SOURCES} ${C_SOURCES})
 
 add_subdirectory(src/asf_lib)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC asf)

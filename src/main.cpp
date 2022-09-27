@@ -20,6 +20,8 @@
 #include "menu_ili9486_kbrd_mngr.h"
 #include "menu_ili9486.h"
 
+#include "main_blinky.h"
+
 #ifndef ADC_TEST_DEF
 void adc_interrupt_init(void)
 {
@@ -47,6 +49,8 @@ int main ()
     }
 #else
     system_init();
+
+    main_blinky();
 
     TFT_Init();
     TFT_Clear(COLOR_BLACK);

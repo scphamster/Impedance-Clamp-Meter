@@ -65,6 +65,8 @@ master_clock_init(void)
     prescaller = (PLL_PRESCALLER_VAL << PMC_MCKR_PRES_Pos);
 
     switch_to_plla_result = pmc_switch_mck_to_pllack(prescaller);
+    SystemCoreClockUpdate();
+
 }
 
 void
@@ -261,27 +263,27 @@ system_init(void)
     flash_memory_init();
     master_clock_init();
     periph_clock_init();
-    io_init();
-    external_periph_ctrl_init();
-    system_tick_init();
-    keyboard_encoder_init();
-    dacc_init();
-    spi_init();
-    twi_init();
-    twiPdc_init();
-
-    ten_milliseconds_timer_init();
-    buzzer_timer_init();
-
-    delay_ms(100);
-
-    keyboard_init();
-    LCD_init();
-
-    delay_ms(10);
-
-    MCP3462_init();
-    dsp_init();
+//    io_init();
+//    external_periph_ctrl_init();
+//    system_tick_init();
+//    keyboard_encoder_init();
+//    dacc_init();
+//    spi_init();
+//    twi_init();
+//    twiPdc_init();
+//
+//    ten_milliseconds_timer_init();
+//    buzzer_timer_init();
+//
+//    delay_ms(100);
+//
+//    keyboard_init();
+//    LCD_init();
+//
+//    delay_ms(10);
+//
+//    MCP3462_init();
+//    dsp_init();
 }
 
 #ifdef __cplusplus

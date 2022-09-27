@@ -14,14 +14,14 @@ string(APPEND LIB_COMPILE_FLAGS " -DBOARD_FREQ_SLCK_XTAL=32768UL -DBOARD_FREQ_SL
 #set(LIB_LINK_FLAGS "-mthumb -mcpu=cortex-m4 ${LINKER_MAP_GEN_COMMAND} -Wl,--start-group -lm -Wl,--end-group -Wl,--gc-sections ${LINKER_SCRIPT_COMMAND}")
 #message(DEBUG "library ${LIB_NAME} link flags:: ${MY_LINK_FLAGS}")
 
-set_source_files_properties(${ASF_SOURCES} PROPERTIES
+set_source_files_properties(${ASF_SOURCES} ${FREERTOS_SOURCES} PROPERTIES
                             COMPILE_FLAGS ${LIB_COMPILE_FLAGS})
 
-add_library(${LIB_NAME} OBJECT ${ASF_SOURCES}) # OBJECT type of library is very important here
+add_library(${LIB_NAME} OBJECT ${ASF_SOURCES} ${FREERTOS_SOURCES}) # OBJECT type of library is very important here
 
 file(GLOB_RECURSE MATH_LIB_PATH ${MATH_LIB_NAME})
 if ("${MATH_LIB_PATH}" STREQUAL "")
-    message(FATAL_ERROR "Arm Math library not found")
+    message(FATAL_ERROR "Arm Math library <<< ${MATH_LIB_NAME} >>> not found")
 endif()
 
 target_link_libraries(${LIB_NAME} ${MATH_LIB_PATH})
@@ -34,6 +34,7 @@ set_target_properties(${LIB_NAME} PROPERTIES
 target_include_directories(${LIB_NAME}
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                            PUBLIC ${ASF_INCLUDE_DIRECTORIES}
+                           PUBLIC ${FREERTOS_INCLUDE_DIRS}
                            PUBLIC "${PACKS_REPO}/atmel/${ATMEL_ARCHITECTURE}_DFP/1.1.57/ic.sam4e/include"
                            PUBLIC "${PACKS_REPO}/arm/CMSIS/5.4.0/CMSIS/Core/Include"
                            )

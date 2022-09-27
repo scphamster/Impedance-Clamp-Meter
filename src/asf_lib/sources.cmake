@@ -223,3 +223,44 @@ set(ASF_INCLUDE_DIRECTORIES
     src/ASF/thirdparty/CMSIS/Lib/GCC
     src/config
     )
+
+set(FREERTOS_SOURCES
+    src/ASF/thirdparty/FreeRTOS/croutine.c
+    src/ASF/thirdparty/FreeRTOS/event_groups.c
+    src/ASF/thirdparty/FreeRTOS/FreeRTOSConfig.h
+    src/ASF/thirdparty/FreeRTOS/include/atomic.h
+    src/ASF/thirdparty/FreeRTOS/include/croutine.h
+    src/ASF/thirdparty/FreeRTOS/include/deprecated_definitions.h
+    src/ASF/thirdparty/FreeRTOS/include/event_groups.h
+    src/ASF/thirdparty/FreeRTOS/include/FreeRTOS.h
+    src/ASF/thirdparty/FreeRTOS/include/list.h
+    src/ASF/thirdparty/FreeRTOS/include/message_buffer.h
+    src/ASF/thirdparty/FreeRTOS/include/mpu_prototypes.h
+    src/ASF/thirdparty/FreeRTOS/include/mpu_wrappers.h
+    src/ASF/thirdparty/FreeRTOS/include/portable.h
+    src/ASF/thirdparty/FreeRTOS/include/projdefs.h
+    src/ASF/thirdparty/FreeRTOS/include/queue.h
+    src/ASF/thirdparty/FreeRTOS/include/semphr.h
+    src/ASF/thirdparty/FreeRTOS/include/StackMacros.h
+    src/ASF/thirdparty/FreeRTOS/include/stack_macros.h
+    src/ASF/thirdparty/FreeRTOS/include/stream_buffer.h
+    src/ASF/thirdparty/FreeRTOS/include/task.h
+    src/ASF/thirdparty/FreeRTOS/include/timers.h
+    src/ASF/thirdparty/FreeRTOS/list.c
+    src/ASF/thirdparty/FreeRTOS/portable/GCC/ARM_CM3/port.c
+    src/ASF/thirdparty/FreeRTOS/portable/GCC/ARM_CM3/portmacro.h
+    src/ASF/thirdparty/FreeRTOS/portable/MemMang/heap_4.c
+    src/ASF/thirdparty/FreeRTOS/queue.c
+    src/ASF/thirdparty/FreeRTOS/stream_buffer.c
+    src/ASF/thirdparty/FreeRTOS/tasks.c
+    src/ASF/thirdparty/FreeRTOS/timers.c
+    )
+
+set(FREERTOS_INCLUDE_DIRS
+    src/ASF/thirdparty/FreeRTOS
+    src/ASF/thirdparty/FreeRTOS/include
+    src/ASF/thirdparty/FreeRTOS/portable
+    src/ASF/thirdparty/FreeRTOS/portable/GCC
+    src/ASF/thirdparty/FreeRTOS/portable/GCC/ARM_CM3
+    src/ASF/thirdparty/FreeRTOS/portable/MemMang
+    )
