@@ -61,7 +61,7 @@ extern volatile float32_t g_sintable_f[DACC_PACKETLEN];
 extern pdc_packet_t g_dacc_packet;
 extern pdc_packet_t g_dacc_next_packet;
 extern Pdc         *g_dacc_pdc_base;
-extern uint16_t     g_sintable[DACC_PACKETLEN];
+extern volatile uint16_t     g_sintable[DACC_PACKETLEN];
 extern bool decimator_databuff_is_ready;
 extern bool fir2_dataready_flag;
 extern uint32_t test_counter_dacc;
@@ -126,7 +126,7 @@ void      do_filter(float32_t *sin_out, float32_t *cos_out);
 void      reset_filters(void);
 float32_t find_angle(float32_t sine, float32_t cosine, float32_t absval);
 
-static float32_t sin_table[] = { 0,
+static volatile float32_t sin_table[] = { 0,
                                  0.28173256f,
                                  0.54064083f,
                                  0.75574958f,
@@ -149,7 +149,7 @@ static float32_t sin_table[] = { 0,
                                  -0.54064083f,
                                  -0.28173256f };
 
-static float32_t cos_table[] = { 1,
+static volatile float32_t cos_table[] = { 1,
                                  0.95949298f,
                                  0.84125352f,
                                  0.65486073f,

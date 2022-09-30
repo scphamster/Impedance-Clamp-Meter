@@ -7,6 +7,12 @@
 
 #pragma once
 
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
 #include "arm_math.h"
 
 #define MAINXTAL_FREQ         20000000UL /*20MHz*/

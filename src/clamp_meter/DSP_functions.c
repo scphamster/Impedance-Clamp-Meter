@@ -27,14 +27,14 @@ volatile float32_t g_sintable_f[DACC_PACKETLEN];
 
 uint16_t biquad1_counter = 0;
 
-pdc_packet_t g_dacc_packet;
-pdc_packet_t g_dacc_next_packet;
-Pdc         *g_dacc_pdc_base;
-uint16_t     g_sintable[DACC_PACKETLEN];
-bool         decimator_databuff_is_ready;
-bool         fir2_dataready_flag;
-uint32_t     test_counter_dacc;
-uint32_t     test_counter_adc;
+pdc_packet_t      g_dacc_packet;
+pdc_packet_t      g_dacc_next_packet;
+Pdc              *g_dacc_pdc_base;
+volatile uint16_t g_sintable[DACC_PACKETLEN];
+bool              decimator_databuff_is_ready;
+bool              fir2_dataready_flag;
+uint32_t          test_counter_dacc;
+uint32_t          test_counter_adc;
 
 Dsp_t Dsp;
 
@@ -205,7 +205,6 @@ dsp_calculate_sine_table(uint16_t amplitude)
 
     while (counter < DACC_PACKETLEN) {
         g_sintable[counter] = (uint16_t)((float)amplitude * sin_table[counter] + (float)offs);
-
         counter++;
     }
 }
@@ -224,14 +223,12 @@ dacc_setup(void)
     NVIC_EnableIRQ(DACC_IRQn);
 }
 
-#ifdef ADC_TEST_DEF
 void
 adc_interrupt_init(void)
 {
     pio_handler_set(PIOA, ID_PIOA, (1 << ADC_INTERRUPT_PIN), PIO_IT_FALL_EDGE, adc_interrupt_handler);
     pio_handler_set_priority(PIOA, PIOA_IRQn, ADC_INTERRUPT_PRIO);
 }
-#endif
 
 void
 filters_init(void)

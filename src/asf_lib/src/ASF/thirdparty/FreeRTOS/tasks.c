@@ -4473,7 +4473,7 @@ static void prvResetNextTaskUnblockTime( void )
         /* Make sure the write buffer does not contain a string. */
         *pcWriteBuffer = ( char ) 0x00;
 
-        /* Take a snapshot of the number of tasks in case it changes while this
+        /* lock a snapshot of the number of tasks in case it changes while this
          * function is executing. */
         uxArraySize = uxCurrentNumberOfTasks;
 
@@ -4583,7 +4583,7 @@ static void prvResetNextTaskUnblockTime( void )
         /* Make sure the write buffer does not contain a string. */
         *pcWriteBuffer = ( char ) 0x00;
 
-        /* Take a snapshot of the number of tasks in case it changes while this
+        /* lock a snapshot of the number of tasks in case it changes while this
          * function is executing. */
         uxArraySize = uxCurrentNumberOfTasks;
 

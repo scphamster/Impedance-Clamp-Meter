@@ -36,7 +36,7 @@ COEFFS_FLASH_PAGES_OCCUPIED)
 #define CALIBRATION_EXTERNAL_VOLTAGE_STARTVAL	37.15f
 
 
-#define CALIBRATION_DATA_PASSWORD	0xA5
+#define CALIBRATION_DATA_NOT_ERASED_MARKER 0xA5
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,11 +123,11 @@ typedef struct {
 	float32_t v_sens_phi;
 
 	uint8_t data_password;
-} calibration_data_type_t;
+} calibration_data_t;
 
-extern calibration_data_type_t Cal_data;
+extern calibration_data_t Cal_data;
 
-static calibration_data_type_t Reserve_cal_data = {
+static calibration_data_t Reserve_cal_data = {
 	//Shunt gains
 	53784.875f,
 	132666.203f,

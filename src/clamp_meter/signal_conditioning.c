@@ -24,7 +24,7 @@ extern "C" {
 
 Analog_t Analog;
 Calibrator_t Calibrator;
-calibration_data_type_t Cal_data;
+calibration_data_t Cal_data;
 bool flash_test_runing;
 
 void shunt_sensor_set_gain(uint8_t gain)
@@ -327,8 +327,8 @@ void switch_sensing_chanel(sensor_type_t switch_to_sensor)
 bool store_coeffs_to_flash_struct(void)
 {
 	uint32_t start_addr = COEFFS_FLASH_START_ADDR;
-	calibration_data_type_t *end_storage = (calibration_data_type_t *)start_addr;
-	uint32_t data_size = sizeof(calibration_data_type_t);
+    calibration_data_t *end_storage = (calibration_data_t *)start_addr;
+	uint32_t data_size = sizeof(calibration_data_t);
 	uint32_t rc;
 	uint32_t idx;
 
@@ -373,12 +373,12 @@ bool store_coeffs_to_flash_struct(void)
 void recall_coeffs_from_flash_struct(void)
 {
 	uint32_t start_addr = COEFFS_FLASH_START_ADDR;
-	calibration_data_type_t *end_storage = (calibration_data_type_t *)start_addr;
-	uint32_t data_size = sizeof(calibration_data_type_t);
+    calibration_data_t *end_storage = (calibration_data_t *)start_addr;
+	uint32_t data_size = sizeof(calibration_data_t);
 	uint32_t rc;
 	uint32_t idx;
 
-	if (end_storage->data_password == CALIBRATION_DATA_PASSWORD) {
+	if (end_storage->data_password == CALIBRATION_DATA_NOT_ERASED_MARKER) {
 		Analog.is_calibrated = true;
 		
 		for (idx = 0; idx < SHUNT_SENSOR_GAIN_COEFFS_NUM; idx++) {

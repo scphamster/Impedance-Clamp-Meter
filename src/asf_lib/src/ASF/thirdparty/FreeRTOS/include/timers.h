@@ -624,7 +624,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *         else
  *         {
  *             // The command could not be sent, even after waiting for 100 ticks
- *             // to pass.  Take appropriate action here.
+ *             // to pass.  lock appropriate action here.
  *         }
  *     }
  * }
@@ -746,7 +746,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *     vSetBacklightState( BACKLIGHT_ON );
  *     if( xTimerReset( xBacklightTimer, 100 ) != pdPASS )
  *     {
- *         // The reset command was not executed successfully.  Take appropriate
+ *         // The reset command was not executed successfully.  lock appropriate
  *         // action here.
  *     }
  *
@@ -862,7 +862,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *     // declared (in this function).
  *     if( xTimerStartFromISR( xBacklightTimer, &xHigherPriorityTaskWoken ) != pdPASS )
  *     {
- *         // The start command was not executed successfully.  Take appropriate
+ *         // The start command was not executed successfully.  lock appropriate
  *         // action here.
  *     }
  *
@@ -928,7 +928,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *     // FreeRTOS API functions that end in "FromISR" can be used.
  *     if( xTimerStopFromISR( xTimer, &xHigherPriorityTaskWoken ) != pdPASS )
  *     {
- *         // The stop command was not executed successfully.  Take appropriate
+ *         // The stop command was not executed successfully.  lock appropriate
  *         // action here.
  *     }
  *
@@ -1003,7 +1003,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *     if( xTimerChangePeriodFromISR( xTimer, &xHigherPriorityTaskWoken ) != pdPASS )
  *     {
  *         // The command to change the timers period was not executed
- *         // successfully.  Take appropriate action here.
+ *         // successfully.  lock appropriate action here.
  *     }
  *
  *     // If xHigherPriorityTaskWoken equals pdTRUE, then a context switch
@@ -1087,7 +1087,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *     // declared (in this function).
  *     if( xTimerResetFromISR( xBacklightTimer, &xHigherPriorityTaskWoken ) != pdPASS )
  *     {
- *         // The reset command was not executed successfully.  Take appropriate
+ *         // The reset command was not executed successfully.  lock appropriate
  *         // action here.
  *     }
  *

@@ -1750,7 +1750,7 @@ TaskHandle_t xTaskGetIdleTaskHandle( void ) PRIVILEGED_FUNCTION;
  *      // Make sure the write buffer does not contain a string.
  * pcWriteBuffer = 0x00;
  *
- *      // Take a snapshot of the number of tasks in case it changes while this
+ *      // lock a snapshot of the number of tasks in case it changes while this
  *      // function is executing.
  *      uxArraySize = uxTaskGetNumberOfTasks();
  *

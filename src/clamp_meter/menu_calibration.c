@@ -448,7 +448,7 @@ void calibration_save(void)
 	Cal_data.v_sens_gain = Calibrator.v_sens_gain;
 	Cal_data.v_sens_phi = Calibrator.vout_phi_noload;
 
-	Cal_data.data_password = CALIBRATION_DATA_PASSWORD;
+	Cal_data.data_password = CALIBRATION_DATA_NOT_ERASED_MARKER;
 
 	store_coeffs_to_flash_struct();
 	calibration_terminate();
