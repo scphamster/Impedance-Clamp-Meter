@@ -91,23 +91,23 @@ class ILIDrawer {
 
     //    void Init();
     //    void Reset();
-    void Clear(uint16_t color);
-    void SetRotation(uint8_t rotation);
-    void SetCursor(PixelNumT x, PixelNumT y) noexcept;
-    void SetTextColor(uint16_t pixelcolor, uint16_t backcolor);
+    inline void Clear(uint16_t color) const noexcept;
+    inline void SetRotation(uint8_t rotation) const noexcept;
+    inline void SetCursor(PixelNumT x, PixelNumT y) const noexcept;
+    inline void SetTextColor(uint16_t pixelcolor, uint16_t backcolor) const noexcept;
 
-    void FillScreen(ColorT color);
-    void DrawPoint(int16_t x0, int16_t y0, ColorT color);
-    void DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ColorT color);
-    void DrawVLine(int16_t x, int16_t y, int16_t h, ColorT color);
-    void DrawHLine(int16_t x, int16_t y, int16_t w, ColorT color);
-    void DrawCircle(int16_t x0, int16_t y0, int16_t r, ColorT color);
-    void DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ColorT color);
-    void DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color);
-    void DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color);
-    void Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size);
-    void Print(uint16_t number, uint8_t string_mode, uint8_t size);
-    void Print(float number, uint8_t string_mode, uint8_t size);
+    void        FillScreen(ColorT color) const noexcept;
+    inline void DrawPoint(int16_t x0, int16_t y0, ColorT color) const noexcept;
+    inline void DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ColorT color) const noexcept;
+    inline void DrawVLine(int16_t x, int16_t y, int16_t h, ColorT color) const noexcept;
+    inline void DrawHLine(int16_t x, int16_t y, int16_t w, ColorT color) const noexcept;
+    inline void DrawCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
+    inline void DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
+    inline void DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
+    inline void DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
+    inline void Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size) const noexcept;
+    inline void Print(uint16_t number, uint8_t string_mode, uint8_t size) const noexcept;
+    inline void Print(float number, uint8_t string_mode, uint8_t size) const noexcept;
 
   private:
     class Impl;

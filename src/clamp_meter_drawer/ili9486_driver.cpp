@@ -29,54 +29,88 @@ class ILIDrawerIO {
         Reset
     };
 
-    void           InitGPIO();
-    constexpr void SetPin(Pin, bool to_be_set);
-    void           SetData1(uint8_t data);
-    void           SetData2(uint8_t data);
-    void           StrobeWritePin();
+    inline void InitGPIO() const noexcept;
+    template<Pin, bool to_be_set>
+    constexpr inline void SetPin() const noexcept;
+    inline void           SetData1(uint8_t data) const noexcept;
+    inline void           SetData2(uint8_t data) const noexcept;
+    inline void           StrobeWritePin() const noexcept;
 
   protected:
   private:
     // pins config
 };
 
-constexpr void
-ILIDrawerIO::SetPin(Pin pin, bool to_be_set)
+template<ILIDrawerIO::Pin pin, bool to_be_set>
+constexpr inline void
+ILIDrawerIO::SetPin() const noexcept
 {
-    switch (pin) {
-    case Pin::ChipSelect:
-        if (to_be_set) {
+    //        switch (pin) {
+    //        case Pin::ChipSelect:
+    //            if (to_be_set) {
+    //                pio_clear(TFT_CS_PIO, TFT_CS_PIN);
+    //            }
+    //            else {
+    //                pio_set(TFT_CS_PIO, TFT_CS_PIN);
+    //            };
+    //            break;
+    //        case Pin::Data: pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
+    //        case Pin::Command: pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
+    //        case Pin::Write:
+    //            if (to_be_set) {
+    //                pio_clear(TFT_WR_PIO, TFT_WR_PIN);
+    //            }
+    //            else {
+    //                pio_set(TFT_WR_PIO, TFT_WR_PIN);
+    //            };
+    //            break;
+    //
+    //        case Pin::Reset:
+    //            if (to_be_set) {
+    //                pio_clear(TFT_RESET_PIO, TFT_RESET_PIN);
+    //            }
+    //            else {
+    //                pio_set(TFT_RESET_PIO, TFT_RESET_PIN);
+    //            };
+    //            break;
+    //        case Pin::Read: break;
+    //        }
+
+    if constexpr (pin == Pin::ChipSelect) {
+        if constexpr (to_be_set) {
             pio_clear(TFT_CS_PIO, TFT_CS_PIN);
         }
         else {
             pio_set(TFT_CS_PIO, TFT_CS_PIN);
         };
-        break;
-    case Pin::Data: pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
-    case Pin::Command: pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
-    case Pin::Write:
-        if (to_be_set) {
+    }
+    else if constexpr (pin == Pin::Data) {
+        pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN);
+    }
+    else if constexpr (pin == Pin::Command) {
+        pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN);
+    }
+    else if constexpr (pin == Pin::Write) {
+        if constexpr (to_be_set) {
             pio_clear(TFT_WR_PIO, TFT_WR_PIN);
         }
         else {
             pio_set(TFT_WR_PIO, TFT_WR_PIN);
         };
-        break;
-
-    case Pin::Reset:
-        if (to_be_set) {
+    }
+    else if constexpr (pin == Pin::Reset) {
+        if constexpr (to_be_set) {
             pio_clear(TFT_RESET_PIO, TFT_RESET_PIN);
         }
         else {
             pio_set(TFT_RESET_PIO, TFT_RESET_PIN);
         };
-        break;
-    case Pin::Read: break;
     }
+    else if constexpr (pin == Pin::Read) { }
 }
 
-void
-ILIDrawerIO::InitGPIO()
+inline void
+ILIDrawerIO::InitGPIO() const noexcept
 {
     Matrix *p_matrix;
     p_matrix = MATRIX;
@@ -93,8 +127,8 @@ ILIDrawerIO::InitGPIO()
     pio_set_output(PIOD, 0x1FEul, 0, 0, 0);
 }
 
-void
-ILIDrawerIO::SetData1(uint8_t data)
+inline void
+ILIDrawerIO::SetData1(uint8_t data) const noexcept
 {
     uint32_t data_a = 0;
     uint32_t data_d = 0;
@@ -122,8 +156,8 @@ ILIDrawerIO::SetData1(uint8_t data)
     pio_disable_output_write(PIOD, 0x1E0ul);
 }
 
-void
-ILIDrawerIO::SetData2(uint8_t data)
+inline void
+ILIDrawerIO::SetData2(uint8_t data) const noexcept
 {
     uint32_t data_a = 0;
     uint32_t data_b = 0;
@@ -153,50 +187,51 @@ ILIDrawerIO::SetData2(uint8_t data)
     pio_disable_output_write(PIOD, 0x1Eul);
 }
 
-void
-ILIDrawerIO::StrobeWritePin()
+inline void
+ILIDrawerIO::StrobeWritePin() const noexcept
 {
-    SetPin(Pin::Write, true);
-    SetPin(Pin::Write, false);
+    SetPin<Pin::Write, true>();
+    SetPin<Pin::Write, false>();
 }
 
 class ILIDrawer::Impl : private ILIDrawerIO {
   public:
-    void Init();
-    void Reset();
-    void Clear(ColorT color);
-    void SetRotation(uint8_t rotation);
-    void SetCursor(PixelNumT x, PixelNumT y) noexcept;
-    void SetTextColor(ColorT pixelcolor, ColorT backcolor);
+    void        Init() noexcept;
+    void        Reset() const noexcept;
+    inline void Clear(ColorT color) const noexcept;
+    inline void SetRotation(uint8_t rotation) noexcept;
+    inline void SetCursor(PixelNumT x, PixelNumT y) noexcept;
+    inline void SetTextColor(ColorT pixelcolor, ColorT backcolor) noexcept;
 
-    void FillScreen(ColorT color);
-    void DrawPoint(int16_t x0, int16_t y0, ColorT color);
-    void DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ColorT color);
-    void DrawVLine(int16_t x, int16_t y, int16_t h, ColorT color);
-    void DrawHLine(int16_t x, int16_t y, int16_t w, ColorT color);
-    void DrawCircle(int16_t x0, int16_t y0, int16_t r, ColorT color);
-    void DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ColorT color);
-    void DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color);
-    void DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color);
-    void Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size);
-    void Print(uint16_t number, uint8_t string_mode, uint8_t size);
-    void Print(float number, uint8_t string_mode, uint8_t size);
+    inline void FillScreen(ColorT color) const noexcept;
+    inline void DrawPoint(int16_t x0, int16_t y0, ColorT color) const noexcept;
+    inline void DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ColorT color) const noexcept;
+    inline void DrawVLine(int16_t x, int16_t y, int16_t h, ColorT color) const noexcept;
+    inline void DrawHLine(int16_t x, int16_t y, int16_t w, ColorT color) const noexcept;
+    void        DrawCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
+    void        DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
+    inline void DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
+    void        DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
+    void        Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size) noexcept;
+    void        Print(uint16_t number, uint8_t string_mode, uint8_t size) noexcept;
+    void        Print(float number, uint8_t string_mode, uint8_t size) noexcept;
 
   protected:
-    void WriteData(uint8_t data);
-    void WriteCommand(uint8_t cmd);
-    void WriteDataDouble(uint16_t data);
-    void WriteCommandDouble(uint16_t cmd);
+    inline void WriteData(uint8_t data) const noexcept;
+    inline void WriteCommand(uint8_t cmd) const noexcept;
+    inline void WriteDataDouble(uint16_t data) const noexcept;
+    inline void WriteCommandDouble(uint16_t cmd) const noexcept;
 
-    void SetPartial(int16_t x_beg, int16_t y_beg, int16_t x_end, int16_t y_end);
+    inline void SetPartial(int16_t x_beg, int16_t y_beg, int16_t x_end, int16_t y_end) const noexcept;
 
-    void WriteParameter(uint8_t cmd, int8_t n_bytes, uint8_t *data);
-    void DrawPixel(uint16_t x, uint16_t y, ColorT color);
-    void PutPixel(ColorT color);
-    void PutPixel(ColorT color, uint64_t n);
+    inline void WriteParameter(uint8_t cmd, int8_t n_bytes, uint8_t *data) const noexcept;
+    inline void DrawPixel(uint16_t x, uint16_t y, ColorT color) const noexcept;
+    inline void PutPixel(ColorT color) const noexcept;
+    inline void PutPixel(ColorT color, uint64_t n) const noexcept;
 
-    void PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint8_t size);
-    void DrawFiledCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, ColorT color);
+    void PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint8_t size) const noexcept;
+    void DrawFiledCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, ColorT color)
+      const noexcept;
 
   private:
     uint16_t  m_screen_width;
@@ -205,7 +240,7 @@ class ILIDrawer::Impl : private ILIDrawerIO {
     uint16_t  pixelColour, backColour;
 };
 
-void
+inline void
 ILIDrawer::Impl::SetCursor(ILIDrawer::PixelNumT x, ILIDrawer::PixelNumT y) noexcept
 {
     m_cursor_x = x;
@@ -213,57 +248,57 @@ ILIDrawer::Impl::SetCursor(ILIDrawer::PixelNumT x, ILIDrawer::PixelNumT y) noexc
 }
 
 void
-ILIDrawer::Impl::Reset()
+ILIDrawer::Impl::Reset() const noexcept
 {
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
     // TFT_CTRL_NOREAD;
-    SetPin(Pin::Write, false);
+    SetPin<Pin::Write, false>();
 
-    SetPin(Pin::Reset, false);
+    SetPin<Pin::Reset, false>();
 
     delay_ms(50);
-    SetPin(Pin::Reset, true);
+    SetPin<Pin::Reset, true>();
     delay_ms(100);
 
-    SetPin(Pin::Reset, false);
+    SetPin<Pin::Reset, false>();
     delay_ms(100);
 }
 
-void
-ILIDrawer::Impl::Clear(ColorT color)
+inline void
+ILIDrawer::Impl::Clear(ColorT color) const noexcept
 {
     FillScreen(color);
 }
 
-void
-ILIDrawer::Impl::WriteData(uint8_t data)
+inline void
+ILIDrawer::Impl::WriteData(uint8_t data) const noexcept
 {
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Data, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Data, true>();
 
     SetData1(data);
     StrobeWritePin();
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::WriteCommand(uint8_t cmd)
+inline void
+ILIDrawer::Impl::WriteCommand(uint8_t cmd) const noexcept
 {
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Command, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Command, true>();
 
     SetData1(cmd);
     StrobeWritePin();
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::WriteDataDouble(uint16_t data)
+inline void
+ILIDrawer::Impl::WriteDataDouble(uint16_t data) const noexcept
 {
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Data, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Data, true>();
 
     SetData1(data >> 8);
     StrobeWritePin();
@@ -271,44 +306,44 @@ ILIDrawer::Impl::WriteDataDouble(uint16_t data)
     SetData1(data & 0xff);
     StrobeWritePin();
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::WriteCommandDouble(uint16_t cmd)
+inline void
+ILIDrawer::Impl::WriteCommandDouble(uint16_t cmd) const noexcept
 {
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Command, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Command, true>();
 
     SetData1(cmd >> 8);
     StrobeWritePin();
     SetData1(cmd & 0xff);
     StrobeWritePin();
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::PutPixel(ColorT color)
+inline void
+ILIDrawer::Impl::PutPixel(ColorT color) const noexcept
 {
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Data, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Data, true>();
 
     SetData1(color & 0xff);
     SetData2((color >> 8) & 0xff);
 
     StrobeWritePin();
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::PutPixel(ColorT color, uint64_t n)
+inline void
+ILIDrawer::Impl::PutPixel(ColorT color, uint64_t n) const noexcept
 {
     WriteCommand(TFT_RAMWR);
 
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Data, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Data, true>();
 
     SetData1(color & 0xff);
     SetData2((color >> 8) & 0xff);
@@ -318,11 +353,11 @@ ILIDrawer::Impl::PutPixel(ColorT color, uint64_t n)
         n--;
     }
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
-void
-ILIDrawer::Impl::WriteParameter(uint8_t cmd, int8_t n_bytes, uint8_t *data)
+inline void
+ILIDrawer::Impl::WriteParameter(uint8_t cmd, int8_t n_bytes, uint8_t *data) const noexcept
 {
     WriteCommand(cmd);
 
@@ -331,8 +366,8 @@ ILIDrawer::Impl::WriteParameter(uint8_t cmd, int8_t n_bytes, uint8_t *data)
     }
 }
 
-void
-ILIDrawer::Impl::SetPartial(int16_t x_beg, int16_t y_beg, int16_t x_end, int16_t y_end)
+inline void
+ILIDrawer::Impl::SetPartial(int16_t x_beg, int16_t y_beg, int16_t x_end, int16_t y_end) const noexcept
 {
     uint8_t caset_data[4] = { static_cast<uint8_t>(x_beg >> 8),
                               static_cast<uint8_t>(x_beg),
@@ -349,7 +384,7 @@ ILIDrawer::Impl::SetPartial(int16_t x_beg, int16_t y_beg, int16_t x_end, int16_t
 }
 
 void
-ILIDrawer::Impl::PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint8_t size)
+ILIDrawer::Impl::PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint8_t size) const noexcept
 {
     if ((x > m_screen_width - FONT_WIDTH * size) || (y > m_screen_height - FONT_HEIGHT * size))
         return;
@@ -363,8 +398,9 @@ ILIDrawer::Impl::PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint
     SetPartial(x, y, x + FONT_WIDTH * size - 1, y + FONT_HEIGHT * size - 1);
     WriteCommand(TFT_RAMWR);
 
-    SetPin(Pin::ChipSelect, true);
-    SetPin(Pin::Data, true);
+    SetPin<Pin::ChipSelect, true>();
+    SetPin<Pin::Data, true>();
+
     SetData1(0xff & backColour);
     SetData2((backColour >> 8) && 0Xff);
 
@@ -421,11 +457,12 @@ ILIDrawer::Impl::PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint
         }
     }
 
-    SetPin(Pin::ChipSelect, false);
+    SetPin<Pin::ChipSelect, false>();
 }
 
 void
 ILIDrawer::Impl::DrawFiledCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, ColorT color)
+  const noexcept
 {
     int16_t f     = 1 - r;
     int16_t ddF_x = 1;
@@ -456,8 +493,8 @@ ILIDrawer::Impl::DrawFiledCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_
     }
 }
 
-void
-ILIDrawer::Impl::SetRotation(uint8_t rotation)
+inline void
+ILIDrawer::Impl::SetRotation(uint8_t rotation) noexcept
 {
     WriteCommand(TFT_MADCTL);
 
@@ -486,29 +523,29 @@ ILIDrawer::Impl::SetRotation(uint8_t rotation)
     }
 }
 
-void
-ILIDrawer::Impl::SetTextColor(uint16_t pixelcolor, uint16_t backcolor)
+inline void
+ILIDrawer::Impl::SetTextColor(uint16_t pixelcolor, uint16_t backcolor) noexcept
 {
     pixelColour = pixelcolor;
     backColour  = backcolor;
 }
 
-void
-ILIDrawer::Impl::FillScreen(ColorT color)
+inline void
+ILIDrawer::Impl::FillScreen(ColorT color) const noexcept
 {
     DrawFiledRectangle(0, 0, m_screen_width, m_screen_height, color);
 }
 
-void
-ILIDrawer::Impl::DrawPoint(int16_t x0, int16_t y0, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::Impl::DrawPoint(int16_t x0, int16_t y0, ILIDrawer::ColorT color) const noexcept
 {
     int16_t r = 1;
     DrawVLine(x0, y0 - r, 2 * r + 1, color);
     DrawFiledCircleHelper(x0, y0, r, 3, 0, color);
 }
 
-void
-ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDrawer::ColorT color) const noexcept
 {
     int16_t i;
     int16_t dx, dy;
@@ -543,7 +580,7 @@ ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDra
             DrawHLine(x1, y1, x2 - x1 + 1, color);
         else
             DrawHLine(x2, y1, x1 - x2 + 1, color);
-         return;
+        return;
     }
     else if (x1 == x2) {
         if (y2 > y1)
@@ -587,8 +624,8 @@ ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDra
     }
 }
 
-void
-ILIDrawer::Impl::DrawPixel(uint16_t x, uint16_t y, ColorT color)
+inline void
+ILIDrawer::Impl::DrawPixel(uint16_t x, uint16_t y, ColorT color) const noexcept
 {
     if (x < 0 || y < 0 || x >= m_screen_width || y >= m_screen_height)
         return;
@@ -610,8 +647,8 @@ ILIDrawer::Impl::DrawPixel(uint16_t x, uint16_t y, ColorT color)
     PutPixel(color);
 }
 
-void
-ILIDrawer::Impl::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::Impl::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     if ((x >= m_screen_width) || (y >= m_screen_height || h < 1))
         return;
@@ -622,8 +659,8 @@ ILIDrawer::Impl::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT co
     DrawFiledRectangle(x, y, 1, h, color);
 }
 
-void
-ILIDrawer::Impl::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::Impl::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT color) const noexcept
 {
     if ((x >= m_screen_width) || (y >= m_screen_height || w < 1))
         return;
@@ -634,7 +671,7 @@ ILIDrawer::Impl::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT co
     DrawFiledRectangle(x, y, w, 1, color);
 }
 void
-ILIDrawer::Impl::DrawCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color)
+ILIDrawer::Impl::DrawCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color) const noexcept
 {
     int16_t f     = 1 - r;
     int16_t ddF_x = 1;
@@ -669,13 +706,13 @@ ILIDrawer::Impl::DrawCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT
     }
 }
 void
-ILIDrawer::Impl::DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color)
+ILIDrawer::Impl::DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color) const noexcept
 {
     DrawVLine(x0, y0 - r, 2 * r + 1, color);
     DrawFiledCircleHelper(x0, y0, r, 3, 0, color);
 }
-void
-ILIDrawer::Impl::DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::Impl::DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     DrawHLine(x, y, w, color);
     DrawHLine(x, y + h - 1, w, color);
@@ -683,7 +720,7 @@ ILIDrawer::Impl::DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDr
     DrawVLine(x + w - 1, y, h, color);
 }
 void
-ILIDrawer::Impl::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color)
+ILIDrawer::Impl::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     int16_t  end;
     uint32_t n_pixels;
@@ -723,7 +760,7 @@ ILIDrawer::Impl::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, 
     PutPixel(color, n_pixels);
 }
 void
-ILIDrawer::Impl::Print(const char *string, uint8_t string_mode, uint8_t size)
+ILIDrawer::Impl::Print(const char *string, uint8_t string_mode, uint8_t size) noexcept
 {
     uint8_t i      = 0;
     uint8_t font_w = (FONT_WIDTH - FONT_SQUISH) * size;
@@ -750,7 +787,7 @@ ILIDrawer::Impl::Print(const char *string, uint8_t string_mode, uint8_t size)
     }
 }
 void
-ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size)
+ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size) noexcept
 {
     int16_t temp = 1;
 
@@ -774,7 +811,7 @@ ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size)
     }
 }
 void
-ILIDrawer::Impl::Print(float number, uint8_t n_digits, uint8_t size)
+ILIDrawer::Impl::Print(float number, uint8_t n_digits, uint8_t size) noexcept
 {
     static char str[20];
 
@@ -785,7 +822,7 @@ ILIDrawer::Impl::Print(float number, uint8_t n_digits, uint8_t size)
     Print(str, TFT_STR_M_BACKGR, size);
 }
 void
-ILIDrawer::Impl::Init()
+ILIDrawer::Impl::Init() noexcept
 {
     InitGPIO();
     Reset();
@@ -872,83 +909,83 @@ ILIDrawer::~ILIDrawer()                       = default;
 ILIDrawer &ILIDrawer::operator=(ILIDrawer &&) = default;
 ILIDrawer::ILIDrawer(ILIDrawer &&)            = default;
 
-void
-ILIDrawer::Clear(ColorT color)
+inline void
+ILIDrawer::Clear(ColorT color) const noexcept
 {
     impl->Clear(color);
 }
-void
-ILIDrawer::SetRotation(uint8_t rotation)
+inline void
+ILIDrawer::SetRotation(uint8_t rotation) const noexcept
 {
     impl->SetRotation(rotation);
 }
-void
-ILIDrawer::SetTextColor(ColorT pixelcolor, ColorT backcolor)
+inline void
+ILIDrawer::SetTextColor(ColorT pixelcolor, ColorT backcolor) const noexcept
 {
     impl->SetTextColor(pixelcolor, backcolor);
 }
-void
-ILIDrawer::SetCursor(ILIDrawer::PixelNumT x, ILIDrawer::PixelNumT y) noexcept
+inline void
+ILIDrawer::SetCursor(ILIDrawer::PixelNumT x, ILIDrawer::PixelNumT y) const noexcept
 {
     impl->SetCursor(x, y);
 }
 void
-ILIDrawer::FillScreen(ILIDrawer::ColorT color)
+ILIDrawer::FillScreen(ILIDrawer::ColorT color) const noexcept
 {
     impl->FillScreen(color);
 }
-void
-ILIDrawer::DrawPoint(int16_t x0, int16_t y0, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawPoint(int16_t x0, int16_t y0, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawPoint(x0, y0, color);
 }
-void
-ILIDrawer::DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawLine(x0, y0, x1, y1, color);
 }
-void
-ILIDrawer::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawVLine(x, y, h, color);
 }
-void
-ILIDrawer::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawHLine(x, y, w, color);
 }
-void
-ILIDrawer::DrawCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawCircle(x0, y0, r, color);
 }
-void
-ILIDrawer::DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawFiledCircle(x0, y0, r, color);
 }
-void
-ILIDrawer::DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawRectangle(x, y, w, h, color);
 }
-void
-ILIDrawer::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color)
+inline void
+ILIDrawer::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ILIDrawer::ColorT color) const noexcept
 {
     impl->DrawFiledRectangle(x, y, w, h, color);
 }
-void
-ILIDrawer::Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size)
+inline void
+ILIDrawer::Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size) const noexcept
 {
     impl->Print(string, TFT_STRING_MODE, size);
 }
-void
-ILIDrawer::Print(uint16_t number, uint8_t string_mode, uint8_t size)
+inline void
+ILIDrawer::Print(uint16_t number, uint8_t string_mode, uint8_t size) const noexcept
 {
     impl->Print(number, string_mode, size);
 }
-void
-ILIDrawer::Print(float number, uint8_t string_mode, uint8_t size)
+inline void
+ILIDrawer::Print(float number, uint8_t string_mode, uint8_t size) const noexcept
 {
     impl->Print(number, string_mode, size);
 }

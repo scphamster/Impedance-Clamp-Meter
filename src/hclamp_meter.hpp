@@ -54,7 +54,9 @@ class ClampMeter : private Sensor {
 //        display->SetCursor(100, 100);
 //        display->SetTextColor(COLOR_RED, COLOR_BLACK);
         display->FillScreen(COLOR_GREEN);
+//        vTaskDelay(pdMS_TO_TICKS(100));
         display->FillScreen(COLOR_BLACK);
+//        vTaskDelay(pdMS_TO_TICKS(100));
 //        {
 //            std::lock_guard<Mutex> lock{ mutex };
 ////                        TFT_print_number_f(*someValue, 3, 2);
