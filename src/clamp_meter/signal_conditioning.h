@@ -1,14 +1,13 @@
-/*
-* signal_conditioning.h
-*
-* Created: 01.11.2021 7:50:34
-*  Author: malygosstationar
-*/
-
-
-#ifndef SIGNAL_CONDITIONING_H_
-#define SIGNAL_CONDITIONING_H_
-
+#pragma once
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
+#ifdef printf
+#undef printf
+#endif
 #include "asf.h"
 #include "MCP3462.h"
 #include "arm_math.h"
@@ -210,5 +209,3 @@ void recall_coeffs_from_flash_struct(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* SIGNAL_CONDITIONING_H_ */

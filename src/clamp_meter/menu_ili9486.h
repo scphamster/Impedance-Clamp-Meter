@@ -1,14 +1,4 @@
-/*
- * menu_ili9486.h
- *
- * Created: 13.11.2021 16:25:22
- *  Author: malygosstationar
- */
-
-#ifndef MENU_ILI9486_H_
-#define MENU_ILI9486_H_
-
-//#include "ILI9486_public.h"
+#pragma once
 
 #define SELECTED_LINE_BACKGR_COLOR    COLOR_DARKDARKGREY
 #define NOTSELECTED_LINE_BACKGR_COLOR COLOR_BLACK
@@ -28,4 +18,3 @@ void display_show_bot_bar(void);
 }
 #endif
 
-#endif /* MENU_ILI9486_H_ */

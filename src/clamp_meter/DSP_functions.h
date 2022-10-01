@@ -1,12 +1,13 @@
-/*
- * DSP_functions.h
- *
- * Created: 14.10.2021 19:06:58
- *  Author: malygosstationar
- */
-
-#ifndef DSP_FUNCTIONS_H_
-#define DSP_FUNCTIONS_H_
+#pragma once
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
+#ifdef printf
+#undef printf
+#endif
 #include "arm_math.h"
 #include "MCP3462.h"
 #define ADC_TEST_DEF
@@ -175,4 +176,3 @@ static volatile float32_t cos_table[] = { 1,
 #ifdef __cplusplus
 }
 #endif
-#endif /* DSP_FUNCTIONS_H_ */

@@ -1,13 +1,23 @@
 #pragma once
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
+#ifdef printf
+#undef printf
+#endif
+
 #include <memory>
 #include <mutex>
+#include <cstdint>
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include "mutex/semaphore.hpp"
 
-#include "ILI9486_public.h"
 #include "clamp_meter_drawing.hpp"
 
 [[noreturn]] void tasks_setup2();
@@ -49,21 +59,17 @@ class ClampMeter : private Sensor {
   protected:
     virtual void DisplayMeasurementsTask()
     {
-//                TFT_cursor_set(100, 100);
-//                TFT_text_color_set(COLOR_RED, COLOR_BLACK);
-//        display->SetCursor(100, 100);
-//        display->SetTextColor(COLOR_RED, COLOR_BLACK);
-        display->FillScreen(COLOR_GREEN);
-//        vTaskDelay(pdMS_TO_TICKS(100));
-        display->FillScreen(COLOR_BLACK);
-//        vTaskDelay(pdMS_TO_TICKS(100));
-//        {
-//            std::lock_guard<Mutex> lock{ mutex };
-////                        TFT_print_number_f(*someValue, 3, 2);
-//            display->Print(static_cast<float>(*someValue), 3, 2);
-//        }
+        display->SetTextColor(COLOR_GREEN, COLOR_BLACK);
+        display->SetCursor({ 0, 100 });
+        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+        display->SetCursor({ 0, 200 });
+        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+        display->SetCursor({ 0, 300 });
+        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+        display->SetCursor({ 0, 400 });
+        display->Print(static_cast<uint16_t>((*someValue)++), 2);
 
-//        vTaskDelay(pdMS_TO_TICKS(1000));
+//                vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     virtual void MeasurementsTask()

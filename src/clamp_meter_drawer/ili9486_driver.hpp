@@ -77,37 +77,49 @@
 #define TFT_PORTRAIT_REV  2
 #define TFT_LANDSCAPE_REV 3
 
-class ILIDrawer {
+class ILI9486Driver {
   public:
-    ILIDrawer();
-    explicit ILIDrawer(const ILIDrawer &);
-    ILIDrawer &operator=(const ILIDrawer &);
-    explicit ILIDrawer(ILIDrawer &&);
-    ILIDrawer &operator=(ILIDrawer &&);
-    virtual ~ILIDrawer();
+    ILI9486Driver();
+    explicit ILI9486Driver(const ILI9486Driver &);
+    ILI9486Driver &operator=(const ILI9486Driver &);
+    explicit ILI9486Driver(ILI9486Driver &&);
+    ILI9486Driver &operator=(ILI9486Driver &&);
+    virtual ~ILI9486Driver();
 
-    using PixelNumT = uint16_t;
-    using ColorT    = uint16_t;
+    using PixelNumT   = uint16_t;
+    using Color       = uint16_t;
+    using ScreenSizeT = int;
 
-    //    void Init();
-    //    void Reset();
-    inline void Clear(uint16_t color) const noexcept;
-    inline void SetRotation(uint8_t rotation) const noexcept;
-    inline void SetCursor(PixelNumT x, PixelNumT y) const noexcept;
-    inline void SetTextColor(uint16_t pixelcolor, uint16_t backcolor) const noexcept;
+    enum class Orientation {
+        Portrait = 0,
+        Landscape,
+        ReversePortrait,
+        ReverseLandscape
+    };
 
-    void        FillScreen(ColorT color) const noexcept;
-    inline void DrawPoint(int16_t x0, int16_t y0, ColorT color) const noexcept;
-    inline void DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, ColorT color) const noexcept;
-    inline void DrawVLine(int16_t x, int16_t y, int16_t h, ColorT color) const noexcept;
-    inline void DrawHLine(int16_t x, int16_t y, int16_t w, ColorT color) const noexcept;
-    inline void DrawCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
-    inline void DrawFiledCircle(int16_t x0, int16_t y0, int16_t r, ColorT color) const noexcept;
-    inline void DrawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
-    inline void DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, ColorT color) const noexcept;
-    inline void Print(const char *string, uint8_t TFT_STRING_MODE, uint8_t size) const noexcept;
-    inline void Print(uint16_t number, uint8_t string_mode, uint8_t size) const noexcept;
-    inline void Print(float number, uint8_t string_mode, uint8_t size) const noexcept;
+    class Point {
+      public:
+        ScreenSizeT x;
+        ScreenSizeT y;
+    };
+
+    void Clear(Color color) const noexcept;
+    template<ILI9486Driver::Orientation orientation>
+    constexpr void SetOrientation() const noexcept;
+    void           SetCursor(Point) const noexcept;
+    void           SetTextColor(Color pixelcolor, Color backcolor) const noexcept;
+    void           FillScreen(Color) const noexcept;
+    void           DrawPoint(Point p, Color) const noexcept;
+    void           DrawLine(Point, Point, Color) const noexcept;
+    void           DrawVLine(Point, ScreenSizeT h, Color) const noexcept;
+    void           DrawHLine(Point, ScreenSizeT w, Color) const noexcept;
+    void           DrawCircle(Point, ScreenSizeT r, Color) const noexcept;
+    void           DrawFiledCircle(Point, ScreenSizeT r, Color) const noexcept;
+    void           DrawRectangle(Point, ScreenSizeT w, ScreenSizeT h, Color) const noexcept;
+    void           DrawFiledRectangle(Point, ScreenSizeT w, ScreenSizeT h, Color) const noexcept;
+    void           Print(const char *string, uint8_t fontsize) const noexcept;
+    void           Print(uint16_t number, uint8_t fontsize) const noexcept;
+    void           Print(float number, uint8_t digits, uint8_t fontsize) const noexcept;
 
   private:
     class Impl;
