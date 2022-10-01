@@ -16,7 +16,7 @@
 
 extern "C" char *gcvtf(float, int, char *);
 
-class ILI9486DriverIO {
+class ILI9486Driver {
   public:
     enum class Pin {
         ChipSelect,
@@ -39,41 +39,10 @@ class ILI9486DriverIO {
     // pins config
 };
 
-template<ILI9486DriverIO::Pin pin, bool to_be_set>
+template<ILI9486Driver::Pin pin, bool to_be_set>
 constexpr inline void
-ILI9486DriverIO::SetPin() const noexcept
+ILI9486Driver::SetPin() const noexcept
 {
-    //        switch (pin) {
-    //        case Pin::ChipSelect:
-    //            if (to_be_set) {
-    //                pio_clear(TFT_CS_PIO, TFT_CS_PIN);
-    //            }
-    //            else {
-    //                pio_set(TFT_CS_PIO, TFT_CS_PIN);
-    //            };
-    //            break;
-    //        case Pin::Data: pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
-    //        case Pin::Command: pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
-    //        case Pin::Write:
-    //            if (to_be_set) {
-    //                pio_clear(TFT_WR_PIO, TFT_WR_PIN);
-    //            }
-    //            else {
-    //                pio_set(TFT_WR_PIO, TFT_WR_PIN);
-    //            };
-    //            break;
-    //
-    //        case Pin::Reset:
-    //            if (to_be_set) {
-    //                pio_clear(TFT_RESET_PIO, TFT_RESET_PIN);
-    //            }
-    //            else {
-    //                pio_set(TFT_RESET_PIO, TFT_RESET_PIN);
-    //            };
-    //            break;
-    //        case Pin::Read: break;
-    //        }
-
     if constexpr (pin == Pin::ChipSelect) {
         if constexpr (to_be_set) {
             pio_clear(TFT_CS_PIO, TFT_CS_PIN);
@@ -108,7 +77,7 @@ ILI9486DriverIO::SetPin() const noexcept
 }
 
 inline void
-ILI9486DriverIO::InitGPIO() const noexcept
+ILI9486Driver::InitGPIO() const noexcept
 {
     Matrix *p_matrix;
     p_matrix = MATRIX;
@@ -126,7 +95,7 @@ ILI9486DriverIO::InitGPIO() const noexcept
 }
 
 inline void
-ILI9486DriverIO::SetDataL(uint8_t data) const noexcept
+ILI9486Driver::SetDataL(uint8_t data) const noexcept
 {
     uint32_t data_a = 0;
     uint32_t data_d = 0;
@@ -155,7 +124,7 @@ ILI9486DriverIO::SetDataL(uint8_t data) const noexcept
 }
 
 inline void
-ILI9486DriverIO::SetDataH(uint8_t data) const noexcept
+ILI9486Driver::SetDataH(uint8_t data) const noexcept
 {
     uint32_t data_a = 0;
     uint32_t data_b = 0;
@@ -186,13 +155,13 @@ ILI9486DriverIO::SetDataH(uint8_t data) const noexcept
 }
 
 inline void
-ILI9486DriverIO::StrobeWritePin() const noexcept
+ILI9486Driver::StrobeWritePin() const noexcept
 {
     SetPin<Pin::Write, true>();
     SetPin<Pin::Write, false>();
 }
 
-class ILI9486Driver::Impl : private ILI9486DriverIO {
+class DisplayDrawer::Impl : private ILI9486Driver {
   public:
     void Init() noexcept;
     void Reset() const noexcept;
@@ -239,13 +208,13 @@ class ILI9486Driver::Impl : private ILI9486DriverIO {
 };
 
 inline void
-ILI9486Driver::Impl::SetCursor(const Point point) noexcept
+DisplayDrawer::Impl::SetCursor(const Point point) noexcept
 {
     cursorPosition = point;
 }
 
 void
-ILI9486Driver::Impl::Reset() const noexcept
+DisplayDrawer::Impl::Reset() const noexcept
 {
     SetPin<Pin::ChipSelect, false>();
     // TFT_CTRL_NOREAD;
@@ -262,13 +231,13 @@ ILI9486Driver::Impl::Reset() const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::Clear(const Color color) const noexcept
+DisplayDrawer::Impl::Clear(const Color color) const noexcept
 {
     FillScreen(color);
 }
 
 inline void
-ILI9486Driver::Impl::WriteData(uint8_t data) const noexcept
+DisplayDrawer::Impl::WriteData(uint8_t data) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -280,7 +249,7 @@ ILI9486Driver::Impl::WriteData(uint8_t data) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::WriteCommand(uint8_t cmd) const noexcept
+DisplayDrawer::Impl::WriteCommand(uint8_t cmd) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Command, true>();
@@ -292,7 +261,7 @@ ILI9486Driver::Impl::WriteCommand(uint8_t cmd) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::WriteDataDouble(uint16_t data) const noexcept
+DisplayDrawer::Impl::WriteDataDouble(uint16_t data) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -307,7 +276,7 @@ ILI9486Driver::Impl::WriteDataDouble(uint16_t data) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::WriteCommandDouble(uint16_t cmd) const noexcept
+DisplayDrawer::Impl::WriteCommandDouble(uint16_t cmd) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Command, true>();
@@ -321,7 +290,7 @@ ILI9486Driver::Impl::WriteCommandDouble(uint16_t cmd) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::PutPixel(const Color color) const noexcept
+DisplayDrawer::Impl::PutPixel(const Color color) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -335,7 +304,7 @@ ILI9486Driver::Impl::PutPixel(const Color color) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::PutPixel(const Color color, uint64_t n) const noexcept
+DisplayDrawer::Impl::PutPixel(const Color color, uint64_t n) const noexcept
 {
     WriteCommand(TFT_RAMWR);
 
@@ -354,7 +323,7 @@ ILI9486Driver::Impl::PutPixel(const Color color, uint64_t n) const noexcept
 }
 
 inline void
-ILI9486Driver::Impl::WriteParameter(Byte cmd, int n_bytes, Byte *data) const noexcept
+DisplayDrawer::Impl::WriteParameter(Byte cmd, int n_bytes, Byte *data) const noexcept
 {
     WriteCommand(cmd);
 
@@ -364,7 +333,7 @@ ILI9486Driver::Impl::WriteParameter(Byte cmd, int n_bytes, Byte *data) const noe
 }
 
 inline void
-ILI9486Driver::Impl::SetPartial(const Point point_beg, const Point point_end) const noexcept
+DisplayDrawer::Impl::SetPartial(const Point point_beg, const Point point_end) const noexcept
 {
     uint8_t caset_data[4] = { static_cast<uint8_t>(point_beg.x >> 8),
                               static_cast<uint8_t>(point_beg.x),
@@ -381,7 +350,7 @@ ILI9486Driver::Impl::SetPartial(const Point point_beg, const Point point_end) co
 }
 
 void
-ILI9486Driver::Impl::PrintChar(const Point point, Byte data, int size) const noexcept
+DisplayDrawer::Impl::PrintChar(const Point point, Byte data, int size) const noexcept
 {
     if ((point.x > m_screen_width - FONT_WIDTH * size) || (point.y > m_screen_height - FONT_HEIGHT * size))
         return;
@@ -458,7 +427,7 @@ ILI9486Driver::Impl::PrintChar(const Point point, Byte data, int size) const noe
 }
 
 void
-ILI9486Driver::Impl::DrawFiledCircleHelper(const Point point,
+DisplayDrawer::Impl::DrawFiledCircleHelper(const Point point,
                                            ScreenSizeT r,
                                            uint8_t     cornername,
                                            int     delta,
@@ -493,31 +462,31 @@ ILI9486Driver::Impl::DrawFiledCircleHelper(const Point point,
     }
 }
 
-template<ILI9486Driver::Orientation orientation>
+template<DisplayDrawer::Orientation orientation>
 constexpr void
-ILI9486Driver::Impl::SetOrientation() noexcept
+DisplayDrawer::Impl::SetOrientation() noexcept
 {
     WriteCommand(TFT_MADCTL);
 
-    if constexpr (orientation == ILI9486Driver::Orientation::Portrait) {
+    if constexpr (orientation == DisplayDrawer::Orientation::Portrait) {
         WriteData(0x48);   // 0b 0100 1000;
         m_screen_width  = TFT_WIDTH;
         m_screen_height = TFT_HEIGHT;
     }
 
-    if constexpr (orientation == ILI9486Driver::Orientation::Landscape) {   // 0b 0010 1000;
+    if constexpr (orientation == DisplayDrawer::Orientation::Landscape) {   // 0b 0010 1000;
         WriteData(0x28);
         m_screen_width  = TFT_HEIGHT;
         m_screen_height = TFT_WIDTH;
     }
 
-    if constexpr (orientation == ILI9486Driver::Orientation::ReversePortrait) {
+    if constexpr (orientation == DisplayDrawer::Orientation::ReversePortrait) {
         WriteData(0x98);   // 0b 1001 1000;
         m_screen_width  = TFT_WIDTH;
         m_screen_height = TFT_HEIGHT;
     }
 
-    if constexpr (orientation == ILI9486Driver::Orientation::ReverseLandscape) {
+    if constexpr (orientation == DisplayDrawer::Orientation::ReverseLandscape) {
         WriteData(0xF8);
         m_screen_width  = TFT_HEIGHT;
         m_screen_height = TFT_WIDTH;
@@ -525,20 +494,20 @@ ILI9486Driver::Impl::SetOrientation() noexcept
 }
 
 inline void
-ILI9486Driver::Impl::SetTextColor(Color pixelcolor, Color backcolor) noexcept
+DisplayDrawer::Impl::SetTextColor(Color pixelcolor, Color backcolor) noexcept
 {
     pixelColour = pixelcolor;
     backColour  = backcolor;
 }
 
 inline void
-ILI9486Driver::Impl::FillScreen(const Color color) const noexcept
+DisplayDrawer::Impl::FillScreen(const Color color) const noexcept
 {
     DrawFiledRectangle(Point{ 0, 0 }, m_screen_width, m_screen_height, color);
 }
 
 inline void
-ILI9486Driver::Impl::DrawPoint(const ILI9486Driver::Point point, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawPoint(const DisplayDrawer::Point point, const DisplayDrawer::Color color) const noexcept
 {
     ScreenSizeT r = 1;
 
@@ -547,7 +516,7 @@ ILI9486Driver::Impl::DrawPoint(const ILI9486Driver::Point point, const ILI9486Dr
 }
 
 inline void
-ILI9486Driver::Impl::DrawLine(Point point_beg, const Point point_end, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawLine(Point point_beg, const Point point_end, const DisplayDrawer::Color color) const noexcept
 {
     int16_t i;
     int16_t dx, dy;
@@ -627,7 +596,7 @@ ILI9486Driver::Impl::DrawLine(Point point_beg, const Point point_end, const ILI9
 }
 
 inline void
-ILI9486Driver::Impl::DrawPixel(const Point point, const Color color) const noexcept
+DisplayDrawer::Impl::DrawPixel(const Point point, const Color color) const noexcept
 {
     if (point.x < 0 || point.y < 0 || point.x >= m_screen_width || point.y >= m_screen_height)
         return;
@@ -650,7 +619,7 @@ ILI9486Driver::Impl::DrawPixel(const Point point, const Color color) const noexc
 }
 
 void
-ILI9486Driver::Impl::DrawVLine(const Point point, ScreenSizeT h, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawVLine(const Point point, ScreenSizeT h, const DisplayDrawer::Color color) const noexcept
 {
     if ((point.x >= m_screen_width) || (point.y >= m_screen_height || h < 1))
         return;
@@ -662,7 +631,7 @@ ILI9486Driver::Impl::DrawVLine(const Point point, ScreenSizeT h, const ILI9486Dr
 }
 
 void
-ILI9486Driver::Impl::DrawHLine(const Point point, ScreenSizeT w, ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawHLine(const Point point, ScreenSizeT w, DisplayDrawer::Color color) const noexcept
 {
     if ((point.x >= m_screen_width) || (point.y >= m_screen_height || w < 1))
         return;
@@ -673,7 +642,7 @@ ILI9486Driver::Impl::DrawHLine(const Point point, ScreenSizeT w, ILI9486Driver::
     DrawFiledRectangle(point, w, 1, color);
 }
 void
-ILI9486Driver::Impl::DrawCircle(const Point point, ScreenSizeT r, ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawCircle(const Point point, ScreenSizeT r, DisplayDrawer::Color color) const noexcept
 {
     int16_t f     = 1 - r;
     int16_t ddF_x = 1;
@@ -709,16 +678,16 @@ ILI9486Driver::Impl::DrawCircle(const Point point, ScreenSizeT r, ILI9486Driver:
 }
 
 void
-ILI9486Driver::Impl::DrawFiledCircle(const Point point, ScreenSizeT r, ILI9486Driver::Color color) const noexcept
+DisplayDrawer::Impl::DrawFiledCircle(const Point point, ScreenSizeT r, DisplayDrawer::Color color) const noexcept
 {
     DrawVLine(Point{ point.x, point.y - r }, 2 * r + 1, color);
     DrawFiledCircleHelper(Point{ point.x, point.y }, r, 3, 0, color);
 }
 inline void
-ILI9486Driver::Impl::DrawRectangle(const Point          point,
+DisplayDrawer::Impl::DrawRectangle(const Point          point,
                                    ScreenSizeT          w,
                                    ScreenSizeT          h,
-                                   ILI9486Driver::Color color) const noexcept
+                                   DisplayDrawer::Color color) const noexcept
 {
     DrawHLine(point, w, color);
     DrawHLine(Point{ point.x, point.y + h - 1 }, w, color);
@@ -726,10 +695,10 @@ ILI9486Driver::Impl::DrawRectangle(const Point          point,
     DrawVLine(Point{ point.x + w - 1, point.y }, h, color);
 }
 void
-ILI9486Driver::Impl::DrawFiledRectangle(Point                point,
+DisplayDrawer::Impl::DrawFiledRectangle(Point                point,
                                         ScreenSizeT          w,
                                         ScreenSizeT          h,
-                                        ILI9486Driver::Color color) const noexcept
+                                        DisplayDrawer::Color color) const noexcept
 {
     int16_t  end;
     uint32_t n_pixels;
@@ -769,7 +738,7 @@ ILI9486Driver::Impl::DrawFiledRectangle(Point                point,
     PutPixel(color, n_pixels);
 }
 void
-ILI9486Driver::Impl::Print(const char *string, uint8_t size) noexcept
+DisplayDrawer::Impl::Print(const char *string, uint8_t size) noexcept
 {
     uint8_t i      = 0;
     uint8_t font_w = (FONT_WIDTH - FONT_SQUISH) * size;
@@ -796,7 +765,7 @@ ILI9486Driver::Impl::Print(const char *string, uint8_t size) noexcept
     }
 }
 void
-ILI9486Driver::Impl::Print(uint16_t number, uint8_t size) noexcept
+DisplayDrawer::Impl::Print(uint16_t number, uint8_t size) noexcept
 {
     int16_t temp = 1;
 
@@ -820,7 +789,7 @@ ILI9486Driver::Impl::Print(uint16_t number, uint8_t size) noexcept
     }
 }
 void
-ILI9486Driver::Impl::Print(float number, uint8_t n_digits, uint8_t size) noexcept
+DisplayDrawer::Impl::Print(float number, uint8_t n_digits, uint8_t size) noexcept
 {
     static char str[20];
 
@@ -831,7 +800,7 @@ ILI9486Driver::Impl::Print(float number, uint8_t n_digits, uint8_t size) noexcep
     Print(str, size);
 }
 void
-ILI9486Driver::Impl::Init() noexcept
+DisplayDrawer::Impl::Init() noexcept
 {
     InitGPIO();
     Reset();
@@ -896,114 +865,114 @@ ILI9486Driver::Impl::Init() noexcept
     SetOrientation<Orientation::Portrait>();
 }
 
-ILI9486Driver::ILI9486Driver()
+DisplayDrawer::DisplayDrawer()
   : impl{ std::make_unique<Impl>() }
 {
     impl->Init();
     impl->Clear(COLOR_BLACK);
 }
 
-ILI9486Driver::ILI9486Driver(const ILI9486Driver &other)
+DisplayDrawer::DisplayDrawer(const DisplayDrawer &other)
   : impl{ std::make_unique<Impl>(*other.impl) }
 { }
 
-ILI9486Driver &
-ILI9486Driver::operator=(const ILI9486Driver &rhs)
+DisplayDrawer &
+DisplayDrawer::operator=(const DisplayDrawer &rhs)
 {
     impl = std::make_unique<Impl>(*rhs.impl);
     return *this;
 }
 
-ILI9486Driver::~ILI9486Driver()                           = default;
-ILI9486Driver &ILI9486Driver::operator=(ILI9486Driver &&) = default;
-ILI9486Driver::ILI9486Driver(ILI9486Driver &&)            = default;
+DisplayDrawer::~DisplayDrawer()                           = default;
+DisplayDrawer &DisplayDrawer::operator=(DisplayDrawer &&) = default;
+DisplayDrawer::DisplayDrawer(DisplayDrawer &&)            = default;
 
 inline void
-ILI9486Driver::Clear(const Color color) const noexcept
+DisplayDrawer::Clear(const Color color) const noexcept
 {
     impl->Clear(color);
 }
 
-template<ILI9486Driver::Orientation orientation>
+template<DisplayDrawer::Orientation orientation>
 constexpr void
-ILI9486Driver::SetOrientation() const noexcept
+DisplayDrawer::SetOrientation() const noexcept
 {
     impl->SetOrientation<orientation>();
 }
 
 void
-ILI9486Driver::SetTextColor(const Color pixelcolor, const Color backcolor) const noexcept
+DisplayDrawer::SetTextColor(const Color pixelcolor, const Color backcolor) const noexcept
 {
     impl->SetTextColor(pixelcolor, backcolor);
 }
 void
-ILI9486Driver::SetCursor(const Point point) const noexcept
+DisplayDrawer::SetCursor(const Point point) const noexcept
 {
     impl->SetCursor(point);
 }
 void
-ILI9486Driver::FillScreen(ILI9486Driver::Color color) const noexcept
+DisplayDrawer::FillScreen(DisplayDrawer::Color color) const noexcept
 {
     impl->FillScreen(color);
 }
 void
-ILI9486Driver::DrawPoint(const ILI9486Driver::Point p, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawPoint(const DisplayDrawer::Point p, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawPoint(p, color);
 }
 void
-ILI9486Driver::DrawLine(Point point_beg, const Point point_end, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawLine(Point point_beg, const Point point_end, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawLine(point_beg, point_end, color);
 }
 void
-ILI9486Driver::DrawVLine(const Point point, const ScreenSizeT h, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawVLine(const Point point, const ScreenSizeT h, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawVLine(point, h, color);
 }
 void
-ILI9486Driver::DrawHLine(const Point point, const ScreenSizeT w, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawHLine(const Point point, const ScreenSizeT w, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawHLine(point, w, color);
 }
 void
-ILI9486Driver::DrawCircle(const Point point, const ScreenSizeT r, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawCircle(const Point point, const ScreenSizeT r, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawCircle(point, r, color);
 }
 void
-ILI9486Driver::DrawFiledCircle(const Point point, const ScreenSizeT r, const ILI9486Driver::Color color) const noexcept
+DisplayDrawer::DrawFiledCircle(const Point point, const ScreenSizeT r, const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawFiledCircle(point, r, color);
 }
 void
-ILI9486Driver::DrawRectangle(const Point                point,
+DisplayDrawer::DrawRectangle(const Point                point,
                              const ScreenSizeT          w,
                              const ScreenSizeT          h,
-                             const ILI9486Driver::Color color) const noexcept
+                             const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawRectangle(point, w, h, color);
 }
 void
-ILI9486Driver::DrawFiledRectangle(const Point                point,
+DisplayDrawer::DrawFiledRectangle(const Point                point,
                                   const ScreenSizeT          w,
                                   const ScreenSizeT          h,
-                                  const ILI9486Driver::Color color) const noexcept
+                                  const DisplayDrawer::Color color) const noexcept
 {
     impl->DrawFiledRectangle(point, w, h, color);
 }
 void
-ILI9486Driver::Print(const char *string, const uint8_t fontsize) const noexcept
+DisplayDrawer::Print(const char *string, const uint8_t fontsize) const noexcept
 {
     impl->Print(string, fontsize);
 }
 void
-ILI9486Driver::Print(uint16_t number, const uint8_t fontsize) const noexcept
+DisplayDrawer::Print(uint16_t number, const uint8_t fontsize) const noexcept
 {
     impl->Print(number, fontsize);
 }
 void
-ILI9486Driver::Print(float number, uint8_t digits, const uint8_t fontsize) const noexcept
+DisplayDrawer::Print(float number, uint8_t digits, const uint8_t fontsize) const noexcept
 {
     impl->Print(number, digits, fontsize);
 }

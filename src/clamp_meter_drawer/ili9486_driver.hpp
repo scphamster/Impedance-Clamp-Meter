@@ -77,14 +77,14 @@
 #define TFT_PORTRAIT_REV  2
 #define TFT_LANDSCAPE_REV 3
 
-class ILI9486Driver {
+class DisplayDrawer {
   public:
-    ILI9486Driver();
-    explicit ILI9486Driver(const ILI9486Driver &);
-    ILI9486Driver &operator=(const ILI9486Driver &);
-    explicit ILI9486Driver(ILI9486Driver &&);
-    ILI9486Driver &operator=(ILI9486Driver &&);
-    virtual ~ILI9486Driver();
+    DisplayDrawer();
+    explicit DisplayDrawer(const DisplayDrawer &);
+    DisplayDrawer &operator=(const DisplayDrawer &);
+    explicit DisplayDrawer(DisplayDrawer &&);
+    DisplayDrawer &operator=(DisplayDrawer &&);
+    virtual ~DisplayDrawer();
 
     using PixelNumT   = uint16_t;
     using Color       = uint16_t;
@@ -104,7 +104,7 @@ class ILI9486Driver {
     };
 
     void Clear(Color color) const noexcept;
-    template<ILI9486Driver::Orientation orientation>
+    template<DisplayDrawer::Orientation orientation>
     constexpr void SetOrientation() const noexcept;
     void           SetCursor(Point) const noexcept;
     void           SetTextColor(Color pixelcolor, Color backcolor) const noexcept;

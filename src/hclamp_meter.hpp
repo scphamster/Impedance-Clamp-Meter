@@ -59,15 +59,18 @@ class ClampMeter : private Sensor {
   protected:
     virtual void DisplayMeasurementsTask()
     {
-        display->SetTextColor(COLOR_GREEN, COLOR_BLACK);
-        display->SetCursor({ 0, 100 });
-        display->Print(static_cast<uint16_t>((*someValue)++), 2);
-        display->SetCursor({ 0, 200 });
-        display->Print(static_cast<uint16_t>((*someValue)++), 2);
-        display->SetCursor({ 0, 300 });
-        display->Print(static_cast<uint16_t>((*someValue)++), 2);
-        display->SetCursor({ 0, 400 });
-        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+//        display->SetTextColor(COLOR_GREEN, COLOR_BLACK);
+//        display->SetCursor({ 0, 100 });
+//        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+//        display->SetCursor({ 0, 200 });
+//        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+//        display->SetCursor({ 0, 300 });
+//        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+//        display->SetCursor({ 0, 400 });
+//        display->Print(static_cast<uint16_t>((*someValue)++), 2);
+
+        display->FillScreen(COLOR_GREEN);
+        display->FillScreen(COLOR_RED);
 
 //                vTaskDelay(pdMS_TO_TICKS(100));
     }
