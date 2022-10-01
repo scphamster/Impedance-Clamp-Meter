@@ -1,23 +1,22 @@
 #pragma once
+#include "ili9486_driver.hpp"
 
-class ILIDrawer {
-  public:
-    void drawrect(void);
-    void drawdot(void);
-    //...
-
-  private:
-    // configs
-};
+template<typename DrawingDriver>
+concept DisplayDrawer = requires(const DrawingDriver drv) {
+                            //                          &DrawingDriver::SetCursor;
+                            typename DrawingDriver::PixelNumT;
+                            typename DrawingDriver::ColorT;
+                        };
 
 class ClampMeasData { };
 
-template<typename DrawingDriver>
-class ClampMeterDrawer {
+template<DisplayDrawer DrawingDriver>
+class ClampMeterDrawer : public DrawingDriver {
   public:
-    void drawMainMenu();
-    void drawData(ClampMeasData &);
+    using typename DrawingDriver::PixelNumT;
+    using typename DrawingDriver::ColorT;
 
+  protected:
   private:
     // configs
 };

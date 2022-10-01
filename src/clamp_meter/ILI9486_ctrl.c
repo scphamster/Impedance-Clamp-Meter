@@ -11,14 +11,10 @@
 extern "C" {
 #endif
 
-uint8_t  font_width, font_height;
-uint8_t  font_offset;
-uint8_t *font_addr;
 uint16_t tft_W;
 uint16_t tft_H;
-int16_t  _width, _height, cursor_x, cursor_y, char_color;
+int16_t  cursor_x, cursor_y, char_color;
 uint16_t PIXEL_COLOUR, BACK_COLOUR;
-uint8_t  textsize, rotation;
 
 extern char *gcvtf(float, int, char *);
 
@@ -886,7 +882,7 @@ TFT_print_number(uint16_t number, uint8_t TFT_STRING_MODE, uint8_t size)
 }
 
 void
-TFT_print_number_f(float32_t value, uint8_t n_digits, uint8_t size)
+TFT_print_number_f(float value, uint8_t n_digits, uint8_t size)
 {
     static char str[20];
 

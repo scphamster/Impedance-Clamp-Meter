@@ -1,19 +1,10 @@
-/*
- * TFT_Interface.h
- *
- *  Created on: Jan 23, 2019
- *      Author: abdelrhamn werby
+/**
+ * @authors: abdelrhamn werby scphamster
  */
-
-#ifndef ILI9486_PUBLIC_H_
-#define ILI9486_PUBLIC_H_
+#pragma once
 #include "asf.h"
-#include "arm_math.h"
-/************************************************************
- *
- *  CONTROL FUNCTIONS
- *
- ************************************************************/
+//#include "arm_math.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,12 +17,6 @@ void TFT_Set_Rotation	(uint8_t rotation);
 //void TFT_Write_Data_Byte(uint8_t data);
 //void TFT_Write_Cmd_Byte(uint8_t cmd);
 
-/************************************************************
- *
- *  DRAW FUNCTIONS
- *
- ************************************************************/
-
 void TFT_Draw_Line(int16_t x0, int16_t y0,int16_t x1, int16_t y1,uint16_t color);
 void TFT_Draw_Circle(int16_t x0, int16_t y0, int16_t r,uint16_t color);
 void TFT_DrawRect(int16_t x, int16_t y,  int16_t w, int16_t h,  uint16_t color);
@@ -42,29 +27,16 @@ void TFT_fillScreen(uint16_t color);
 void TFT_fillCircle(int16_t x0, int16_t y0, int16_t r,uint16_t color);
 void TFT_Draw_Point(int16_t x0, int16_t y0 ,uint16_t color);
 
-/************************************************************
- *
- * TEXT PRINT FUNCTIONS
- *
- ************************************************************/
-
 void TFT_cursor_set				(int16_t x, int16_t y);
 void TFT_text_color_set			(uint16_t pixelcolor, uint16_t backcolor);
 void TFT_print_str				(const char *string , uint8_t TFT_STRING_MODE, uint8_t size);
 void TFT_print_number			(uint16_t  Number, uint8_t TFT_STRING_MODE, uint8_t size);
-void TFT_print_number_f			(float32_t value, uint8_t n_digits, uint8_t size);
+void TFT_print_number_f			(float value, uint8_t n_digits, uint8_t size);
 
 #define TFT_STR_M_NOBACKGR	0x01
 #define TFT_STR_M_BACKGR	0x00
 
-/************************************************************
- *
- *  COLORS
- *
- ************************************************************/
-
 typedef uint16_t color_t;
-
 #define COLOR_BLACK       0x0000      /*   0,   0,   0 */
 #define COLOR_NAVY        0x000F      /*   0,   0, 128 */
 #define COLOR_DARKGREEN   0x03E0      /*   0, 128,   0 */
@@ -90,12 +62,8 @@ typedef uint16_t color_t;
 #define COLOR_REDYELLOW		60580
 #define COLOR_LIGHTMUD		42023
 #define COLOR_GREY			10565
-/************************************************************
- *
- *  ORINTIONS
- *
- ************************************************************/
 
+//screen orientations
 #define TFT_PORTRAIT       0
 #define TFT_LANDSCAPE      1
 #define TFT_PORTRAIT_REV   2
@@ -104,5 +72,3 @@ typedef uint16_t color_t;
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* ILI9486_PUBLIC_H_ */

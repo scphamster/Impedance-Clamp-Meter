@@ -1,3 +1,3 @@
 #pragma once
 
-void tasks_setup2();
+[[noreturn]] void tasks_setup2();

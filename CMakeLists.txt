@@ -31,7 +31,7 @@ endif ()
 
 set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu17")
-set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -fno-exceptions -std=c++20")
+set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -fconcepts-diagnostics-depth=2 -fno-exceptions -std=c++20")
 
 #set(LINKER_SCRIPT_DIR "C:/Program Files (x86)/Atmel/Studio/7.0/packs/atmel/SAM4E_DFP/1.1.57/ic.sam4e/gcc/gcc")
 set(LINKER_SCRIPT_DIR "${CMAKE_SOURCE_DIR}/src/asf_lib/src/ASF/sam/utils/linker_scripts/sam4e/sam4e8/gcc")
@@ -58,6 +58,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/clamp_meter_drawing.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
+    ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.cpp
+    ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.hpp
     )
 
 set(C_SOURCES

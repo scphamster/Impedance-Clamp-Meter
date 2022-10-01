@@ -33,17 +33,5 @@ int
 main()
 {
     system_init();
-
-    TFT_Init();
-    TFT_Clear(COLOR_BLACK);
-    display_init();
-
-    mcp23016_read_pindata();
-    delay_ms(30);
-
-//    xTaskCreate(tasks_setup, "main task", 500, NULL, 1, NULL);
-//    vTaskStartScheduler();
-//    simple_setup();
     tasks_setup2();
-
 }
