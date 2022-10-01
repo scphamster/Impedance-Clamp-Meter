@@ -8,12 +8,13 @@
 #undef printf
 #endif
 
-// #include "asf.h"
+#include "asf.h"
 #include "ili9486_driver.hpp"
-#include "ILI9486_public.h"
-#include "ILI9486_private.h"
+// #include "ILI9486_public.h"
+// #include "ILI9486_private.h"
+#include <cstdint>
 #include "ili9486_fonts.h"
-#include "ili9486_config.h"
+#include "ILI9486_config.h"
 
 extern "C" char *gcvtf(float, int, char *);
 
@@ -42,13 +43,35 @@ class ILIDrawerIO {
 constexpr void
 ILIDrawerIO::SetPin(Pin pin, bool to_be_set)
 {
-    if (pin == Pin::ChipSelect) {
+    switch (pin) {
+    case Pin::ChipSelect:
         if (to_be_set) {
             pio_clear(TFT_CS_PIO, TFT_CS_PIN);
         }
         else {
             pio_set(TFT_CS_PIO, TFT_CS_PIN);
+        };
+        break;
+    case Pin::Data: pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
+    case Pin::Command: pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN); break;
+    case Pin::Write:
+        if (to_be_set) {
+            pio_clear(TFT_WR_PIO, TFT_WR_PIN);
         }
+        else {
+            pio_set(TFT_WR_PIO, TFT_WR_PIN);
+        };
+        break;
+
+    case Pin::Reset:
+        if (to_be_set) {
+            pio_clear(TFT_RESET_PIO, TFT_RESET_PIN);
+        }
+        else {
+            pio_set(TFT_RESET_PIO, TFT_RESET_PIN);
+        };
+        break;
+    case Pin::Read: break;
     }
 }
 
@@ -337,8 +360,8 @@ ILIDrawer::Impl::PrintChar(uint16_t x, uint16_t y, char data, uint8_t mode, uint
     uint8_t counter           = 0;
     uint8_t data_from_memory[FONT_ONE_CHAR_BYTES];
 
-    TFT_SetAddrWindow(x, y, x + FONT_WIDTH * size - 1, y + FONT_HEIGHT * size - 1);
-    TFT_Write_Cmd_Byte(TFT_RAMWR);
+    SetPartial(x, y, x + FONT_WIDTH * size - 1, y + FONT_HEIGHT * size - 1);
+    WriteCommand(TFT_RAMWR);
 
     SetPin(Pin::ChipSelect, true);
     SetPin(Pin::Data, true);
@@ -473,7 +496,7 @@ ILIDrawer::Impl::SetTextColor(uint16_t pixelcolor, uint16_t backcolor)
 void
 ILIDrawer::Impl::FillScreen(ColorT color)
 {
-    DrawFiledRectangle(0, 0, tft_W, tft_H, color);
+    DrawFiledRectangle(0, 0, m_screen_width, m_screen_height, color);
 }
 
 void
@@ -517,17 +540,16 @@ ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDra
 
     if (y1 == y2) {
         if (x2 > x1)
-            TFT_DrawFastHLine(x1, y1, x2 - x1 + 1, color);
+            DrawHLine(x1, y1, x2 - x1 + 1, color);
         else
-            TFT_DrawFastHLine(x2, y1, x1 - x2 + 1, color);
-
-        return;
+            DrawHLine(x2, y1, x1 - x2 + 1, color);
+         return;
     }
     else if (x1 == x2) {
         if (y2 > y1)
-            TFT_DrawFastVLine(x1, y1, y2 - y1 + 1, color);
+            DrawVLine(x1, y1, y2 - y1 + 1, color);
         else
-            TFT_DrawFastVLine(x1, y2, y1 - y2 + 1, color);
+            DrawVLine(x1, y2, y1 - y2 + 1, color);
 
         return;
     }
@@ -568,7 +590,7 @@ ILIDrawer::Impl::DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, ILIDra
 void
 ILIDrawer::Impl::DrawPixel(uint16_t x, uint16_t y, ColorT color)
 {
-    if (x < 0 || y < 0 || x >= tft_W || y >= tft_H)
+    if (x < 0 || y < 0 || x >= m_screen_width || y >= m_screen_height)
         return;
 
     uint8_t caset_data[4] = { static_cast<uint8_t>(x >> 8),
@@ -591,11 +613,11 @@ ILIDrawer::Impl::DrawPixel(uint16_t x, uint16_t y, ColorT color)
 void
 ILIDrawer::Impl::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT color)
 {
-    if ((x >= tft_W) || (y >= tft_H || h < 1))
+    if ((x >= m_screen_width) || (y >= m_screen_height || h < 1))
         return;
 
-    if ((y + h - 1) >= tft_H)
-        h = tft_H - y;
+    if ((y + h - 1) >= m_screen_height)
+        h = m_screen_height - y;
 
     DrawFiledRectangle(x, y, 1, h, color);
 }
@@ -603,11 +625,11 @@ ILIDrawer::Impl::DrawVLine(int16_t x, int16_t y, int16_t h, ILIDrawer::ColorT co
 void
 ILIDrawer::Impl::DrawHLine(int16_t x, int16_t y, int16_t w, ILIDrawer::ColorT color)
 {
-    if ((x >= tft_W) || (y >= tft_H || w < 1))
+    if ((x >= m_screen_width) || (y >= m_screen_height || w < 1))
         return;
 
-    if ((x + w - 1) >= tft_W)
-        w = tft_W - x;
+    if ((x + w - 1) >= m_screen_width)
+        w = m_screen_width - x;
 
     DrawFiledRectangle(x, y, w, 1, color);
 }
@@ -676,8 +698,8 @@ ILIDrawer::Impl::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, 
     if (x < 0)
         x = 0;
 
-    if (end > tft_W)
-        end = tft_W;
+    if (end > m_screen_width)
+        end = m_screen_width;
 
     w = end - x;
 
@@ -691,8 +713,8 @@ ILIDrawer::Impl::DrawFiledRectangle(int16_t x, int16_t y, int16_t w, int16_t h, 
     if (y < 0)
         y = 0;
 
-    if (end > tft_H)
-        end = tft_H;
+    if (end > m_screen_height)
+        end = m_screen_height;
 
     h        = end - y;
     n_pixels = (uint32_t)h * w;
@@ -714,15 +736,15 @@ ILIDrawer::Impl::Print(const char *string, uint8_t string_mode, uint8_t size)
             string++;
         }
 
-        if (m_cursor_x > tft_W - font_w) {
+        if (m_cursor_x > m_screen_width - font_w) {
             m_cursor_x = 0;
             m_cursor_y += font_h;
         }
 
-        if (m_cursor_y > tft_H - font_h)
+        if (m_cursor_y > m_screen_height - font_h)
             m_cursor_y = m_cursor_x = 0;
 
-        TFT_Print_Char(m_cursor_x, m_cursor_y, *(string + i), string_mode, size);
+        PrintChar(m_cursor_x, m_cursor_y, *(string + i), string_mode, size);
         m_cursor_x += font_w;
         i++;
     }
@@ -733,7 +755,7 @@ ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size)
     int16_t temp = 1;
 
     if (number <= 0) {
-        TFT_Print_Char(m_cursor_x, m_cursor_y, '0', string_mode, size);
+        PrintChar(m_cursor_x, m_cursor_y, '0', string_mode, size);
         m_cursor_x += 14 * size;
     }
     else {
@@ -746,7 +768,7 @@ ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size)
         while (temp != 1) {
             uint8_t remainder = temp % 10;
             temp              = temp / 10;
-            TFT_Print_Char(m_cursor_x, m_cursor_y, remainder + 48, string_mode, size);
+            PrintChar(m_cursor_x, m_cursor_y, remainder + 48, string_mode, size);
             m_cursor_x += 14 * size;
         }
     }
@@ -754,8 +776,7 @@ ILIDrawer::Impl::Print(uint16_t number, uint8_t string_mode, uint8_t size)
 void
 ILIDrawer::Impl::Print(float number, uint8_t n_digits, uint8_t size)
 {
-
-    static char  str[20];
+    static char str[20];
 
     //    snprintf(str, sizeof(str), "%f", value);
 
@@ -832,13 +853,13 @@ ILIDrawer::Impl::Init()
 ILIDrawer::ILIDrawer()
   : impl{ std::make_unique<Impl>() }
 {
-//    impl->Init();
-//    impl->Clear(COLOR_BLACK);
+    impl->Init();
+    impl->Clear(COLOR_BLACK);
 }
 
 ILIDrawer::ILIDrawer(const ILIDrawer &other)
   : impl{ std::make_unique<Impl>(*other.impl) }
-{}
+{ }
 
 ILIDrawer &
 ILIDrawer::operator=(const ILIDrawer &rhs)
