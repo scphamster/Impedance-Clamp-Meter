@@ -29,7 +29,7 @@ class ClampMeter : private Sensor {
                     "measure",
                     300,
                     std::remove_volatile_t<void *const>(this),
-                    2,
+                    3,
                     nullptr);
     }
 
@@ -49,25 +49,27 @@ class ClampMeter : private Sensor {
   protected:
     virtual void DisplayMeasurementsTask()
     {
-        //                TFT_cursor_set(100, 100);
-        //                TFT_text_color_set(COLOR_RED, COLOR_BLACK);
-        //        display->SetCursor(100, 100);
-        //        display->SetTextColor(COLOR_RED, COLOR_BLACK);
+//                TFT_cursor_set(100, 100);
+//                TFT_text_color_set(COLOR_RED, COLOR_BLACK);
+//        display->SetCursor(100, 100);
+//        display->SetTextColor(COLOR_RED, COLOR_BLACK);
+        display->FillScreen(COLOR_GREEN);
+//        vTaskDelay(pdMS_TO_TICKS(100));
+        display->FillScreen(COLOR_BLACK);
+//        vTaskDelay(pdMS_TO_TICKS(100));
+//        {
+//            std::lock_guard<Mutex> lock{ mutex };
+////                        TFT_print_number_f(*someValue, 3, 2);
+//            display->Print(static_cast<float>(*someValue), 3, 2);
+//        }
 
-        //        {
-        //            std::lock_guard<Mutex> lock{ mutex };
-        //                        TFT_print_number_f(*someValue, 3, 2);
-        //            display->Print(static_cast<float>(*someValue), 3, 2);
-        //        }
-
-        //        vTaskDelay(pdMS_TO_TICKS(1000));
-
-        TFT_Clear(COLOR_GREEN);
-        TFT_Clear(COLOR_BLACK);
+//        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
     virtual void MeasurementsTask()
     {
+        display->FillScreen(COLOR_BLACK);
+
         {
             std::lock_guard<Mutex> lock{ mutex };
             (*someValue)++;

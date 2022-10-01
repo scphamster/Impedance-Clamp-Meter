@@ -38,12 +38,12 @@ using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
 [[noreturn]] void
 tasks_setup2()
 {
-    TFT_Init();
-    TFT_Clear(COLOR_BLACK);
-    display_init();
+//    TFT_Init();
+//    TFT_Clear(COLOR_BLACK);
+//    display_init();
 
-    mcp23016_read_pindata();
-    delay_ms(30);
+//    mcp23016_read_pindata();
+//    delay_ms(30);
 
     static volatile auto clamp_meter = Clamp{ 56, std::make_shared<Drawer>() };
 //    clamp_meter.StartMeasurementsTask();
