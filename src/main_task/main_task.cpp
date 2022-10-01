@@ -13,7 +13,7 @@
 #include "clamp_sensor.hpp"
 #include "task.h"
 
-using Drawer             = ClampMeterDrawer<ILI9486Driver>;
+using Drawer             = ClampMeterDrawer<DisplayDrawer>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
 using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
 
