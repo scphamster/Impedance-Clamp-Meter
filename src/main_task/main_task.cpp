@@ -46,7 +46,7 @@ tasks_setup2()
     delay_ms(30);
 
     static volatile auto clamp_meter = Clamp{ 56, std::make_shared<Drawer>() };
-    clamp_meter.StartMeasurementsTask();
+//    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();
 
     vTaskStartScheduler();
