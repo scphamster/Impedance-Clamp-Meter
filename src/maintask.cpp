@@ -1,6 +1,5 @@
-#include "maintask.hpp"
-
 #ifdef min
+
 #undef min
 #endif   // max
 #ifdef max
@@ -9,8 +8,9 @@
 #ifdef printf
 #undef printf
 #endif
-
+#include <type_traits>
 #include <asf.h>
+
 #include "system_init.h"
 #include "DSP_functions.h"
 #include "MCP23016.h"
@@ -18,77 +18,70 @@
 #include "ILI9486_public.h"
 #include "menu_ili9486_kbrd_mngr.h"
 #include "menu_ili9486.h"
-
 #include "hclamp_meter.hpp"
+
 #include "clamp_sensor.hpp"
-
 #include "FreeRTOS.h"
-#include "task.h"
 
-using Drawer             = ClampMeterDrawer<ILIDrawer>;
-using Clamp              = ClampMeter<Drawer, ClampSensor>;
-using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
+#include "task.h"
+#include "maintask.hpp"
+portPOINTER_SIZE_TYPE p_one;
+portPOINTER_SIZE_TYPE p_two;
+
+TestClass<int> gtc{5};
 
 void
-tasks_setup()
+tasks_setup(void *)
 {
-    TestClass<int> tc{ 1 };
+    auto tc = TestClass<int>{ 4 };
     tc.StartTask();
+//        void task1wrapper(void *);
+//        void testclasstask2(void *);
 
-//    auto clamp_meter = Clamp{56};
-//
-////    clamp_meter.DisplayMeasurementsTask();
-//
-////    clamp_meter.StartDisplayMeasurementsTask();
-//    clamp_meter.StartMeasurementsTask();
+//        xTaskCreate(task1wrapper, "inclasstask", 300, &gtc, 2, NULL);
+//        xTaskCreate(testclasstask2, "inclasstask2", 300, &gtc, 2, NULL);
+
+    while (true) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+
+    }
+}
+
+void
+simple_setup(void)
+{
+    static volatile auto tc = TestClass<int>{ 4 };
+    tc.StartTask();
 
     vTaskStartScheduler();
 
     while (true) {
-
+//        tc.taskfunc();
     }
 }
 
-void
-ClampMeterMeasurementsTaskWrapper(void *ClampMeterInstance)
-{
-    auto clmp = static_cast<Clamp *>(ClampMeterInstance);
-//    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
-
-    while (true) {
-        clmp->MeasurementsTask();
-    }
-}
-
-void
-ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
-{
-    auto clmp = static_cast<Clamp *>(ClampMeterInstance);
-//    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
-
-    while (true) {
-        clmp->DisplayMeasurementsTask();
-    }
-}
-
-void
-testclasstask1(void *param)
+extern "C" void
+task1wrapper(void *param)
 {
     auto testclass_p      = static_cast<TestClass<int> *>(param);
-    auto task_implementer = TestClassTaskImpl<int>{ *testclass_p };
+//    auto task_implementer = TestClassTaskImpl<int>{ *testclass_p };
 
     while (true) {
-        task_implementer.DoWork();
+        testclass_p->taskfunc();
+//            gtc.taskfunc();
+        //        task_implementer.DoWork();
     }
 }
 
-void
+extern "C" void
 testclasstask2(void *param)
 {
     auto testclass_p      = static_cast<TestClass<int> *>(param);
-    auto task_implementer = TestClassTaskImpl<int>{ *testclass_p };
+//    auto task_implementer = TestClassTaskImpl<int>{ *testclass_p };
 
     while (true) {
-        task_implementer.DoWork2();
+        testclass_p->taskfunc2();
+//gtc.taskfunc2();
+        //        task_implementer.DoWork2();
     }
 }

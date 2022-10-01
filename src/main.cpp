@@ -29,8 +29,6 @@
 #include "maintask.hpp"
 #include "hclamp_meter.hpp"
 
-
-
 int
 main()
 {
@@ -43,5 +41,9 @@ main()
     mcp23016_read_pindata();
     delay_ms(30);
 
-    tasks_setup();
+//    xTaskCreate(tasks_setup, "main task", 500, NULL, 1, NULL);
+//    vTaskStartScheduler();
+//    simple_setup();
+    tasks_setup2();
+
 }
