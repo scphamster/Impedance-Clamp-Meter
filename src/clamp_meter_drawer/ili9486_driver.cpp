@@ -19,6 +19,9 @@ extern "C" char *gcvtf(float, int, char *);
 void
 ILI9486Driver::Init() noexcept
 {
+    if (isInitialized)
+        return;
+
     InitGPIO();
     Reset();
 
@@ -80,6 +83,8 @@ ILI9486Driver::Init() noexcept
     delay_ms(60);
 
     SetOrientation<Orientation::Portrait>();
+
+    isInitialized = true;
 }
 
 template<ILI9486Driver::Pin pin, bool to_be_set>
@@ -122,8 +127,7 @@ ILI9486Driver::SetPin() const noexcept
 void
 ILI9486Driver::InitGPIO() const noexcept
 {
-    Matrix *p_matrix;
-    p_matrix = MATRIX;
+    auto *p_matrix = static_cast<Matrix *>(MATRIX);
 
     // configure control pins
     pio_set_output(PIOD, 0x20008600ul, 0x20008600ul, 0, 0);
@@ -140,22 +144,18 @@ ILI9486Driver::InitGPIO() const noexcept
 void
 ILI9486Driver::SetDataL(uint8_t data) const noexcept
 {
-    uint32_t data_a = 0;
-    uint32_t data_d = 0;
+    auto data_a = uint32_t{ 0 };
+    auto data_d = uint32_t{ 0 };
 
     pio_enable_output_write(PIOA, 0xD0000040ul);
     pio_enable_output_write(PIOD, 0x1E0ul);
 
     data_d |= (((data & (1 << 0)) && 1) << 8);
-
     data_a |= (((data & (1 << 1)) && 1) << 28);
     data_a |= (((data & (1 << 2)) && 1) << 30);
     data_a |= (((data & (1 << 3)) && 1) << 6);
-
     data_d |= (((data & (1 << 4)) && 1) << 7);
-
     data_a |= (((data & (1 << 5)) && 1) << 31);
-
     data_d |= (((data & (1 << 6)) && 1) << 5);
     data_d |= (((data & (1 << 7)) && 1) << 6);
 
@@ -367,7 +367,7 @@ ILI9486Driver::PrintChar(const Point point, Byte data, int size) const noexcept
 }
 
 void
-ILI9486Driver::PutPixel(const Color color, uint64_t n) const noexcept
+ILI9486Driver::PutPixel(const Color color, int n) const noexcept
 {
     WriteCommand(TFT_RAMWR);
 
@@ -385,7 +385,7 @@ ILI9486Driver::PutPixel(const Color color, uint64_t n) const noexcept
     SetPin<Pin::ChipSelect, false>();
 }
 
-template<Orientation orientation>
+template<ILI9486Driver::Orientation orientation>
 constexpr void
 ILI9486Driver::SetOrientation() noexcept
 {
