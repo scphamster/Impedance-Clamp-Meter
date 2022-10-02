@@ -50,17 +50,19 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/hclamp_meter.hpp
     ${SOURCES_DIRECTORY}/mutex/semaphore.hpp
     ${SOURCES_DIRECTORY}/mutex/semaphore.cpp
-    ${SOURCES_DIRECTORY}/ili9486/ili9486.cpp
-    ${SOURCES_DIRECTORY}/ili9486/ili9486.hpp
+    ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.cpp
+    ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.hpp
     ${SOURCES_DIRECTORY}/clamp_sensor/clamp_sensor.cpp
     ${SOURCES_DIRECTORY}/clamp_sensor/clamp_sensor.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/clamp_meter_drawing.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/clamp_meter_drawing.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
-    ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.cpp
-    ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.hpp
+    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
+    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
+    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
+    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
     )
 
 set(C_SOURCES
@@ -72,18 +74,22 @@ set(C_SOURCES
     src/main_task/cmaintask.h
     )
 
+set(INCLUDE_DIRECTORIES
+    src
+    src/clamp_meter_drawer
+    src/clamp_sensor
+    src/ili9486
+    src/mutex
+    src/main_task
+    src/keyboard
+    )
+
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")
 set_source_files_properties(${C_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${C_COMPILE_FLAGS}")
 
 add_sam_executable(${EXECUTABLE_NAME} ${CXX_SOURCES} ${C_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-                           src
-                           src/clamp_meter_drawer
-                           src/clamp_sensor
-                           src/ili9486
-                           src/mutex
-                           src/main_task
-
+                           ${INCLUDE_DIRECTORIES}
                            )
 
 add_subdirectory(src/asf_lib)
