@@ -116,7 +116,6 @@ void main_blinky( void );
 static QueueHandle_t xQueue = NULL;
 
 /*-----------------------------------------------------------*/
-
 void main_blinky( void )
 {
 	/* Create the queue. */

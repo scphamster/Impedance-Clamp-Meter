@@ -8,6 +8,7 @@
 #ifdef printf
 #undef printf
 #endif
+
 #define MCP23016_TWI_ADDR		0b00100000	//SLA+W
 #define MCP23016_INT_PIN		11
 #define MCP23016_INT_PORT		PIOD

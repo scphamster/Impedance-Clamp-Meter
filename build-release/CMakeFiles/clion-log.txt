@@ -1,0 +1,4 @@
+cmake.exe -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=C:/Users/scpha/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/222.4167.35/bin/ninja/win/ninja.exe -G Ninja -S C:\dev\Projects\Embedded\ClampMeterHierarchical -B C:\dev\Projects\Embedded\ClampMeterHierarchical\build-release
+-- Configuring done
+-- Generating done
+-- Build files have been written to: C:/dev/Projects/Embedded/ClampMeterHierarchical/build-release

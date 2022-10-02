@@ -1,13 +1,4 @@
-/*
- * keyboard.h
- *
- * Created: 30.10.2021 13:33:40
- *  Author: malygosstationar
- */ 
-
-
-#ifndef KEYBOARD_H_
-#define KEYBOARD_H_
+#prama once
 
 #define KEYS_DEBOUNCE	1500000UL
 #define ENCODER_FAST_MODE_IN_THR	10
@@ -63,5 +54,3 @@ void keyboard_init			(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* KEYBOARD_H_ */
