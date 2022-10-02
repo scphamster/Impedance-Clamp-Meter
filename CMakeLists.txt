@@ -60,6 +60,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/ili9486_driver.hpp
+    ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.hpp
+    ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.cpp
     )
 
 set(C_SOURCES

@@ -12,6 +12,7 @@
 #include "main_task.hpp"
 #include "clamp_sensor.hpp"
 #include "task.h"
+#include "display_drawer.hpp"
 
 using Drawer             = ClampMeterDrawer<DisplayDrawer>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
@@ -20,11 +21,8 @@ using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
 [[noreturn]] void
 tasks_setup2()
 {
-    //    display_init();
-    //    mcp23016_read_pindata();
-    //    delay_ms(30);
-
     static volatile auto clamp_meter = Clamp{ 56, std::make_shared<Drawer>() };
+
     //    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();
 
