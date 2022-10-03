@@ -15,8 +15,6 @@
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
 
-
-
 using Drawer             = DisplayDrawer<ILI9486Driver>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
 using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
@@ -40,23 +38,23 @@ tasks_setup2()
 extern "C" void
 ClampMeterMeasurementsTaskWrapper(void *ClampMeterInstance)
 {
-    auto clmp = static_cast<Clamp *>(ClampMeterInstance);
-        auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
+    auto clmp        = static_cast<Clamp *>(ClampMeterInstance);
+    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
 
     while (true) {
-//        clmp->MeasurementsTask();
-                clamp_meter.MeasurementsTask();
+        //        clmp->MeasurementsTask();
+        clamp_meter.MeasurementsTask();
     }
 }
 
 extern "C" void
 ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
 {
-    auto clmp = static_cast<Clamp *>(ClampMeterInstance);
-        auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
+    auto clmp        = static_cast<Clamp *>(ClampMeterInstance);
+    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
 
     while (true) {
-//        clmp->DisplayMeasurementsTask();
-                clamp_meter.DisplayMeasurementsTask();
+        //        clmp->DisplayMeasurementsTask();
+        clamp_meter.DisplayMeasurementsTask();
     }
 }

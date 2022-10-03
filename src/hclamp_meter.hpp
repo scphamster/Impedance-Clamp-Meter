@@ -24,7 +24,7 @@
 extern "C" void   ClampMeterMeasurementsTaskWrapper(void *);
 extern "C" void   ClampMeterDisplayMeasurementsTaskWrapper(void *);
 
-template<typename Drawer, typename Sensor>
+template<typename Drawer, typename Sensor, typename Keyboard = void>
 class ClampMeter : private Sensor {
   public:
     ClampMeter(int initial_val, std::shared_ptr<Drawer> display_to_be_used)
@@ -67,7 +67,7 @@ class ClampMeter : private Sensor {
         auto iterations = uint32_t{};
 
         while(xTaskGetTickCount() != ticks_end) {
-            display->Print(6, 2);
+            display->Print(1.0, 1, 2);
             iterations++;
         }
 
@@ -111,6 +111,7 @@ class ClampMeter : private Sensor {
   private:
     //    std::unique_ptr<Sensor> sensor;
     std::shared_ptr<Drawer> display;
+    std::shared_ptr<Keyboard> keyboard;
     std::shared_ptr<int>    someValue;
     Mutex                   mutex;
 };

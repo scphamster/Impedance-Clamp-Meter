@@ -9,19 +9,23 @@
 #undef printf
 #endif
 
+#include <memory>
 #include <functional>
 #include <vector>
 #include <utility>
 #include <algorithm>
 
+#include "pin.hpp"
+
 template<typename KeyboardType>
-concept Keyboard = requires { 1 + 1; };
+concept KeyboardDriver = requires { 1 + 1; };
 
 class AbstractKeyboard {
   public:
 };
 
-class KeyboardMCP23016 : private AbstractKeyboard {
+template<KeyboardDriver Driver>
+class Keyboard {
   public:
     enum class KeyIdent {
         Enter = 0,
@@ -35,6 +39,17 @@ class KeyboardMCP23016 : private AbstractKeyboard {
         F4
     };
     using Callback = std::function<void(KeyIdent)>;
+
+    Keyboard()
+      : driver{ std::make_unique<Driver>() }
+    {
+        std::function<void(const Pin &)> callback =
+          std::bind(&Keyboard<Driver>::PinChangedStateCallback, this, std::placeholders::_1);
+
+        driver->SetPinChangeCallback(std::move(callback));
+    }
+
+    void PinChangedStateCallback(const Pin &);
 
     void SetCallbackForKeys(std::vector<KeyIdent> keys, Callback callback)
     {
@@ -63,4 +78,12 @@ class KeyboardMCP23016 : private AbstractKeyboard {
 
   private:
     std::vector<std::pair<KeyIdent, Callback>> callbacks;
+    std::unique_ptr<Driver>                    driver;
 };
+
+template<KeyboardDriver Driver>
+void
+Keyboard<Driver>::PinChangedStateCallback(const Pin &)
+{
+
+}

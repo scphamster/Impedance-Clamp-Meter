@@ -29,7 +29,7 @@ else ()
     set(C_CXX_CONDITIONAL_COMPILE_FLAGS ${C_CXX_COMPILER_OPTIONS_RELEASE})
 endif ()
 
-set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -fmem-report -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
+set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu17")
 set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=gnu++20")
 
@@ -63,6 +63,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
     ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
     ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
+    ${SOURCES_DIRECTORY}/keyboard/pin.hpp
     )
 
 set(C_SOURCES

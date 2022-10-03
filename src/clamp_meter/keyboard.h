@@ -1,4 +1,4 @@
-#prama once
+#pragma once
 
 #define KEYS_DEBOUNCE	1500000UL
 #define ENCODER_FAST_MODE_IN_THR	10

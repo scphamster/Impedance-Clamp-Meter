@@ -9,7 +9,6 @@
 #undef printf
 #endif
 
-
 #include "ili9486_driver.hpp"
 
 template<typename Driver>
@@ -20,6 +19,7 @@ class ClampMeterDrawer : public Driver {
         keyboard.SetCallbackForKey<Keyboard::Enter>(std::function<void()> function);
 
     */
+
   protected:
   private:
     // configs

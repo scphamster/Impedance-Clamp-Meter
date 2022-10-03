@@ -440,6 +440,7 @@ DisplayDrawer<Driver>::Print(float number, Byte n_digits, const Byte size) noexc
     auto const buffsize = 20;
     char       buffer[buffsize];
 
+    //TODO: optimize floating number drawing, its 1000 times slower than integer drawing
     gcvtf(number, n_digits, &buffer[0]);
 
     Print(buffer, size);
