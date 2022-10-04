@@ -64,6 +64,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
     ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
     ${SOURCES_DIRECTORY}/keyboard/pin.hpp
+    ${SOURCES_DIRECTORY}/timer/timer.cpp
+    ${SOURCES_DIRECTORY}/timer/timer.hpp
     )
 
 set(C_SOURCES
@@ -83,6 +85,7 @@ set(INCLUDE_DIRECTORIES
     src/mutex
     src/main_task
     src/keyboard
+    src/timer
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

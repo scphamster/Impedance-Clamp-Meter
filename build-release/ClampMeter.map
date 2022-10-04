@@ -8418,6 +8418,13 @@ Discarded input sections
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .text          0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .data          0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .bss           0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
@@ -8425,7 +8432,7 @@ Discarded input sections
  .debug_abbrev  0x00000000      0x4cb CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_aranges
                 0x00000000       0x18 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
- .debug_macro   0x00000000      0x912 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000      0x96e CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_macro   0x00000000      0xc34 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_macro   0x00000000      0x18a CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_macro   0x00000000       0x10 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
@@ -8533,8 +8540,15 @@ Discarded input sections
  .debug_macro   0x00000000       0x41 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_macro   0x00000000       0x11 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .debug_macro   0x00000000       0x10 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
- .debug_line    0x00000000      0xed7 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
- .debug_str     0x00000000    0x10850 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000      0x121 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000      0x15a CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000       0xe4 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000       0x28 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000       0x1f CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000       0x12 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_macro   0x00000000      0x50b CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_line    0x00000000     0x1077 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
+ .debug_str     0x00000000    0x13ab5 CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .comment       0x00000000       0x4a CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
  .ARM.attributes
                 0x00000000       0x2e CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
@@ -8956,6 +8970,21 @@ Discarded input sections
  .debug_frame   0x00000000      0x110 CMakeFiles/ClampMeter.dir/src/keyboard/mcp23016_driver.cpp.obj
  .ARM.attributes
                 0x00000000       0x2e CMakeFiles/ClampMeter.dir/src/keyboard/mcp23016_driver.cpp.obj
+ .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .text          0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .data          0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .bss           0x00000000        0x0 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_info    0x00000000       0x21 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_abbrev  0x00000000       0x13 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_aranges
+                0x00000000       0x18 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_macro   0x00000000       0x15 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_macro   0x00000000      0xc34 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_line    0x00000000       0x71 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .debug_str     0x00000000     0x35f7 CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .comment       0x00000000       0x4a CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
+ .ARM.attributes
+                0x00000000       0x2e CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/main_blinky.c.obj
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/main_blinky.c.obj
  .group         0x00000000        0xc CMakeFiles/ClampMeter.dir/src/main_blinky.c.obj
@@ -14770,6 +14799,7 @@ LOAD CMakeFiles/ClampMeter.dir/src/clamp_meter_drawer/clamp_meter_drawing.cpp.ob
 LOAD CMakeFiles/ClampMeter.dir/src/main_task/main_task.cpp.obj
 LOAD CMakeFiles/ClampMeter.dir/src/keyboard/keyboard.cpp.obj
 LOAD CMakeFiles/ClampMeter.dir/src/keyboard/mcp23016_driver.cpp.obj
+LOAD CMakeFiles/ClampMeter.dir/src/timer/timer.cpp.obj
 LOAD CMakeFiles/ClampMeter.dir/src/main_blinky.c.obj
 LOAD CMakeFiles/ClampMeter.dir/src/freertos_handlers.c.obj
 LOAD CMakeFiles/ClampMeter.dir/src/exception_handlers.c.obj
