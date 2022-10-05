@@ -9,7 +9,6 @@
 #undef printf
 #endif
 
-
 class Pin {
   public:
     using PinNumT = int;
@@ -26,7 +25,7 @@ class Pin {
 
     enum class PinState : bool {
         Low = false,
-        Hi  = true
+        High  = true
     };
 
     Pin() = default;

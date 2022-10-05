@@ -19,6 +19,8 @@
 #include "mutex/semaphore.hpp"
 
 #include "clamp_meter_drawing.hpp"
+#include "timer.hpp"
+
 
 [[noreturn]] void tasks_setup2();
 extern "C" void   ClampMeterMeasurementsTaskWrapper(void *);
@@ -30,6 +32,7 @@ class ClampMeter : private Sensor {
     ClampMeter(int initial_val, std::shared_ptr<Drawer> display_to_be_used)
       : someValue{ std::make_shared<int>(initial_val) }
       , display{ display_to_be_used }
+      , timer{ pdMS_TO_TICKS(10) }
     //      , sensor{ std::make_unique<Sensor>() }
     { }
 
@@ -66,7 +69,7 @@ class ClampMeter : private Sensor {
 
         auto iterations = uint32_t{};
 
-        while(xTaskGetTickCount() != ticks_end) {
+        while (xTaskGetTickCount() != ticks_end) {
             display->Print(1.0, 1, 2);
             iterations++;
         }
@@ -74,6 +77,9 @@ class ClampMeter : private Sensor {
         display->SetTextColor(COLOR_GREEN, COLOR_BLACK);
         display->SetCursor({ 100, 100 });
         display->Print(iterations, 2);
+
+        vTaskDelay(pdMS_TO_TICKS(100));
+
         //        display->FillScreen(COLOR_GREEN);
         //        display->FillScreen(COLOR_RED);
 
@@ -96,6 +102,7 @@ class ClampMeter : private Sensor {
       : someValue{ other.someValue }
       , display{ other.display }
       , mutex{ other.mutex }
+      , timer{ other.timer }
     { }
 
     ClampMeter &operator=(const ClampMeter &rhs)
@@ -110,10 +117,14 @@ class ClampMeter : private Sensor {
 
   private:
     //    std::unique_ptr<Sensor> sensor;
-    std::shared_ptr<Drawer> display;
+
+    std::shared_ptr<Drawer>   display;
     std::shared_ptr<Keyboard> keyboard;
-    std::shared_ptr<int>    someValue;
-    Mutex                   mutex;
+    std::shared_ptr<int>      someValue;
+    Mutex                     mutex;
+
+    // test
+    TimerFreeRTOS timer;
 };
 
 template<typename Drawer, typename Reader>

@@ -52,7 +52,7 @@ class MCP23016_driver {
     MCP23016_driver();
     void Initialize() const noexcept;
 
-    std::array<Pin::PinState, NumberOfPins> GetPinsState() const noexcept;
+    [[nodiscard]] std::array<Pin::PinState, NumberOfPins> GetPinsState() const noexcept;
     void SetPinChangeCallback(std::function<void(const Pin &)> &&pin_change_callback);
     void InterruptHandler() const noexcept;
     void StartTask() noexcept;

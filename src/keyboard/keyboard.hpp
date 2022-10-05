@@ -17,25 +17,43 @@
 
 #include "FreeRTOS.h"
 #include "pin.hpp"
+#include "timer.hpp"
 
 template<typename KeyboardType>
-concept KeyboardDriver = requires { 1 + 1; };
+concept KeyboardDriver = requires(KeyboardType keyboard) {
+                             keyboard.SetCallback(std::function<void()>{});
+                             typename KeyboardType::State;
+                         };
 
 template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
 class Button {
-    using ButtonState = typename Driver::State;
+    enum class ButtonState : bool {
+        Pushed   = Pin::PinState::Low,
+        Released = Pin::PinState::High
+    };
 
-    Button(ButtonIdT                        id,
-           std::shared_ptr<Driver>          button_driver,
-           std::function<void()>          &&timeChecker,
-           std::function<void(ButtonState)> state_change_callback)
+    using EventCallbackT              = std::function<void()>;
+    using StateChangeCallbackT        = std::function<void(ButtonState)>;
+    using EventWasAlreadyInvokedFlagT = bool;
+
+    Button(ButtonIdT                          id,
+           std::shared_ptr<Driver>            button_driver,
+           std::function<void()>            &&timeChecker,
+           std::function<void(ButtonState)> &&state_change_callback)
       : driver{ button_driver }
       , myId{ id }
       , timeCheckFn{ std::move(timeChecker) }
+      , stateChangeCallback{ std::move(state_change_callback) }
     {
         driver->SetCallback(std::function<void(ButtonState)>{
           std::bind(&Button<ButtonIdT, Driver, TimeT, TimerT>::StateChangeSlot, this, std::placeholders::_1) });
     }
+
+    TimeT       GetPrevStateChangeTime() const noexcept;
+    ButtonState GetCurrentState() const noexcept;
+
+    void SetNewEventCallback(EventCallbackT &&event_callback, int event_id);
+    void InvokeEventCallback(int event_id);
 
   protected:
     TimeT GetCurrentTime() { return timeCheckFn(); }
@@ -56,22 +74,48 @@ class Button {
                 DiscardPendingStateChangeNotification();
 
             timer.CallThisFuncAfterTimeElapsed(
-              std::bind(&Button<ButtonIdT, Driver, TimeT, TimerT>::StateChangeDebounced, this, newstate), debounceTime);
+              std::bind(&Button<ButtonIdT, Driver, TimeT, TimerT>::StateChangeDebounced, this, newstate),
+              debounceTime);
         }
     }
 
   private:
     // std::string name;
-    std::shared_ptr<Driver>          driver;
-    ButtonIdT                        myId{};
-    TimeT                            lastChangeTime{};
-    TimeT                            debounceTime{};
-    std::function<void()>            timeCheckFn;
-    ButtonState                      state{};
-    ButtonState                      debouncedState{};
-    TimerT                           timer;
-    std::function<void(ButtonState)> stateChangeCallback;
+    std::shared_ptr<Driver> driver;
+    ButtonIdT               myId{};
+    TimeT                   lastChangeTime{};
+    TimeT                   debounceTime{};
+    TimeT                   prevStateChangeTime{};
+    std::function<void()>   timeCheckFn;
+    ButtonState             state{};
+    ButtonState             debouncedState{};
+    TimerT                  timer;
+
+    StateChangeCallbackT stateChangeCallback;
+    std::vector<std::pair<int, std::pair<EventCallbackT, EventWasAlreadyInvokedFlagT>>>
+      eventCallbacks;   // todo: try to use std::map
 };
+
+template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
+TimeT
+Button<ButtonIdT, Driver, TimeT, TimerT>::GetPrevStateChangeTime() const noexcept
+{
+    return prevStateChangeTime;
+}
+
+template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
+typename Button<ButtonIdT, Driver, TimeT, TimerT>::ButtonState
+Button<ButtonIdT, Driver, TimeT, TimerT>::GetCurrentState() const noexcept
+{
+    return state;
+}
+
+template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
+void
+Button<ButtonIdT, Driver, TimeT, TimerT>::SetNewEventCallback(Button::EventCallbackT &&event_callback, int event_id)
+{
+    eventCallbacks.emplace_back(event_id, std::move(event_callback));
+}
 
 class AbstractKeyboard {
   public:
@@ -92,63 +136,92 @@ class Keyboard {
         F4
     };
 
-    using Callback    = std::function<void(KeyIdent)>;
-    using ButtonState = Pin::PinState;
-    using ButtonIdT   = int;
-//
-//    Keyboard()
-//      : driver{ std::make_unique<Driver>() }
-//    {
-//        driver->SetPinChangeCallback(std::move(std::function<void(const Pin &)>{
-//          std::bind(&Keyboard<Driver>::ButtonChangedStateCallback, this, std::placeholders::_1) }));
-//    }
-//
-//    void AddButton(Button<ButtonIdT> &&new_button) { }
-//
-//    void ButtonChangedStateCallback(const Pin &);
-//    void SetCallbackForKeys(std::vector<KeyIdent> keys, Callback callback);
-//
-//  protected:
-//    void NotifyOwnerButtonPressed(const Button &pressed_button) { ownerButtonPressNotificationCallback(pressed_button); }
-//
-//  private:
-//    std::vector<std::pair<KeyIdent, Callback>> callbacks;
-//    std::unique_ptr<Driver>                    driver;
-//
-//    TickType_t lastPinStateChangeTime = 0;
-//
-//    // prototype
-//    std::function<void(const Button<ButtonIdT> &)> ownerButtonPressNotificationCallback;
-//    std::vector<Button<ButtonIdT>>                 buttons;
+    enum class ButtonState : bool {
+        Pushed   = ButtonT::ButtonState::Low,
+        Released = ButtonT::ButtonState::High
+    };
+
+    /**
+     * quick button push event consists of such ButtonEventT events sent in order : Pushed, Released, PushedAndReleased
+     * long button push event consists of such ButtonEventT events: Pushed, Released, PushedAndHold, PushedAndReleased
+     */
+    enum class ButtonEventT : int {
+        Pushed   = static_cast<int>(ButtonState::Pushed),     // just after push
+        Released = static_cast<int>(ButtonState::Released),   // just after release
+        PushedAndReleased,                                    // after push + delay if still pushed
+        PushedAndHold                                         // after push + release
+    };
+
+    using ButtonStateChangeCallbackT = std::function<void(KeyIdent)>;
+    using ButtonEventCallbackT       = std::function<void()>;
+    using ButtonIdT                  = int;
+
+    Keyboard()
+      : driver{ std::make_shared<Driver>() }
+    {
+        buttons.push_back(ButtonT{ static_cast<ButtonIdT>(KeyIdent::Enter),
+                                   driver,
+                                   [this]() { xTaskGetTickCount(); },
+                                   [this](ButtonState state) { ButtonStateChangeCallback(state); } });
+        // todo: add all buttons
+    }
+
+    const ButtonT &GetButtonWithId(ButtonIdT) noexcept;
+    void           InvokeButtonEventCallback(const ButtonT &button, ButtonEventT event);
+    void           SetLongPressThr(int new_threshold) noexcept;
+    // slots:
+    void ButtonStateChangeCallback(ButtonIdT id) noexcept;
+
+  private:
+    std::shared_ptr<Driver>                                            driver;
+    std::vector<std::pair<ButtonT, std::vector<ButtonEventCallbackT>>> buttons;
+    int                                                                longPressThr{ 50 };   // todo: make configurable
 };
-//
-//template<KeyboardDriver Driver>
-//void
-//Keyboard<Driver>::ButtonChangedStateCallback(const Pin &)
-//{ }
-//
-//template<KeyboardDriver Driver>
-//void
-//Keyboard<Driver>::SetCallbackForKeys(std::vector<KeyIdent> keys, Keyboard::Callback callback)
-//{
-//    for (const auto &key : keys) {
-//        // search in callbacks if key is present, if not -> add ... else -> exchange --->>
-//        auto key_function_It = std::find_if(callbacks.begin(), callbacks.end(), [wanted_key = key](const auto &key_func) {
-//            if (key_func.first == wanted_key)
-//                return true;
-//            else
-//                return false;
-//        });
-//
-//        if (key_function_It == callbacks.end()) {
-//            callbacks.push_back({ key, callback });
-//        }
-//        else {
-//            key_function_It->second = callback;
-//        }
-//    }
-//
-//    std::sort(callbacks.begin(), callbacks.end(), [](const auto &key_func_left, const auto &key_func_right) {
-//        return key_func_left.first < key_func_right.first;
-//    });
-//}
+
+template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
+const ButtonT &
+Keyboard<Driver, ButtonT, TimeT, TimerT>::GetButtonWithId(Keyboard::ButtonIdT id) noexcept
+{
+    return buttons.at(id);
+}
+
+template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
+void
+Keyboard<Driver, ButtonT, TimeT, TimerT>::InvokeButtonEventCallback(const ButtonT &button, Keyboard::ButtonEventT event)
+{
+    button.second.at(event)();
+}
+
+template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
+void
+Keyboard<Driver, ButtonT, TimeT, TimerT>::ButtonStateChangeCallback(Keyboard::ButtonIdT id) noexcept
+{
+    auto button        = GetButtonWithId(id);
+    auto current_state = button.GetCurrentState();
+
+    InvokeButtonEventCallback(button, static_cast<ButtonEventT>(current_state));
+
+    auto current_time = xTaskGetTickCount();
+    if (current_state = ButtonState::Pushed) {
+        if (current_time - button.GetLastStateChangeTime() > longPressThr /* && callback was not invoked yet*/) {
+            button.InvokeEventCallback(static_cast<int>(ButtonEventT::PushedAndHold));
+        }
+    }
+    else {   // ButtonState::Released
+    }
+
+    // state change processing
+    // if state = released and prev state change was X time ago -> generate pushrelease event
+
+    // event = ...
+
+    auto event = ButtonEventT{};   // todo: implement;
+    InvokeButtonEventCallback(id, event);
+}
+
+template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
+void
+Keyboard<Driver, ButtonT, TimeT, TimerT>::SetLongPressThr(int new_threshold) noexcept
+{
+    longPressThr = new_threshold;
+}
