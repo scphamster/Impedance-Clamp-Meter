@@ -14,12 +14,14 @@
 #include "task.h"
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
+#include "FreeRTOS/include/timers.h"
 
 using Drawer             = DisplayDrawer<ILI9486Driver>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
 using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
 
 bool ILI9486Driver::isInitialized = false;
+
 
 [[noreturn]] void
 tasks_setup2()

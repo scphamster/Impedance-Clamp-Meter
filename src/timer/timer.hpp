@@ -14,14 +14,20 @@
 #include "FreeRTOS.h"
 #include "FreeRTOS/include/timers.h"
 
+extern int g_testvar;
+
 class TimerFreeRTOS {
   public:
     using TickT        = TickType_t;
     using CallbackType = std::function<void()>;
+    enum {
+        TicksToWait = 0
+    };
 
     TimerFreeRTOS(TickT period);
 
-    void SetNewCallback(CallbackType &&new_callback);
+    void SetNewCallback(CallbackType &&new_callback, int call_delay_ms);
+    void InvokeCallback();
 
   protected:
   private:
