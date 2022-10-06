@@ -14,6 +14,8 @@
 #include "FreeRTOS.h"
 #include "FreeRTOS/include/timers.h"
 
+extern int g_testvar;
+
 class TimerFreeRTOS {
   public:
     using TickT        = TickType_t;
