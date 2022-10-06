@@ -28,7 +28,11 @@ constexpr int  MCP23016_TWI_FREQ       = 200000UL;
 
 extern "C" void MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask);
 
+
+
 class MCP23016_driver {
+    // todo: implement twi driver to benefit from encapsulation
+
   public:
     enum class Register : Byte {
         GP0     = 0X00,
@@ -53,14 +57,14 @@ class MCP23016_driver {
     void Initialize() const noexcept;
 
     [[nodiscard]] std::array<Pin::PinState, NumberOfPins> GetPinsState() const noexcept;
-    void SetPinChangeCallback(std::function<void(const Pin &)> &&pin_change_callback);
-    void InterruptHandler() const noexcept;
+    void SetPinStateChangeCallback(std::function<void(const Pin &)> &&pin_change_callback);
+    void InterruptHandler() noexcept;
     void StartTask() noexcept;
 
   protected:
   private:
-    std::array<Pin, NumberOfPins> pins;
-    static bool                   isInitialized;
-    int taskPriority = 3;
+    std::array<Pin, NumberOfPins>    pins;
+    static bool                      isInitialized;
+    int                              taskPriority = 4;
     std::function<void(const Pin &)> pinChangeCallback;
 };

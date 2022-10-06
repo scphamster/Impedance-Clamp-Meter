@@ -1,5 +1,7 @@
 #include <array>
 
+#include <algorithm>
+
 #include "asf.h"
 #include "twi_pdc.h"
 #include "mcp23016_driver.hpp"
@@ -43,9 +45,19 @@ MCP23016_driver_IRQ_task(void *driver_instance)
 }
 
 MCP23016_driver::MCP23016_driver()
+  : pins{ Pin{ 0, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 1, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 2, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 3, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 4, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 5, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 6, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 7, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 8, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 9, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 10, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 11, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 12, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 13, Pin::PinMode::Input, Pin::PinState::Low },
+          Pin{ 14, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 15, Pin::PinMode::Input, Pin::PinState::Low } }
 {
     if (not isInitialized)
         Initialize();
+
+    StartTask();
 }
 
 void
@@ -73,6 +85,8 @@ MCP23016_driver::Initialize() const noexcept
 
     pio_handler_set_priority(MCP23016_INT_PORT, MCP23016_IRQ_ID, MCP23016_INTERRUPT_PRIO);
     pio_enable_interrupt(MCP23016_INT_PORT, (1 << MCP23016_INT_PIN));
+
+    isInitialized = true;
 }
 
 std::array<Pin::PinState, MCP23016_driver::NumberOfPins>
@@ -84,8 +98,6 @@ MCP23016_driver::GetPinsState() const noexcept
 
     uint32_t cpu_freq = sysclk_get_cpu_hz();
 
-    twi_set_speed(TWI0, MCP23016_TWI_FREQ, cpu_freq);
-
     Byte         pins_state[2];
     twi_packet_t packet;
 
@@ -95,6 +107,9 @@ MCP23016_driver::GetPinsState() const noexcept
     packet.chip        = MCP23016_TWI_ADDR;
     packet.addr[0]     = static_cast<Byte>(Register::GP0);
     packet.addr_length = 1;
+
+    twiPdc_disable();
+    twi_set_speed(TWI0, MCP23016_TWI_FREQ, cpu_freq);
 
     twi_master_read(TWI0, &packet);
 
@@ -114,9 +129,21 @@ MCP23016_driver::GetPinsState() const noexcept
 }
 
 void
-MCP23016_driver::InterruptHandler() const noexcept
+MCP23016_driver::InterruptHandler() noexcept
 {
     auto pins_state = GetPinsState();
+
+    for (auto i = 0; const auto &new_pin_state : pins_state) {
+        if (pins.at(i).GetPinState() != new_pin_state) {
+            pins.at(i).SetPinState(new_pin_state);
+
+            pinChangeCallback(pins.at(i));
+        }
+
+        i++;
+    }
+
+    // todo: implement pin state change detection and callback invocation
 }
 
 void
@@ -130,7 +157,7 @@ MCP23016_driver::StartTask() noexcept
                 nullptr);
 }
 void
-MCP23016_driver::SetPinChangeCallback(std::function<void(const Pin &)> &&pin_change_callback)
+MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin &)> &&pin_change_callback)
 {
     pinChangeCallback = std::move(pin_change_callback);
 }

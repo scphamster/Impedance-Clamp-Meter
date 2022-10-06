@@ -21,8 +21,7 @@
 
 template<typename KeyboardType>
 concept KeyboardDriver = requires(KeyboardType keyboard) {
-                             keyboard.SetCallback(std::function<void()>{});
-                             typename KeyboardType::State;
+                             keyboard.SetPinStateChangeCallback(std::function<void()>{});
                          };
 
 template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
@@ -41,12 +40,12 @@ class Button {
            std::function<void()>            &&timeChecker,
            std::function<void(ButtonState)> &&state_change_callback)
       : driver{ button_driver }
-      , myId{ id }
+      , id{ id }
       , timeCheckFn{ std::move(timeChecker) }
-      , stateChangeCallback{ std::move(state_change_callback) }
+      , stateChangeCallbackToKeyboard{ std::move(state_change_callback) }
     {
-        driver->SetCallback(std::function<void(ButtonState)>{
-          std::bind(&Button<ButtonIdT, Driver, TimeT, TimerT>::StateChangeSlot, this, std::placeholders::_1) });
+        driver->SetPinStateChangeCallback(
+          std::function<void(ButtonState)>{ [this](ButtonState newstate) { StateChangeSlot(newstate); } });
     }
 
     TimeT       GetPrevStateChangeTime() const noexcept;
@@ -62,7 +61,7 @@ class Button {
     void StateChangeDebounced(ButtonState newstate) noexcept
     {
         debouncedState = newstate;
-        stateChangeCallback(newstate);
+        stateChangeCallbackToKeyboard(newstate);
     }
 
     void StateChangeSlot(ButtonState newstate) noexcept
@@ -82,18 +81,21 @@ class Button {
   private:
     // std::string name;
     std::shared_ptr<Driver> driver;
-    ButtonIdT               myId{};
-    TimeT                   lastChangeTime{};
-    TimeT                   debounceTime{};
-    TimeT                   prevStateChangeTime{};
-    std::function<void()>   timeCheckFn;
-    ButtonState             state{};
-    ButtonState             debouncedState{};
-    TimerT                  timer;
+    ButtonIdT               id{};
 
-    StateChangeCallbackT stateChangeCallback;
+    ButtonState state{};
+    ButtonState debouncedState{};
+
+    TimeT lastChangeTime{};
+    TimeT debounceTime{};
+    TimeT prevStateChangeTime{};
+
+    TimerT                timer;
+    std::function<void()> timeCheckFn;
+
+    StateChangeCallbackT stateChangeCallbackToKeyboard;
     std::vector<std::pair<int, std::pair<EventCallbackT, EventWasAlreadyInvokedFlagT>>>
-      eventCallbacks;   // todo: try to use std::map
+      eventCallbacksToClient;   // todo: try to use std::map
 };
 
 template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
@@ -114,7 +116,31 @@ template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename Tim
 void
 Button<ButtonIdT, Driver, TimeT, TimerT>::SetNewEventCallback(Button::EventCallbackT &&event_callback, int event_id)
 {
-    eventCallbacks.emplace_back(event_id, std::move(event_callback));
+    eventCallbacksToClient.emplace_back(event_id, std::move(event_callback));
+}
+
+template<typename ButtonIdT, KeyboardDriver Driver, typename TimeT, typename TimerT>
+void
+Button<ButtonIdT, Driver, TimeT, TimerT>::InvokeEventCallback(int event_id)
+{
+    std::find_if(eventCallbacksToClient.begin(),
+                 eventCallbacksToClient.end(),
+                 [id = event_id](const auto &id__callback_wasalreadyInvokedFlag) {
+                     if (id__callback_wasalreadyInvokedFlag.first == id) {
+                         if (id__callback_wasalreadyInvokedFlag.second.second) {
+                             return;
+                         }
+                         else {
+                             id__callback_wasalreadyInvokedFlag.second.first();
+                             id__callback_wasalreadyInvokedFlag.second.second = true;
+                         }
+                     }
+                     else {
+                         id__callback_wasalreadyInvokedFlag.second.second = false;
+                     }
+                 }
+
+    );
 }
 
 class AbstractKeyboard {
@@ -142,7 +168,7 @@ class Keyboard {
     };
 
     /**
-     * quick button push event consists of such ButtonEventT events sent in order : Pushed, Released, PushedAndReleased
+     * quick button push event consists of such ButtonEventT events sent in order : Pushed, Released, PushedAndReleased.
      * long button push event consists of such ButtonEventT events: Pushed, Released, PushedAndHold, PushedAndReleased
      */
     enum class ButtonEventT : int {
@@ -156,8 +182,8 @@ class Keyboard {
     using ButtonEventCallbackT       = std::function<void()>;
     using ButtonIdT                  = int;
 
-    Keyboard()
-      : driver{ std::make_shared<Driver>() }
+    explicit Keyboard(std::shared_ptr<Driver> new_driver)
+      : driver{ new_driver }
     {
         buttons.push_back(ButtonT{ static_cast<ButtonIdT>(KeyIdent::Enter),
                                    driver,
@@ -166,6 +192,8 @@ class Keyboard {
         // todo: add all buttons
     }
 
+    Keyboard() { Keyboard{ std::make_shared<Driver>() }; }
+
     const ButtonT &GetButtonWithId(ButtonIdT) noexcept;
     void           InvokeButtonEventCallback(const ButtonT &button, ButtonEventT event);
     void           SetLongPressThr(int new_threshold) noexcept;
@@ -173,9 +201,9 @@ class Keyboard {
     void ButtonStateChangeCallback(ButtonIdT id) noexcept;
 
   private:
-    std::shared_ptr<Driver>                                            driver;
-    std::vector<std::pair<ButtonT, std::vector<ButtonEventCallbackT>>> buttons;
-    int                                                                longPressThr{ 50 };   // todo: make configurable
+    std::shared_ptr<Driver> driver;
+    std::vector<ButtonT>    buttons;
+    int                     longPressThr{ 50 };   // todo: make configurable
 };
 
 template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
@@ -189,7 +217,7 @@ template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename Timer
 void
 Keyboard<Driver, ButtonT, TimeT, TimerT>::InvokeButtonEventCallback(const ButtonT &button, Keyboard::ButtonEventT event)
 {
-    button.second.at(event)();
+    button.InvokeEventCallback(static_cast<int>(event));
 }
 
 template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>
@@ -202,21 +230,14 @@ Keyboard<Driver, ButtonT, TimeT, TimerT>::ButtonStateChangeCallback(Keyboard::Bu
     InvokeButtonEventCallback(button, static_cast<ButtonEventT>(current_state));
 
     auto current_time = xTaskGetTickCount();
-    if (current_state = ButtonState::Pushed) {
+    if (current_state == ButtonState::Pushed) {
         if (current_time - button.GetLastStateChangeTime() > longPressThr /* && callback was not invoked yet*/) {
             button.InvokeEventCallback(static_cast<int>(ButtonEventT::PushedAndHold));
         }
     }
     else {   // ButtonState::Released
+        button.InvokeEventCallback(static_cast<int>(ButtonEventT::PushedAndReleased));
     }
-
-    // state change processing
-    // if state = released and prev state change was X time ago -> generate pushrelease event
-
-    // event = ...
-
-    auto event = ButtonEventT{};   // todo: implement;
-    InvokeButtonEventCallback(id, event);
 }
 
 template<KeyboardDriver Driver, typename ButtonT, typename TimeT, typename TimerT>

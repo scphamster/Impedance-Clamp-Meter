@@ -14,14 +14,16 @@
 #include "task.h"
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
-#include "FreeRTOS/include/timers.h"
 
-using Drawer             = DisplayDrawer<ILI9486Driver>;
-using Clamp              = ClampMeter<Drawer, ClampSensor>;
+#include "keyboard.hpp"
+#include "mcp23016_driver.hpp"
+
+using Drawer = DisplayDrawer<ILI9486Driver>;
+using Clamp  = ClampMeter < Drawer, ClampSensor,
+      Keyboard<MCP23016_driver, Button<int, MCP23016_driver, TickType_t, TimerFreeRTOS>, TickType_t, TimerFreeRTOS>;
 using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
 
 bool ILI9486Driver::isInitialized = false;
-
 
 [[noreturn]] void
 tasks_setup2()
