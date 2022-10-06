@@ -13,12 +13,12 @@
 
 #include "asf.h"
 #include "twi_pdc.h"
-#include "mcp23016_driver.hpp"
+#include "mcp23016_driver_fast.hpp"
 #include "FreeRTOS.h"
-#include "FreeRTOS/include/semphr.h"
 #include "FreeRTOS/include/task.h"
+#include "FreeRTOS/include/stream_buffer.h"
 
-static SemaphoreHandle_t gInterruptSemaphore = static_cast<SemaphoreHandle_t>(nullptr);
+static StreamBufferHandle_t pins_status_buffer = nullptr;
 
 extern "C" void
 MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask)
@@ -27,29 +27,20 @@ MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask)
 
     if (pio_get_pin_value(MCP23016_INT_PIN_NUM))
         return;
-
-    // todo: eliminate this check after todo in MCP23016_driver_IRQ_task is implemented
-    if (gInterruptSemaphore == static_cast<SemaphoreHandle_t>(nullptr))
-        return;
-
-    xSemaphoreGiveFromISR(gInterruptSemaphore, &higher_priority_task_woken);
-
-    // check for higher priority task woken and call context switch if so
-    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
 extern "C" [[noreturn]] void
 MCP23016_DriverTask(void *driver_instance)
 {
-    // todo: make initialization of interrupt after semaphore is created, this would eliminate need for nullptr check in
-    // interrupt. Bounded todos: MCP23016_driver_IRQHandler
-    gInterruptSemaphore = xSemaphoreCreateBinary();
-    auto driver         = static_cast<MCP23016_driver *>(driver_instance);
+    auto driver = static_cast<MCP23016_driver *>(driver_instance);
 
-    while (true) {
-        if (xSemaphoreTake(gInterruptSemaphore, portMAX_DELAY) == pdTRUE) {
-            driver->InterruptHandler();
-        }
+      while (1)
+    {
+        driver->InterruptHandler();
+
+
+
+
     }
 }
 
@@ -140,13 +131,17 @@ MCP23016_driver::GetPinsState() const noexcept
 void
 MCP23016_driver::InterruptHandler() noexcept
 {
-    auto pins_state = GetPinsState();
+    Byte buff[MCP23016_driver::StreamBufferSize];
+
+    xStreamBufferReceive(pins_status_buffer, &buff[0], MCP23016_driver::StreamBufferSize, portMAX_DELAY);
+
+
 
     for (auto i = 0; const auto &new_pin_state : pins_state) {
         if (pins.at(i).GetPinState() != new_pin_state) {
             pins.at(i).SetPinState(new_pin_state);
 
-            pinChangeCallback(pins.at(i));
+            pinStateChangeCallback(pins.at(i));
         }
 
         i++;
@@ -158,7 +153,17 @@ MCP23016_driver::InterruptHandler() noexcept
 void
 MCP23016_driver::StartTask() noexcept
 {
-    xTaskCreate(MCP23016_driver_IRQ_task,
+    const auto buffer_size                  = NumberOfPins / sizeof(Byte);
+    const auto triggering_number_of_packets = 1;
+
+    pins_status_buffer = xStreamBufferCreate(buffer_size, triggering_number_of_packets);
+
+    // todo: make better exception catcher
+    if (pins_status_buffer == nullptr) {
+        while (1) { }
+    }
+
+    xTaskCreate(MCP23016_DriverTask,
                 "mcp23016 keyboard",
                 configMINIMAL_STACK_SIZE,
                 static_cast<void *const>(this),
@@ -168,5 +173,11 @@ MCP23016_driver::StartTask() noexcept
 void
 MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin &)> &&pin_change_callback)
 {
-    pinChangeCallback = std::move(pin_change_callback);
+    pinStateChangeCallback = std::move(pin_change_callback);
+}
+
+consteval int
+MCP23016_driver::GetStreamBufferSize() const noexcept
+{
+    return streamBufferSize;
 }

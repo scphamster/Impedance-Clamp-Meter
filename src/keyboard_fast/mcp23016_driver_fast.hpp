@@ -28,8 +28,6 @@ constexpr int  MCP23016_TWI_FREQ       = 200000UL;
 
 extern "C" void MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask);
 
-
-
 class MCP23016_driver {
     // todo: implement twi driver to benefit from encapsulation
 
@@ -51,6 +49,7 @@ class MCP23016_driver {
 
     enum {
         NumberOfPins = 16,
+        StreamBufferSize = NumberOfPins / sizeof(Byte)
     };
 
     MCP23016_driver();
@@ -63,9 +62,9 @@ class MCP23016_driver {
 
   protected:
   private:
-    static bool                      isInitialized;
+    static bool isInitialized;
 
     std::array<Pin, NumberOfPins>    pins;
-    std::function<void(const Pin &)> pinChangeCallback;
-    int                              taskPriority = 4;
+    std::function<void(const Pin &)> pinStateChangeCallback;
+    int                              taskPriority     = 4;
 };

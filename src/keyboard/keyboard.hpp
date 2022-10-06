@@ -35,12 +35,12 @@ class Button {
     using StateChangeCallbackT        = std::function<void(ButtonState)>;
     using EventWasAlreadyInvokedFlagT = bool;
 
-    Button(ButtonIdT                          id,
+    Button(ButtonIdT                          new_id,
            std::shared_ptr<Driver>            button_driver,
            std::function<void()>            &&timeChecker,
            std::function<void(ButtonState)> &&state_change_callback)
       : driver{ button_driver }
-      , id{ id }
+      , id{ new_id }
       , timeCheckFn{ std::move(timeChecker) }
       , stateChangeCallbackToKeyboard{ std::move(state_change_callback) }
     {
