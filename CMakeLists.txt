@@ -59,13 +59,23 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/main_task/main_task.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.hpp
-    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
-    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
-    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
-    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
+#    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
+#    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
+#    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
+#    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
     ${SOURCES_DIRECTORY}/keyboard/pin.hpp
     ${SOURCES_DIRECTORY}/timer/timer.cpp
     ${SOURCES_DIRECTORY}/timer/timer.hpp
+    ${SOURCES_DIRECTORY}/concepts/clamp_meter_concepts.hpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/keyboard_fast.hpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.hpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
+    ${SOURCES_DIRECTORY}/menu/page.cpp
+    ${SOURCES_DIRECTORY}/menu/page.hpp
+    ${SOURCES_DIRECTORY}/menu/menu.hpp
+    ${SOURCES_DIRECTORY}/menu/menu.cpp
     )
 
 set(C_SOURCES
@@ -78,14 +88,17 @@ set(C_SOURCES
     )
 
 set(INCLUDE_DIRECTORIES
-    src
-    src/clamp_meter_drawer
-    src/clamp_sensor
-    src/ili9486
-    src/mutex
-    src/main_task
-    src/keyboard
-    src/timer
+    ${SOURCES_DIRECTORY}
+    ${SOURCES_DIRECTORY}/clamp_meter_drawer
+    ${SOURCES_DIRECTORY}/clamp_sensor
+    ${SOURCES_DIRECTORY}/ili9486
+    ${SOURCES_DIRECTORY}/mutex
+    ${SOURCES_DIRECTORY}/main_task
+    ${SOURCES_DIRECTORY}/keyboard
+    ${SOURCES_DIRECTORY}/timer
+    ${SOURCES_DIRECTORY}/concepts
+    ${SOURCES_DIRECTORY}/keyboard_fast
+    ${SOURCES_DIRECTORY}/menu
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

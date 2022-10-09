@@ -14,17 +14,18 @@
 #include <array>
 #include <functional>
 
+#include "FreeRTOS/FreeRTOSConfig.h"
 #include "compiler.h"
 #include "pin.hpp"
 
-constexpr Byte MCP23016_TWI_ADDR       = 0b00100000;   // SLA+W
-constexpr int  MCP23016_INT_PIN        = 11;
-Pio *const     MCP23016_INT_PORT       = PIOD;
-constexpr int  MCP23016_INT_PORT_ID    = ID_PIOD;
-constexpr IRQn MCP23016_IRQ_ID         = PIOD_IRQn;
-constexpr int  MCP23016_INT_PIN_NUM    = MCP23016_INT_PIN + 32 * 3;
-constexpr int  MCP23016_INTERRUPT_PRIO = 3;
-constexpr int  MCP23016_TWI_FREQ       = 200000UL;
+constexpr Byte _MCP23016_TWI_ADDR       = 0b00100000;   // SLA+W
+constexpr int  _MCP23016_INT_PIN        = 11;
+Pio *const     _MCP23016_INT_PORT       = PIOD;
+constexpr int  _MCP23016_INT_PORT_ID    = ID_PIOD;
+constexpr IRQn _MCP23016_IRQ_ID         = PIOD_IRQn;
+constexpr int  _MCP23016_INT_PIN_NUM    = _MCP23016_INT_PIN + 32 * 3;
+constexpr int  _MCP23016_INTERRUPT_PRIO = 3;
+constexpr int  _MCP23016_TWI_FREQ       = 200000UL;
 
 extern "C" void MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask);
 
@@ -32,6 +33,8 @@ class MCP23016_driver {
     // todo: implement twi driver to benefit from encapsulation
 
   public:
+    using PinStateChangeCallback = std::function<void(const Pin &)>;
+
     enum class Register : Byte {
         GP0     = 0X00,
         GP1     = 0X01,
@@ -48,23 +51,28 @@ class MCP23016_driver {
     };
 
     enum {
-        NumberOfPins = 16,
-        StreamBufferSize = NumberOfPins / sizeof(Byte)
+        NumberOfPins                 = 16,
+        NumberOfBitsInByte           = 8,
+        StreamBufferSinglePacketSize = NumberOfPins / NumberOfBitsInByte,
+        StreamBufferSize             = (NumberOfPins / sizeof(Byte)) * 10
     };
 
-    MCP23016_driver();
+    MCP23016_driver(PinStateChangeCallback &&callback);
     void Initialize() const noexcept;
 
-    [[nodiscard]] std::array<Pin::PinState, NumberOfPins> GetPinsState() const noexcept;
-    void SetPinStateChangeCallback(std::function<void(const Pin &)> &&pin_change_callback);
-    void InterruptHandler() noexcept;
-    void StartTask() noexcept;
+    [[nodiscard]] static uint16_t GetPinsState() noexcept;
+    void                          SetPinStateChangeCallback(PinStateChangeCallback &&pin_change_callback);
+    void                          InterruptHandler() noexcept;
+    void                          StartTask() noexcept;
+    [[nodiscard]] static std::array<Pin::PinState, NumberOfPins> StreamBufferToPinStateArray(
+      std::array<Byte, StreamBufferSinglePacketSize> &&serial_data);
 
   protected:
   private:
     static bool isInitialized;
+    const int   rtosTaskPriority          = 4;   // todo: make configurable
+    const int   hardwareInterruptPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
 
-    std::array<Pin, NumberOfPins>    pins;
-    std::function<void(const Pin &)> pinStateChangeCallback;
-    int                              taskPriority     = 4;
+    std::array<Pin, NumberOfPins> pins;
+    PinStateChangeCallback        pinStateChangeCallback;
 };

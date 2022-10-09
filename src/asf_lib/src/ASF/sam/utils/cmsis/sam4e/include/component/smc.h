@@ -107,9 +107,9 @@ typedef struct {
 #define SMC_MODE_TDF_CYCLES_Msk (0xfu << SMC_MODE_TDF_CYCLES_Pos) /**< \brief (SMC_MODE) Data Float Time */
 #define SMC_MODE_TDF_CYCLES(value) ((SMC_MODE_TDF_CYCLES_Msk & ((value) << SMC_MODE_TDF_CYCLES_Pos)))
 #define SMC_MODE_TDF_MODE (0x1u << 20) /**< \brief (SMC_MODE) TDF Optimization */
-#define SMC_MODE_PMEN (0x1u << 24) /**< \brief (SMC_MODE) Page Mode Enabled */
+#define SMC_MODE_PMEN (0x1u << 24) /**< \brief (SMC_MODE) MainPage Mode Enabled */
 #define SMC_MODE_PS_Pos 28
-#define SMC_MODE_PS_Msk (0x3u << SMC_MODE_PS_Pos) /**< \brief (SMC_MODE) Page Size */
+#define SMC_MODE_PS_Msk (0x3u << SMC_MODE_PS_Pos) /**< \brief (SMC_MODE) MainPage Size */
 #define   SMC_MODE_PS_4_BYTE (0x0u << 28) /**< \brief (SMC_MODE) 4-byte page */
 #define   SMC_MODE_PS_8_BYTE (0x1u << 28) /**< \brief (SMC_MODE) 8-byte page */
 #define   SMC_MODE_PS_16_BYTE (0x2u << 28) /**< \brief (SMC_MODE) 16-byte page */

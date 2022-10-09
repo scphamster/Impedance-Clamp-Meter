@@ -96,7 +96,7 @@ typedef struct {
 	
 	uint8_t dy_std;
 	uint16_t y_std_first_row;
-	Page window;
+    MainPage window;
 	
 	reprint_item_t reprint;
 	current_menu_t current_menu;
@@ -129,7 +129,7 @@ typedef struct {
 	color_t		output_enabled_main_text_color;
 	color_t		output_disabled_main_text_color;
 	color_t		info_text_color;
-	Page		header_coordinates;
+    MainPage    header_coordinates;
 	Point		output_status_text_xy;
 	Point		info_text_xy;
 }page_params_TopHeader_t;
@@ -140,7 +140,7 @@ typedef struct {
 	color_t		normal_bk_color;
 	color_t		error_bk_color;
 	color_t		text_color;
-	Page		header_coordinates;
+    MainPage    header_coordinates;
 	Point		msg_coordinates;
 }page_params_BotHeader_t;
 

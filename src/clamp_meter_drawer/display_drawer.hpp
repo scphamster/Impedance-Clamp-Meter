@@ -11,34 +11,10 @@
 
 #include <memory>
 #include "compiler.h"
+#include "clamp_meter_concepts.hpp"
 #include "ILI9486_config.h"
 
-// #include "ili9486_driver.hpp"
-
 extern "C" char *gcvtf(float, int, char *);
-
-template<typename TestedDriver>
-concept DisplayDriver = requires(TestedDriver drv) {
-                            drv.Init();
-                            {
-                                drv.DrawPixel(typename TestedDriver::Point{}, typename TestedDriver::Color{})
-                            } noexcept;
-                            {
-                                drv.SetPartial(typename TestedDriver::Point{}, typename TestedDriver::Point{})
-                            } noexcept;
-                            {
-                                drv.PutPixel(typename TestedDriver::Color{}, typename TestedDriver::PixelNumT{})
-                            } noexcept;
-                            {
-                                drv.PutPixel(typename TestedDriver::Color{})
-                            } noexcept;
-
-                            typename TestedDriver::PixelNumT;
-                            typename TestedDriver::Color;
-                            typename TestedDriver::ScreenSizeT;
-                            typename TestedDriver::Point;
-
-                        };
 
 template<DisplayDriver Driver>
 class DisplayDrawer {
@@ -54,7 +30,7 @@ class DisplayDrawer {
     DisplayDrawer &operator=(const DisplayDrawer &) = default;
     explicit DisplayDrawer(DisplayDrawer &&)        = default;
     DisplayDrawer &operator=(DisplayDrawer &&)      = default;
-    virtual ~DisplayDrawer()                        = default;
+    virtual ~DisplayDrawer() = default;
 
     void Clear(Color color) noexcept;
     void SetCursor(Point) noexcept;
@@ -440,7 +416,7 @@ DisplayDrawer<Driver>::Print(float number, Byte n_digits, const Byte size) noexc
     auto const buffsize = 20;
     char       buffer[buffsize];
 
-    //TODO: optimize floating number drawing, its 1000 times slower than integer drawing
+    // TODO: optimize floating number drawing, its 1000 times slower than integer drawing
     gcvtf(number, n_digits, &buffer[0]);
 
     Print(buffer, size);

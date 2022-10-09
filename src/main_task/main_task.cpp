@@ -7,6 +7,7 @@
 #ifdef printf
 #undef printf
 #endif
+#include <vector>
 
 #include "hclamp_meter.hpp"
 #include "main_task.hpp"
@@ -21,17 +22,18 @@
 using Drawer             = DisplayDrawer<ILI9486Driver>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
 using ClampMeterFreeRTOS = ClampMeterInTaskHandler<Drawer, ClampSensor>;
-
+using KeyboardT = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>;
 bool ILI9486Driver::isInitialized = false;
 
 [[noreturn]] void
 tasks_setup2()
 {
     static volatile auto clamp_meter =
-      Clamp{ 56, std::make_shared<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()) };
+      Clamp{std::make_shared<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()), std::make_unique<KeyboardT>() };
 
     //    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();
+
 
     vTaskStartScheduler();
 
@@ -57,7 +59,7 @@ ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
     auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
 
     while (true) {
-        //        clmp->DisplayMeasurementsTask();
+                clmp->DisplayMeasurementsTask();
         clamp_meter.DisplayMeasurementsTask();
     }
 }

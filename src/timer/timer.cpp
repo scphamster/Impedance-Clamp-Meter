@@ -1,3 +1,13 @@
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
+#ifdef printf
+#undef printf
+#endif
+
 #include "timer.hpp"
 #include "arm_math.h"
 
@@ -8,7 +18,7 @@ TimerFreeRTOS_CallbacksWrapper(TimerHandle_t called_from_timer)
     cpp_timer_instance->InvokeCallback();
 }
 
-TimerFreeRTOS::TimerFreeRTOS(TimerFreeRTOS::TickT period) noexcept
+TimerFreeRTOS::TimerFreeRTOS(TimerFreeRTOS::TimeT period) noexcept
   : freertosTimer{
       xTimerCreate("cpptimer", period, pdFALSE, static_cast<void *const>(this), TimerFreeRTOS_CallbacksWrapper)
   }
@@ -31,3 +41,14 @@ TimerFreeRTOS::InvokeCallback()
 {
     callback();
 }
+
+TimerFreeRTOS::TimeT
+TimerFreeRTOS::GetCurrentTime() const noexcept
+{
+    return xTaskGetTickCount();
+}
+
+TimerFreeRTOS::TimerFreeRTOS(const TimerFreeRTOS &other)          = default;
+TimerFreeRTOS &TimerFreeRTOS::operator=(const TimerFreeRTOS &rhs) = default;
+TimerFreeRTOS::TimerFreeRTOS(TimerFreeRTOS &&other)               = default;
+TimerFreeRTOS &TimerFreeRTOS::operator=(TimerFreeRTOS &&rhs)      = default;

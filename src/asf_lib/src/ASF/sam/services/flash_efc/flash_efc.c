@@ -219,7 +219,7 @@ static void translate_address(Efc **pp_efc, uint32_t ul_addr,
  * \brief Compute the address of a flash by the given page and offset.
  *
  * \param p_efc Pointer to an EFC instance.
- * \param us_page Page number.
+ * \param us_page MainPage number.
  * \param us_offset Byte offset inside page.
  * \param pul_addr Computed address (optional).
  */

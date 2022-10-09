@@ -15,18 +15,7 @@
 #undef printf
 #endif
 
-#include <asf.h>
 #include "system_init.h"
-#include "DSP_functions.h"
-#include "MCP23016.h"
-#include "signal_conditioning.h"
-#include "ILI9486_public.h"
-#include "menu_ili9486_kbrd_mngr.h"
-#include "menu_ili9486.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "maintask.hpp"
 #include "hclamp_meter.hpp"
 
 int

@@ -263,27 +263,30 @@ system_init(void)
     flash_memory_init();
     master_clock_init();
     periph_clock_init();
+
     io_init();
     external_periph_ctrl_init();
-    system_tick_init();
+//    system_tick_init();
     keyboard_encoder_init();
+
     dacc_init();
     spi_init();
     twi_init();
     twiPdc_init();
 
-    ten_milliseconds_timer_init();
-    buzzer_timer_init();
+//    ten_milliseconds_timer_init();
+//    buzzer_timer_init();
 
     delay_ms(100);
 
-    keyboard_init();
-    LCD_init();
+    //todo:test
+//    keyboard_init();
+//    LCD_init();
 
-    delay_ms(10);
+//    delay_ms(10);
 
-    MCP3462_init();
-    dsp_init();
+//    MCP3462_init();
+//    dsp_init();
 }
 
 
