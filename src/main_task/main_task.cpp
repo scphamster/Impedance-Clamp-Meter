@@ -16,8 +16,7 @@
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
 
-//#include "keyboard.hpp"
-//#include "mcp23016_driver.hpp"
+#include "menu_model_item.hpp"
 
 using Drawer             = DisplayDrawer<ILI9486Driver>;
 using Clamp              = ClampMeter<Drawer, ClampSensor>;
@@ -30,6 +29,8 @@ tasks_setup2()
 {
     static volatile auto clamp_meter =
       Clamp{std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()), std::make_unique<KeyboardT>() };
+
+    auto data = MenuModelPageItemData{"testdata", 1};
 
     //    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();

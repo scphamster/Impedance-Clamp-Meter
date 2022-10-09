@@ -55,6 +55,8 @@ class ClampMeter : private Sensor {
         first_item->SetPosition(MenuModelIndex{ { 0, 0 } });
 
         top_item->InsertChild(first_item);
+        auto children = top_item->GetChildren();
+        auto name = children.at(0)->GetData()->GetName();
 
         model->SetTopLevelItem(top_item);
 
@@ -80,7 +82,7 @@ class ClampMeter : private Sensor {
     {
         xTaskCreate(ClampMeterDisplayMeasurementsTaskWrapper,
                     "display",
-                    300,
+                    400,
                     std::remove_volatile_t<void *const>(this),
                     3,
                     nullptr);
@@ -89,19 +91,6 @@ class ClampMeter : private Sensor {
   protected:
     virtual void DisplayMeasurementsTask();
     virtual void MeasurementsTask() { vTaskDelay(pdMS_TO_TICKS(500)); }
-
-    ClampMeter(const ClampMeter &other)
-      : mutex{ other.mutex }
-      , timer{ other.timer }
-    { }
-
-    ClampMeter &operator=(const ClampMeter &rhs)
-    {
-        mutex = rhs.mutex;
-        timer = rhs.timer;
-
-        return *this;
-    }
 
   private:
     friend class ClampMeterInTaskHandler<Drawer, Sensor>;
@@ -117,6 +106,8 @@ void
 ClampMeter<Drawer, Sensor, Keyboard>::DisplayMeasurementsTask()
 {
     drawer.DrawerTask();
+
+
 
     vTaskDelay(pdMS_TO_TICKS(500));
 }

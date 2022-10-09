@@ -15,7 +15,7 @@
 std::string
 MenuModelPageItemData::GetName() const noexcept
 {
-    return std::string();
+    return name;
 }
 
 void
@@ -24,19 +24,17 @@ MenuModelPageItemData::SetValue(const auto &new_value) noexcept
     value = new_value;
 }
 
-template<typename RetVal>
-auto
-MenuModelPageItemData::GetValue() const noexcept
-{
-    return std::get<RetVal>(value);
-}
-
 MenuModelPageItemData::MenuModelPageItemData(const MenuModelPageItemData::NameT         &new_name,
                                              const MenuModelPageItemData::UniversalType &new_value)
   : name{ new_name }
   , value{ new_value }
 {
     storedDataType = static_cast<StoredDataType>(value.index());
+}
+int
+MenuModelPageItemData::GetStoredDataType() const noexcept
+{
+    return static_cast<int>(storedDataType);
 }
 
 std::shared_ptr<MenuModelPageItemData>
@@ -72,12 +70,27 @@ MenuModelPageItem::HasChild(const MenuModelIndex &at_position) const noexcept
 std::shared_ptr<MenuModelPageItem>
 MenuModelPageItem::GetChild(const MenuModelIndex &at_position) const noexcept
 {
-    // todo: implement
+    if (at_position.GetRow() >= childItems.size())
+        return *(childItems.end() - 1);
+
+    return childItems.at(at_position.GetRow());
 }
 
 void
 MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position) noexcept
 {
+    if (at_position.GetRow() < 0)
+        return;
+
+    if (childItems.size() <= at_position.GetRow()) {
+        child->SetPosition(MenuModelIndex{ { 0, childItems.size() } });
+        child->SetParent(this);
+        childItems.emplace_back(std::move(child));
+    }
+    else {
+        childItems.at(at_position.GetRow()) = std::move(child);
+    }
+
     childItems[at_position.GetColumn()] = child;
     child->SetParent(this);
 }
@@ -113,12 +126,12 @@ MenuModelPageItem::SomeItemIsSelected() const noexcept
 }
 
 void
-MenuModelPageItem::SetEddittingCursorPosition(MenuModelPageItem::EdittingCursorT new_position) noexcept
+MenuModelPageItem::SetEddittingCursorPosition(MenuModelPageItem::EditorCursorPosT new_position) noexcept
 {
     edittingCursorPosition = new_position;
 }
 
-MenuModelPageItem::EdittingCursorT
+MenuModelPageItem::EditorCursorPosT
 MenuModelPageItem::GetEdittingCursorPosition() const noexcept
 {
     return edittingCursorPosition;
@@ -151,6 +164,12 @@ void
 MenuModelPageItem::SetParent(MenuModelPageItem *new_parent) noexcept
 {
     parent = new_parent;
+}
+
+std::vector<std::shared_ptr<MenuModelPageItem>>
+MenuModelPageItem::GetChildren() const noexcept
+{
+    return childItems;
 }
 
 MenuModelIndex::Column
