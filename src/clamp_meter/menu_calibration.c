@@ -84,7 +84,7 @@ void calibration_clamp_pos_calculate(void)
 	                                 Clamp_calibrator.I_clamp_delta;
 
 	LCD_cursor_setpos(1, 1);
-	LCD_write("Clamp position cal  ");
+	LCD_write("Clamp residesAtIndex cal  ");
 	LCD_cursor_setpos(1, 2);
 	LCD_write("is complete.        ");
 	LCD_cursor_setpos(1, 3);
@@ -656,7 +656,7 @@ void calibration_semiauto_warning_g0(calibrator_action_type_t action)
 		LCD_write("Do not change CLAMP ");
 
 		LCD_cursor_setpos(1, 3);
-		LCD_write("position after start");
+		LCD_write("residesAtIndex after start");
 
 		LCD_cursor_setpos(1, 4);
 		LCD_write("Push ENC to start...");

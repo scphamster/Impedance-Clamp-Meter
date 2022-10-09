@@ -77,7 +77,7 @@ typedef struct A_BLOCK_LINK
 /*-----------------------------------------------------------*/
 
 /*
- * Inserts a block of memory that is being freed into the correct position in
+ * Inserts a block of memory that is being freed into the correct residesAtIndex in
  * the list of free memory blocks.  The block being freed will be merged with
  * the block in front it and/or the block behind it if the memory blocks are
  * adjacent to each other.
@@ -384,7 +384,7 @@ static void prvHeapInit( void ) /* PRIVILEGED_FUNCTION */
     xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
     xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
 
-    /* Work out the position of the top bit in a size_t variable. */
+    /* Work out the residesAtIndex of the top bit in a size_t variable. */
     xBlockAllocatedBit = ( ( size_t ) 1 ) << ( ( sizeof( size_t ) * heapBITS_PER_BYTE ) - 1 );
 }
 /*-----------------------------------------------------------*/
@@ -398,7 +398,7 @@ static void prvInsertBlockIntoFreeList( BlockLink_t * pxBlockToInsert ) /* PRIVI
      * than the block being inserted. */
     for( pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock )
     {
-        /* Nothing to do here, just iterate to the right position. */
+        /* Nothing to do here, just iterate to the right residesAtIndex. */
     }
 
     /* Do the block being inserted, and the block it is being inserted after

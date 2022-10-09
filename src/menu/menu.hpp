@@ -10,10 +10,10 @@
 #endif
 
 #include <memory>
-#include "page.hpp"
+#include "menu_model_item.hpp"
 
-class Menu {
-  private:
-    std::unique_ptr<AbstractPage> mainPage;
-
-};
+//class Menu {
+//  private:
+//    std::unique_ptr<AbstractPage> mainPage;
+//
+//};

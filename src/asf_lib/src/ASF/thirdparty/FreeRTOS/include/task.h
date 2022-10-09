@@ -1769,7 +1769,7 @@ TaskHandle_t xTaskGetIdleTaskHandle( void ) PRIVILEGED_FUNCTION;
  *          // Avoid divide by zero errors.
  *          if( ulTotalRunTime > 0 )
  *          {
- *              // For each populated position in the pxTaskStatusArray array,
+ *              // For each populated residesAtIndex in the pxTaskStatusArray array,
  *              // format the raw data as human readable ASCII data
  *              for( x = 0; x < uxArraySize; x++ )
  *              {

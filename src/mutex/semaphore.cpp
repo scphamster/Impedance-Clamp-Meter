@@ -24,7 +24,7 @@ class Mutex::MutexImpl {
     MutexImpl &operator=(MutexImpl &&) = default;
     ~MutexImpl()
     {
-        if (not(_mutex == nullptr)) {
+        if (_mutex != nullptr) {
             vSemaphoreDelete(_mutex);
         }
     }

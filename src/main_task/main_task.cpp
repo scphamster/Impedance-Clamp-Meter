@@ -29,7 +29,7 @@ bool ILI9486Driver::isInitialized = false;
 tasks_setup2()
 {
     static volatile auto clamp_meter =
-      Clamp{std::make_shared<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()), std::make_unique<KeyboardT>() };
+      Clamp{std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()), std::make_unique<KeyboardT>() };
 
     //    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();
@@ -59,7 +59,7 @@ ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
     auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
 
     while (true) {
-                clmp->DisplayMeasurementsTask();
+//                clmp->DisplayMeasurementsTask();
         clamp_meter.DisplayMeasurementsTask();
     }
 }

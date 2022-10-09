@@ -354,7 +354,7 @@ BaseType_t xPortStartScheduler( void )
                 }
             #endif
 
-            /* Shift the priority group value back to its position within the AIRCR
+            /* Shift the priority group value back to its residesAtIndex within the AIRCR
              * register. */
             ulMaxPRIGROUPValue <<= portPRIGROUP_SHIFT;
             ulMaxPRIGROUPValue &= portPRIORITY_GROUP_MASK;

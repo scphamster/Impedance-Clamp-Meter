@@ -47,14 +47,10 @@ concept DisplayDriver = requires(TestedDriver drv) {
 
 template<typename DisplayDrawerT>
 concept DisplayDrawerC = requires(DisplayDrawerT drawer) {
-                             drawer.Clear(typename DisplayDrawerT::Color{}, typename DisplayDrawerT::Color{});
+                             drawer.Clear(typename DisplayDrawerT::Color{});
                              drawer.SetCursor(typename DisplayDrawerT::Point{});
-                             drawer.SetTextColor(typename DisplayDrawerT::Color{},
-                                                 typename DisplayDrawerT::Color{},
-                                                 typename DisplayDrawerT::Color{},
-                                                 typename DisplayDrawerT::Color{});
+                             drawer.SetTextColor(typename DisplayDrawerT::Color{}, typename DisplayDrawerT::Color{});
                              drawer.FillScreen(typename DisplayDrawerT::Color{});
-
                              drawer.DrawPoint(typename DisplayDrawerT::Point{}, typename DisplayDrawerT::Color{});
                              drawer.DrawLine(typename DisplayDrawerT::Point{},
                                              typename DisplayDrawerT::Point{},

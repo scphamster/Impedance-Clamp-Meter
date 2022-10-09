@@ -1147,7 +1147,7 @@ __STATIC_FORCEINLINE void __CLREX(void)
   \brief   Signed Saturate
   \details Saturates a signed value.
   \param [in]  ARG1  Value to be saturated
-  \param [in]  ARG2  Bit position to saturate to (1..32)
+  \param [in]  ARG2  Bit residesAtIndex to saturate to (1..32)
   \return             Saturated value
  */
 #define __SSAT(ARG1,ARG2) \
@@ -1163,7 +1163,7 @@ __extension__ \
   \brief   Unsigned Saturate
   \details Saturates an unsigned value.
   \param [in]  ARG1  Value to be saturated
-  \param [in]  ARG2  Bit position to saturate to (0..31)
+  \param [in]  ARG2  Bit residesAtIndex to saturate to (0..31)
   \return             Saturated value
  */
 #define __USAT(ARG1,ARG2) \
@@ -1293,7 +1293,7 @@ __STATIC_FORCEINLINE void __STRT(uint32_t value, volatile uint32_t *ptr)
   \brief   Signed Saturate
   \details Saturates a signed value.
   \param [in]  value  Value to be saturated
-  \param [in]    sat  Bit position to saturate to (1..32)
+  \param [in]    sat  Bit residesAtIndex to saturate to (1..32)
   \return             Saturated value
  */
 __STATIC_FORCEINLINE int32_t __SSAT(int32_t val, uint32_t sat)
@@ -1318,7 +1318,7 @@ __STATIC_FORCEINLINE int32_t __SSAT(int32_t val, uint32_t sat)
   \brief   Unsigned Saturate
   \details Saturates an unsigned value.
   \param [in]  value  Value to be saturated
-  \param [in]    sat  Bit position to saturate to (0..31)
+  \param [in]    sat  Bit residesAtIndex to saturate to (0..31)
   \return             Saturated value
  */
 __STATIC_FORCEINLINE uint32_t __USAT(int32_t val, uint32_t sat)

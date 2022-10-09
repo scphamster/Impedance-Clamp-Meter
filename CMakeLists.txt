@@ -72,10 +72,12 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
-    ${SOURCES_DIRECTORY}/menu/page.cpp
-    ${SOURCES_DIRECTORY}/menu/page.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
     ${SOURCES_DIRECTORY}/menu/menu.hpp
     ${SOURCES_DIRECTORY}/menu/menu.cpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     )
 
 set(C_SOURCES

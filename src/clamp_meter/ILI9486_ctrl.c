@@ -386,7 +386,7 @@ TFT_Scroll_Vertical(int16_t top, int16_t scrollines, int16_t offset)
     int16_t bfa = tft_H - top - scrollines;   // bottom fixed area
     int16_t vsp;
     // int16_t sea = top;
-    vsp = top + offset;   // vertical start position
+    vsp = top + offset;   // vertical start residesAtIndex
 
     if (offset < 0) {
         vsp += scrollines;   // keep in unsigned range

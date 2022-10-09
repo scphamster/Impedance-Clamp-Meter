@@ -17,11 +17,12 @@
 #include "task.h"
 
 #include "mutex/semaphore.hpp"
-
 #include "clamp_meter_drawing.hpp"
-
 #include "clamp_meter_concepts.hpp"
 
+#include "menu_model.hpp"
+#include "menu_model_item.hpp"
+#include "menu_model_drawer.hpp"
 // test
 #include "timer.hpp"
 #include "mcp23016_driver_fast.hpp"
@@ -32,26 +33,25 @@
 extern "C" void   ClampMeterMeasurementsTaskWrapper(void *);
 extern "C" void   ClampMeterDisplayMeasurementsTaskWrapper(void *);
 
+template<typename Drawer, typename Reader>
+class ClampMeterInTaskHandler;
+
 template<typename Drawer, typename Sensor, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter : private Sensor {
   public:
-    ClampMeter(std::shared_ptr<Drawer> display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
-      : display{ display_to_be_used }
-      , keyboard{ std::move(new_keyboard) }
+    ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
+      : mutex{ std::make_shared<Mutex>() }
       , timer{ pdMS_TO_TICKS(10) }
-    //      , sensor{ std::make_unique<Sensor>() }
+      , model{ std::forward<decltype(new_keyboard)>(new_keyboard), mutex }
+      , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
     {
 #ifdef DEBUG
-        display->SetTextColor(COLOR_RED, COLOR_BLACK);
-        display->SetCursor({ 0, 400 });
-        display->Print("debug", 1);
+//        display->SetTextColor(COLOR_RED, COLOR_BLACK);
+//        display->SetCursor({ 0, 400 });
+//        display->Print("debug", 1);
 #endif
 
-        keyboard->SetButtonEventCallback(2, Keyboard::ButtonEvent::Release, [this]() {
-            display->SetCursor({ 0, 0 });
-            display->SetTextColor(COLOR_RED, COLOR_BLACK);
-            display->Print("dupa invoked 2", 1);
-        });
+
     }
 
     ClampMeter(ClampMeter &&other)          = default;
@@ -78,83 +78,59 @@ class ClampMeter : private Sensor {
                     nullptr);
     }
 
-    virtual void DisplayMeasurementsTask();
-
   protected:
-    virtual void MeasurementsTask()
-    {
-        //        display->FillScreen(COLOR_BLACK);
-
-        {
-            std::lock_guard<Mutex> lock{ mutex };
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
+    virtual void DisplayMeasurementsTask();
+    virtual void MeasurementsTask() { vTaskDelay(pdMS_TO_TICKS(500)); }
 
     ClampMeter(const ClampMeter &other)
-      : display{ other.display }
-      , keyboard{ std::make_unique<Keyboard>(*other.keyboard) }
-      , mutex{ other.mutex }
+      : mutex{ other.mutex }
       , timer{ other.timer }
     { }
 
     ClampMeter &operator=(const ClampMeter &rhs)
     {
-        display  = rhs.display;
-        keyboard = std::make_unique<Keyboard>(*rhs.keyboard);
-        mutex    = rhs.mutex;
-        timer    = rhs.timer;
+        mutex = rhs.mutex;
+        timer = rhs.timer;
 
         return *this;
     }
 
   private:
-    //    std::unique_ptr<Sensor> sensor;
-    std::shared_ptr<Drawer>   display;
-    std::unique_ptr<Keyboard> keyboard;
-    Mutex                     mutex;
-    TimerFreeRTOS             timer;
+    friend class ClampMeterInTaskHandler<Drawer, Sensor>;
+
+    std::shared_ptr<Mutex>            mutex;
+    TimerFreeRTOS                     timer;
+    MenuModel<Keyboard>               model;
+    MenuModelDrawer<Drawer, Keyboard> drawer;
 };
 
 template<typename Drawer, typename Sensor, KeyboardC Keyboard>
 void
 ClampMeter<Drawer, Sensor, Keyboard>::DisplayMeasurementsTask()
 {
-    //    display->SetTextColor(COLOR_BLACK, COLOR_BLACK);
-    //
-    //    auto ticks_beg = xTaskGetTickCount();
-    //    auto ticks_end = ticks_beg + 10;
-    //
-    //    auto iterations = uint32_t{};
-    //
-    //    while (xTaskGetTickCount() != ticks_end) {
-    //        display->Print(1.0, 1, 2);
-    //        iterations++;
-    //    }
-    //
-    //    display->SetTextColor(COLOR_GREEN, COLOR_BLACK);
-    //    display->SetCursor({ 100, 100 });
-    //    display->Print(iterations, 2);
+    drawer.DrawerTask();
 
-    vTaskDelay(pdMS_TO_TICKS(100));
-
-    //        display->FillScreen(COLOR_GREEN);
-    //        display->FillScreen(COLOR_RED);
-
-    //                vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 template<typename Drawer, typename Reader>
-class ClampMeterInTaskHandler : private ClampMeter<Drawer, Reader> {
+class ClampMeterInTaskHandler {
   public:
-    ClampMeterInTaskHandler(const ClampMeter<Drawer, Reader> &instance)
-      : ClampMeter<Drawer, Reader>{ instance }
+    //    ClampMeterInTaskHandler(const ClampMeter<Drawer, Reader> &instance)
+    //      : ClampMeter<Drawer, Reader>{ instance }
+    //    { }
+    //
+    //    void DisplayMeasurementsTask() override { ClampMeter<Drawer, Reader>::DisplayMeasurementsTask(); }
+    //    void MeasurementsTask() override { ClampMeter<Drawer, Reader>::MeasurementsTask(); }
+
+    ClampMeterInTaskHandler(ClampMeter<Drawer, Reader> &instance)
+      : true_instance{ instance }
     { }
 
-    void DisplayMeasurementsTask() override { ClampMeter<Drawer, Reader>::DisplayMeasurementsTask(); }
-    void MeasurementsTask() override { ClampMeter<Drawer, Reader>::MeasurementsTask(); }
+    void DisplayMeasurementsTask() { true_instance.DisplayMeasurementsTask(); }
+    void MeasurementsTask() { true_instance.MeasurementsTask(); }
 
   protected:
   private:
+    ClampMeter<Drawer, Reader> &true_instance;
 };

@@ -329,14 +329,14 @@ typedef struct xLIST
  * Inline version of vListInsertEnd() to provide slight optimisation for
  * xTaskIncrementTick().
  *
- * Insert a list item into a list.  The item will be inserted in a position
+ * Insert a list item into a list.  The item will be inserted in a residesAtIndex
  * such that it will be the last item within the list returned by multiple
  * calls to listGET_OWNER_OF_NEXT_ENTRY.
  *
  * The list member pxIndex is used to walk through a list.  Calling
  * listGET_OWNER_OF_NEXT_ENTRY increments pxIndex to the next item in the list.
  * Placing an item in a list using vListInsertEnd effectively places the item
- * in the list position pointed to by pxIndex.  This means that every other
+ * in the list residesAtIndex pointed to by pxIndex.  This means that every other
  * item within the list will be returned by listGET_OWNER_OF_NEXT_ENTRY before
  * the pxIndex parameter again points to the item being inserted.
  *
@@ -441,7 +441,7 @@ void vListInitialiseItem( ListItem_t * const pxItem ) PRIVILEGED_FUNCTION;
 
 /*
  * Insert a list item into a list.  The item will be inserted into the list in
- * a position determined by its item value (ascending item value order).
+ * a residesAtIndex determined by its item value (ascending item value order).
  *
  * @param pxList The list into which the item is to be inserted.
  *
@@ -454,14 +454,14 @@ void vListInsert( List_t * const pxList,
                   ListItem_t * const pxNewListItem ) PRIVILEGED_FUNCTION;
 
 /*
- * Insert a list item into a list.  The item will be inserted in a position
+ * Insert a list item into a list.  The item will be inserted in a residesAtIndex
  * such that it will be the last item within the list returned by multiple
  * calls to listGET_OWNER_OF_NEXT_ENTRY.
  *
  * The list member pxIndex is used to walk through a list.  Calling
  * listGET_OWNER_OF_NEXT_ENTRY increments pxIndex to the next item in the list.
  * Placing an item in a list using vListInsertEnd effectively places the item
- * in the list position pointed to by pxIndex.  This means that every other
+ * in the list residesAtIndex pointed to by pxIndex.  This means that every other
  * item within the list will be returned by listGET_OWNER_OF_NEXT_ENTRY before
  * the pxIndex parameter again points to the item being inserted.
  *

@@ -5148,7 +5148,7 @@ void arm_rfft_fast_f32(
    * \image html parkFormula.gif
    * where <code>Ialpha</code> and <code>Ibeta</code> are the stator vector components,
    * <code>pId</code> and <code>pIq</code> are rotor vector components and <code>cosVal</code> and <code>sinVal</code> are the
-   * cosine and sine values of theta (rotor flux position).
+   * cosine and sine values of theta (rotor flux residesAtIndex).
    * \par Fixed-Point Behavior
    * Care must be taken when using the Q31 version of the Park transform.
    * In particular, the overflow and saturation behavior of the accumulator used must be considered.
@@ -5264,7 +5264,7 @@ void arm_rfft_fast_f32(
    * \image html parkInvFormula.gif
    * where <code>pIalpha</code> and <code>pIbeta</code> are the stator vector components,
    * <code>Id</code> and <code>Iq</code> are rotor vector components and <code>cosVal</code> and <code>sinVal</code> are the
-   * cosine and sine values of theta (rotor flux position).
+   * cosine and sine values of theta (rotor flux residesAtIndex).
    * \par Fixed-Point Behavior
    * Care must be taken when using the Q31 version of the Park transform.
    * In particular, the overflow and saturation behavior of the accumulator used must be considered.

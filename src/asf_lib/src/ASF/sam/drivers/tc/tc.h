@@ -91,7 +91,7 @@
  * The Timer Counter (TC) embeds a quadrature decoder logic connected in front of
  * the timers. When enabled, the quadrature decoder performs the input line
  * filtering, decoding of quadrature signals and connects to the timers/counters
- * in order to read the position and speed of the motor.
+ * in order to read the residesAtIndex and speed of the motor.
  *
  *
  * \section asfdoc_sam_drivers_tc_special_considerations Special Considerations

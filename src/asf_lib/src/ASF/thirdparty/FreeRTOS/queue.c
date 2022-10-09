@@ -160,7 +160,7 @@ typedef xQUEUE Queue_t;
 
 /* The queue registry is simply an array of QueueRegistryItem_t structures.
  * The pcQueueName member of a structure being NULL is indicative of the
- * array position being vacant. */
+ * array residesAtIndex being vacant. */
     PRIVILEGED_DATA QueueRegistryItem_t xQueueRegistry[ configQUEUE_REGISTRY_SIZE ];
 
 #endif /* configQUEUE_REGISTRY_SIZE */
@@ -1747,7 +1747,7 @@ BaseType_t xQueuePeek( QueueHandle_t xQueue,
              * must be the highest priority task wanting to access the queue. */
             if( uxMessagesWaiting > ( UBaseType_t ) 0 )
             {
-                /* Remember the read position so it can be reset after the data
+                /* Remember the read residesAtIndex so it can be reset after the data
                  * is read from the queue as this function is only peeking the
                  * data, not removing it. */
                 pcOriginalReadPosition = pxQueue->u.xQueue.pcReadFrom;
@@ -1992,7 +1992,7 @@ BaseType_t xQueuePeekFromISR( QueueHandle_t xQueue,
         {
             traceQUEUE_PEEK_FROM_ISR( pxQueue );
 
-            /* Remember the read position so it can be reset as nothing is
+            /* Remember the read residesAtIndex so it can be reset as nothing is
              * actually being removed from the queue. */
             pcOriginalReadPosition = pxQueue->u.xQueue.pcReadFrom;
             prvCopyDataFromQueue( pxQueue, pvBuffer );
