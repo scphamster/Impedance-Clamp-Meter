@@ -42,15 +42,23 @@ class ClampMeter : private Sensor {
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
       , timer{ pdMS_TO_TICKS(10) }
-      , model{ std::forward<decltype(new_keyboard)>(new_keyboard), mutex }
+      , model{ std::make_shared<MenuModel<Keyboard>>(std::forward<decltype(new_keyboard)>(new_keyboard),
+                                                                   mutex) }
       , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
     {
-#ifdef DEBUG
-//        display->SetTextColor(COLOR_RED, COLOR_BLACK);
-//        display->SetCursor({ 0, 400 });
-//        display->Print("debug", 1);
-#endif
+        auto top_item = std::make_shared<MenuModelPageItem>();
+        top_item->SetPosition(MenuModelIndex{ { 0, 0 } });
+        top_item->SetData(std::make_shared<MenuModelPageItemData>("dupa", 1));
 
+        auto first_item = std::make_shared<MenuModelPageItem>();
+        first_item->SetData(std::make_shared<MenuModelPageItemData>("dupa", 1));
+        first_item->SetPosition(MenuModelIndex{ { 0, 0 } });
+
+        top_item->InsertChild(first_item);
+
+        model->SetTopLevelItem(top_item);
+
+        drawer.SetModel(model);
 
     }
 
@@ -98,10 +106,10 @@ class ClampMeter : private Sensor {
   private:
     friend class ClampMeterInTaskHandler<Drawer, Sensor>;
 
-    std::shared_ptr<Mutex>            mutex;
-    TimerFreeRTOS                     timer;
-    MenuModel<Keyboard>               model;
-    MenuModelDrawer<Drawer, Keyboard> drawer;
+    std::shared_ptr<Mutex>               mutex;
+    TimerFreeRTOS                        timer;
+    std::shared_ptr<MenuModel<Keyboard>> model;
+    MenuModelDrawer<Drawer, Keyboard>    drawer;
 };
 
 template<typename Drawer, typename Sensor, KeyboardC Keyboard>

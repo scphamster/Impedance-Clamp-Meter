@@ -18,6 +18,27 @@ MenuModelPageItemData::GetName() const noexcept
     return std::string();
 }
 
+void
+MenuModelPageItemData::SetValue(const auto &new_value) noexcept
+{
+    value = new_value;
+}
+
+template<typename RetVal>
+auto
+MenuModelPageItemData::GetValue() const noexcept
+{
+    return std::get<RetVal>(value);
+}
+
+MenuModelPageItemData::MenuModelPageItemData(const MenuModelPageItemData::NameT         &new_name,
+                                             const MenuModelPageItemData::UniversalType &new_value)
+  : name{ new_name }
+  , value{ new_value }
+{
+    storedDataType = static_cast<StoredDataType>(value.index());
+}
+
 std::shared_ptr<MenuModelPageItemData>
 MenuModelPageItem::GetData() const noexcept
 {
@@ -55,9 +76,10 @@ MenuModelPageItem::GetChild(const MenuModelIndex &at_position) const noexcept
 }
 
 void
-MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position)
+MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position) noexcept
 {
-    // todo: implement
+    childItems[at_position.GetColumn()] = child;
+    child->SetParent(this);
 }
 
 void
@@ -112,6 +134,23 @@ void
 MenuModelPageItem::ActivateEdittingCursor(bool if_activate) noexcept
 {
     editCursorActive = if_activate;
+}
+void
+MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child) noexcept
+{
+    InsertChild(child, child->GetPosition());
+}
+
+MenuModelPageItem *
+MenuModelPageItem::GetParent() const noexcept
+{
+    return parent;
+}
+
+void
+MenuModelPageItem::SetParent(MenuModelPageItem *new_parent) noexcept
+{
+    parent = new_parent;
 }
 
 MenuModelIndex::Column

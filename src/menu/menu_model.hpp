@@ -21,7 +21,7 @@ class MenuModel {
     explicit MenuModel(std ::unique_ptr<Keyboard> &&new_keyboard, std::shared_ptr<Mutex> new_mutex)
       : mutex{ new_mutex }
       , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
-    { }
+    {}
 
     [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetTopLevelItem() const noexcept;
     [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetCurrentItem() const noexcept;

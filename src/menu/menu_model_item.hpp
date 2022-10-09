@@ -12,6 +12,7 @@
 #include <memory>
 #include <variant>
 #include <vector>
+#include <map>
 #include <string>
 #include <utility>
 
@@ -45,23 +46,28 @@ class MenuModelPageItemData {
     using UniversalType = std::variant<IntegerType, FloatType, StringType>;
 
     enum class StoredDataType {
-        Integer,
+        Integer = 0,
         Float,
         String
     };
 
+    MenuModelPageItemData(const NameT &new_name, const UniversalType &new_value);
+
     [[nodiscard]] std::string GetName() const noexcept;
+    void                      SetValue(const auto &new_value) noexcept;
+
+    template<typename RetVal>
+    auto GetValue() const noexcept;
 
   private:
-    std::string    name;
+    NameT          name;
     StoredDataType storedDataType;
     UniversalType  value;
 };
 
 class MenuModelPageItem {
   public:
-    using ColumnVector    = std::vector<std::shared_ptr<MenuModelPageItem>>;
-    using ItemsTableT     = std::vector<ColumnVector>;
+    using ChildIndex      = int;
     using EdittingCursorT = int;
 
     [[nodiscard]] std::shared_ptr<MenuModelPageItemData> GetData() const noexcept;
@@ -72,22 +78,26 @@ class MenuModelPageItem {
     [[nodiscard]] bool                                   SomeItemIsSelected() const noexcept;
     [[nodiscard]] EdittingCursorT                        GetEdittingCursorPosition() const noexcept;
     [[nodiscard]] bool                                   EdittingCursorIsActive() const noexcept;
+    [[nodiscard]] MenuModelPageItem                     *GetParent() const noexcept;
 
     void SetData(std::shared_ptr<MenuModelPageItemData> new_data) noexcept;
-    void InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position);
+    void InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position) noexcept;
+    void InsertChild(std::shared_ptr<MenuModelPageItem> child) noexcept;
     void SetPosition(const MenuModelIndex &new_position) noexcept;
     void SetRow(MenuModelIndex::Row new_row) noexcept;
     void SetColumn(MenuModelIndex::Column new_column) noexcept;
     void SetSelectionPosition(const MenuModelIndex &selected_item_position) noexcept;
     void SetEddittingCursorPosition(EdittingCursorT new_position) noexcept;
     void ActivateEdittingCursor(bool if_activate) noexcept;
+    void SetParent(MenuModelPageItem *new_parent) noexcept;
 
   private:
-    MenuModelIndex  residesAtIndex;
-    MenuModelIndex  childSelectionIndex;
-    bool            isSomeChildSelected{ false };
-    bool            editCursorActive{ false };
-    EdittingCursorT edittingCursorPosition{ 0 };
-    std::shared_ptr<MenuModelPageItemData> data;
-    ItemsTableT                            childItems;
+    MenuModelIndex                                           residesAtIndex;
+    MenuModelIndex                                           childSelectionIndex;
+    bool                                                     isSomeChildSelected{ false };
+    bool                                                     editCursorActive{ false };
+    EdittingCursorT                                          edittingCursorPosition{ 0 };
+    std::shared_ptr<MenuModelPageItemData>                   data;
+    std::map<ChildIndex, std::shared_ptr<MenuModelPageItem>> childItems;
+    MenuModelPageItem                                       *parent;
 };
