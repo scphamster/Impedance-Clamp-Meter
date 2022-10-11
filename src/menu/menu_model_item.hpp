@@ -55,7 +55,7 @@ class MenuModelPageItemData {
 
     void SetValue(const auto &new_value) noexcept;
 
-    [[nodiscard]] std::string GetName() const noexcept;
+    [[nodiscard]] NameT GetName() const noexcept;
     template<typename RetType>
     [[nodiscard]] RetType GetValue() const noexcept;
     [[nodiscard]] int     GetStoredDataType() const noexcept;
@@ -64,6 +64,8 @@ class MenuModelPageItemData {
     StoredDataType storedDataType;
     NameT          name;
     UniversalType  value;
+//    int value;
+
 };
 
 template<typename RetType>

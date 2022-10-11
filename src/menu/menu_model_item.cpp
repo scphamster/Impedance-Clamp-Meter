@@ -9,6 +9,7 @@
 #endif
 
 #include <string>
+#include <utility>
 
 #include "menu_model_item.hpp"
 
@@ -52,7 +53,7 @@ MenuModelPageItem::SetPosition(const MenuModelIndex &new_position) noexcept
 void
 MenuModelPageItem::SetData(std::shared_ptr<MenuModelPageItemData> new_data) noexcept
 {
-    data = new_data;
+    data = std::move(new_data);
 }
 
 MenuModelIndex
