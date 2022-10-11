@@ -42,26 +42,21 @@ class ClampMeter : private Sensor {
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
       , timer{ pdMS_TO_TICKS(10) }
-      , model{ std::make_shared<MenuModel<Keyboard>>(std::forward<decltype(new_keyboard)>(new_keyboard),
-                                                                   mutex) }
+      , model{ std::make_shared<MenuModel<Keyboard>>(std::forward<decltype(new_keyboard)>(new_keyboard), mutex) }
       , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
+      , shared_data{ std::make_shared<MenuModelPageItemData>("dummy item 1", 1) }
     {
+        auto dummy_item0 = std::make_shared<MenuModelPageItem>();
+        dummy_item0->SetData(shared_data);
+        dummy_item0->SetIndex(0);
+
         auto top_item = std::make_shared<MenuModelPageItem>();
-        top_item->SetPosition(MenuModelIndex{ { 0, 0 } });
-        top_item->SetData(std::make_shared<MenuModelPageItemData>("dupa", 1));
-
-        auto first_item = std::make_shared<MenuModelPageItem>();
-        first_item->SetData(std::make_shared<MenuModelPageItemData>("dupa", 1));
-        first_item->SetPosition(MenuModelIndex{ { 0, 0 } });
-
-        top_item->InsertChild(first_item);
-        auto children = top_item->GetChildren();
-        auto name = children.at(0)->GetData()->GetName();
+        top_item->SetIndex(0);
+        top_item->SetData(std::make_shared<MenuModelPageItemData>("Main Page", 1));
+        top_item->InsertChild(dummy_item0);
 
         model->SetTopLevelItem(top_item);
-
         drawer.SetModel(model);
-
     }
 
     ClampMeter(ClampMeter &&other)          = default;
@@ -99,6 +94,10 @@ class ClampMeter : private Sensor {
     TimerFreeRTOS                        timer;
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<Drawer, Keyboard>    drawer;
+
+    std::shared_ptr<MenuModelPageItemData> shared_data;
+
+    int counter = 0;
 };
 
 template<typename Drawer, typename Sensor, KeyboardC Keyboard>
@@ -107,9 +106,10 @@ ClampMeter<Drawer, Sensor, Keyboard>::DisplayMeasurementsTask()
 {
     drawer.DrawerTask();
 
+    shared_data->SetValue(counter++);
 
-
-    vTaskDelay(pdMS_TO_TICKS(500));
+    if (counter == 100) counter = 0;
+    vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 template<typename Drawer, typename Reader>

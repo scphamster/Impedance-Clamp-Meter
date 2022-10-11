@@ -30,18 +30,29 @@ class MenuModelDrawer {
 
     void DrawerTask() noexcept;
     using DifferenceType = void;   // todo : to be implemented
-    void SetModel(std::shared_ptr<MenuModelT> new_model) noexcept;
+    void SetModel(std::shared_ptr<MenuModelT> new_model) noexcept { model = new_model; }
+
+    void PrintTestValue(int value) const noexcept
+    {
+        drawer->SetCursor({ 0, 0 });
+        drawer->SetTextColor(COLOR_GREEN, COLOR_BLACK);
+        drawer->Print(value, 1);
+    }
 
   protected:
-    DifferenceType    GetCurrentAndStoredDataDifference() noexcept;
     MenuModelPageItem GetCurrentModelPageData() noexcept;
     void              StoreCurrentModelData() noexcept;
+    void              TestFunction() const noexcept;
+    void              DrawStaticPageItems() const noexcept;
+    void              DrawDynamicPageItems() noexcept;
 
   private:
-    std::vector<MenuModelPageItemData> storedDataOnPage;
+    std::vector<MenuModelPageItemData> drawnPageItems;
     std::shared_ptr<MenuModelT>        model;   // model with data to be drawn
     std::shared_ptr<Mutex>             mutex;
     std::unique_ptr<Drawer>            drawer;
+    std::shared_ptr<MenuModelPageItem> currentPage;
+    bool                               staticPageItemsDrawn{ false };
 
     MenuModelIndex   childSelectionIndex;
     bool             isSomeChildSelected{ false };
@@ -49,98 +60,54 @@ class MenuModelDrawer {
     EditorCursorPosT edittingCursorPosition{ 0 };
 
     // todo: make more versatile
-    int namesColumnXPos{ 0 };
-    int valuesColumnXPos{ 160 };
-    int pageHeaderYPos{ 50 };
-    int pageHeaderXPos{ 100 };
-    int firstValueYPos{ 100 };
+    // display sizes section
+    const int displayHeight        = 480;
+    const int displayWidth         = 320;
+    const int screenUsedAreaLeftX  = 0;
+    const int screenUsedAreaRightX = 319;
+    const int screenUsedAreaTopY   = 80;
+    const int screenUsedAreaBotY   = 430;
 
-    int fontSize          = 1;
-    int fontOneLineHeight = 14;
-    int displayWidth      = 320;
-    int displayHeight     = 480;
+    const int itemsFontSize   = 1;
+    const int itemsFontHeight = 14;
+
+    // page items section
+    const int firstValueYPos{ screenUsedAreaTopY + 100 };
+    const int namesColumnXPos{ screenUsedAreaLeftX + 0 };
+    const int valuesColumnXPos{ screenUsedAreaLeftX + 160 };
+
+    // page header section
+    const int pageHeaderYPos{ screenUsedAreaTopY + 0 };
+    const int pageHeaderXPos{ screenUsedAreaLeftX + 60 };
+    const int pageNameFontSize = 2;
 };
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 void
 MenuModelDrawer<Drawer, Keyboard>::DrawerTask() noexcept
 {
-    auto page_items = model->GetCurrentItem()->GetChildren();
+    if (currentPage != model->GetCurrentItem()) {
+        staticPageItemsDrawn = false;
+        currentPage          = model->GetCurrentItem();
 
-    drawer->SetCursor({ 0, 0 });
-    drawer->SetTextColor(COLOR_GREEN, COLOR_BLACK);
-    drawer->Print(page_items.size(), 1);
+        DrawStaticPageItems();
+        staticPageItemsDrawn = true;
 
-    auto name = page_items.at(0)->GetData()->GetName();
-
-    drawer->SetCursor({ 0, 30 });
-    drawer->Print(name.c_str(), 1);
-
-//
-//    for (auto item_num = 0; const auto &item : page_items) {
-//        drawer->SetCursor({ namesColumnXPos, firstValueYPos + fontOneLineHeight * item_num });
-//        drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
-//        drawer->Print(item->GetData()->GetName().c_str(), fontSize);
-//        drawer->SetCursor({ valuesColumnXPos, firstValueYPos + fontOneLineHeight * item_num });
-//
-//         todo: make use of different types stored in variant
-//        drawer->Print(item->GetData()->template GetValue<int>(), fontSize);
-//
-//        item_num++;
-//    }
-
-
-}
-
-template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-void
-MenuModelDrawer<Drawer, Keyboard>::GetCurrentAndStoredDataDifference() noexcept
-{
-    auto differences_was_found{ true };
-    auto page_items = model->GetCurrentItem()->GetChildren();
-
-    if (page_items->size() != storedDataOnPage.size())
-        differences_was_found = true;
-    else {
-        for (auto item_num = 0; const auto &item : page_items) {
-            if (*item->GetData() != storedDataOnPage.at(item_num)) {
-                drawer->SetCursor(namesColumnXPos, firstValueYPos + fontOneLineHeight * item_num);
-                drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
-                drawer->Print(item->GetName(), fontSize);
-                drawer->SetCursor(valuesColumnXPos, firstValueYPos + fontOneLineHeight * item_num);
-
-                // todo: make use of different types stored in variant
-                drawer->Print(item->GetData()->template GetValue<int>(), fontSize);
-
-                differences_was_found = true;
-                break;
-            }
-
-            item_num++;
-        }
+        drawnPageItems.clear();
     }
 
-    if (differences_was_found) {
-        StoreCurrentModelData();
-    }
+    DrawDynamicPageItems();
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 void
 MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 {
-    storedDataOnPage.clear();
+    drawnPageItems.clear();
 
     std::for_each(model->GetCurrentItem()->GetChildren().begin(),
                   model->GetCurrentItem()->GetChildren()->end(),
-                  [&storage = this->storedDataOnPage](const auto &page_item) { storage.emplace_back(page_item); });
-}
-
-template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-void
-MenuModelDrawer<Drawer, Keyboard>::SetModel(std::shared_ptr<MenuModelT> new_model) noexcept
-{
-    model = new_model;
+                  [&storage = this->drawnPageItems](const auto &page_item) { storage.emplace_back(page_item); });
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
@@ -148,6 +115,70 @@ MenuModelPageItem
 MenuModelDrawer<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
 {
     // todo: implement
+}
 
-    
+template<DisplayDrawerC Drawer, KeyboardC Keyboard>
+void
+MenuModelDrawer<Drawer, Keyboard>::TestFunction() const noexcept
+{
+    auto page_items = model->GetCurrentItem()->GetChildren();
+
+    drawer->SetCursor({ 0, 0 });
+    drawer->SetTextColor(COLOR_GREEN, COLOR_BLACK);
+    drawer->Print(page_items.size(), 1);
+
+    drawer->SetCursor({ 0, 30 });
+    drawer->Print(page_items.at(0)->GetData()->GetName(), 1);
+
+    std::visit([this](auto &&value) { drawer->Print(value, 1); }, page_items.at(0)->GetData()->GetValue());
+}
+
+template<DisplayDrawerC Drawer, KeyboardC Keyboard>
+void
+MenuModelDrawer<Drawer, Keyboard>::DrawStaticPageItems() const noexcept
+{
+    drawer->DrawFiledRectangle({ screenUsedAreaLeftX, screenUsedAreaTopY },
+                               screenUsedAreaRightX - screenUsedAreaLeftX,
+                               screenUsedAreaBotY - screenUsedAreaTopY,
+                               COLOR_BLACK);   // todo: optimize
+
+    drawer->SetCursor({ pageHeaderXPos, pageHeaderYPos });
+    drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
+    drawer->Print(currentPage->GetData()->GetName(), pageNameFontSize);
+}
+
+template<DisplayDrawerC Drawer, KeyboardC Keyboard>
+void
+MenuModelDrawer<Drawer, Keyboard>::DrawDynamicPageItems() noexcept
+{
+    if (drawnPageItems.size() != model->GetCurrentItem()->GetChildren().size())
+        drawnPageItems.resize(model->GetCurrentItem()->GetChildren().size());
+
+    auto page_item_name_drawer = [this](auto item_index, const auto &value) {
+        drawer->SetCursor({ namesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
+        drawer->SetTextColor(COLOR_DARKGREEN, COLOR_BLACK);
+
+        drawer->Print(value, itemsFontSize);
+    };
+
+    auto page_item_value_drawer = [this](auto item_index, const auto &value) {
+        drawer->SetCursor({ valuesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
+        drawer->SetTextColor(COLOR_CYAN, COLOR_BLACK);
+        std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, value);
+    };
+
+    for (auto item_index = 0; const auto &child_page : model->GetCurrentItem()->GetChildren()) {
+        if (drawnPageItems.at(item_index).GetName() != child_page->GetData()->GetName()) {
+            drawnPageItems.at(item_index).SetName(child_page->GetData()->GetName());
+            page_item_name_drawer(item_index, drawnPageItems.at(item_index).GetName());
+        }
+//        page_item_name_drawer(item_index, drawnPageItems.at(item_index).GetName());
+
+        if (drawnPageItems.at(item_index).GetValue() != child_page->GetData()->GetValue()) {
+            drawnPageItems.at(item_index).SetValue(child_page->GetData()->GetValue());
+            page_item_value_drawer(item_index, child_page->GetData()->GetValue());
+        }
+//        page_item_value_drawer(item_index, child_page->GetData()->GetValue());
+
+    }
 }

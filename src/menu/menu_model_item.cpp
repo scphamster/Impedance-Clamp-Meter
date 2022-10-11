@@ -13,41 +13,26 @@
 
 #include "menu_model_item.hpp"
 
-std::string
+MenuModelPageItemData::NameT
 MenuModelPageItemData::GetName() const noexcept
 {
     return name;
 }
 
-void
-MenuModelPageItemData::SetValue(const auto &new_value) noexcept
+UniversalType
+MenuModelPageItemData::GetValue() const noexcept
 {
-    value = new_value;
+    return value;
 }
 
-MenuModelPageItemData::MenuModelPageItemData(const MenuModelPageItemData::NameT         &new_name,
-                                             const MenuModelPageItemData::UniversalType &new_value)
-  : name{ new_name }
-  , value{ new_value }
-{
-    storedDataType = static_cast<StoredDataType>(value.index());
-}
-int
-MenuModelPageItemData::GetStoredDataType() const noexcept
-{
-    return static_cast<int>(storedDataType);
-}
+
+
+
 
 std::shared_ptr<MenuModelPageItemData>
 MenuModelPageItem::GetData() const noexcept
 {
     return data;
-}
-
-void
-MenuModelPageItem::SetPosition(const MenuModelIndex &new_position) noexcept
-{
-    residesAtIndex = new_position;
 }
 
 void
@@ -63,50 +48,48 @@ MenuModelPageItem::GetPosition() const noexcept
 }
 
 bool
-MenuModelPageItem::HasChild(const MenuModelIndex &at_position) const noexcept
+MenuModelPageItem::HasChild(MenuModelIndex at_position) const noexcept
 {
-    return false;
+    return (childItems.size() > 0) ? true : false;
 }
 
 std::shared_ptr<MenuModelPageItem>
-MenuModelPageItem::GetChild(const MenuModelIndex &at_position) const noexcept
+MenuModelPageItem::GetChild(MenuModelIndex at_position) const noexcept
 {
-    if (at_position.GetRow() >= childItems.size())
+    if (at_position >= childItems.size())
         return *(childItems.end() - 1);
 
-    return childItems.at(at_position.GetRow());
+    return childItems.at(at_position);
 }
 
 void
-MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position) noexcept
+MenuModelPageItem::InsertChild(std::shared_ptr<MenuModelPageItem> child, MenuModelIndex at_position) noexcept
 {
-    if (at_position.GetRow() < 0)
+    if (at_position < 0)
         return;
 
-    if (childItems.size() <= at_position.GetRow()) {
-        child->SetPosition(MenuModelIndex{ { 0, childItems.size() } });
+    if (childItems.size() <= at_position) {
+        child->SetIndex(childItems.size());
         child->SetParent(this);
         childItems.emplace_back(std::move(child));
     }
     else {
-        childItems.at(at_position.GetRow()) = std::move(child);
+        childItems.at(at_position) = std::move(child);
+        child->SetParent(this);
     }
-
-    childItems[at_position.GetColumn()] = child;
-    child->SetParent(this);
 }
 
 void
-MenuModelPageItem::SetRow(MenuModelIndex::Row new_row) noexcept
+MenuModelPageItem::SetIndex(MenuModelIndex idx) noexcept
 {
-    residesAtIndex.SetRow(new_row);
+    residesAtIndex = (idx);
 }
 
-void
-MenuModelPageItem::SetColumn(MenuModelIndex::Column new_column) noexcept
-{
-    residesAtIndex.SetColumn(new_column);
-}
+// void
+// MenuModelPageItem::SetColumn(MenuModelIndex::Column new_column) noexcept
+//{
+//     residesAtIndex.SetColumn(new_column);
+// }
 
 MenuModelIndex
 MenuModelPageItem::GetSelection() const noexcept
@@ -115,7 +98,7 @@ MenuModelPageItem::GetSelection() const noexcept
 }
 
 void
-MenuModelPageItem::SetSelectionPosition(const MenuModelIndex &selected_item_position) noexcept
+MenuModelPageItem::SetSelectionPosition(MenuModelIndex selected_item_position) noexcept
 {
     childSelectionIndex = selected_item_position;
 }
@@ -173,26 +156,26 @@ MenuModelPageItem::GetChildren() const noexcept
     return childItems;
 }
 
-MenuModelIndex::Column
-MenuModelIndex::GetColumn() const noexcept
-{
-    return position.first;
-}
-
-MenuModelIndex::Row
-MenuModelIndex::GetRow() const noexcept
-{
-    return position.second;
-}
-
-void
-MenuModelIndex::SetColumn(MenuModelIndex::Column new_column) noexcept
-{
-    position.first = new_column;
-}
-
-void
-MenuModelIndex::SetRow(MenuModelIndex::Row new_row) noexcept
-{
-    position.second = new_row;
-}
+// MenuModelIndex::Column
+// MenuModelIndex::GetColumn() const noexcept
+//{
+//     return position.first;
+// }
+//
+// MenuModelIndex::Row
+// MenuModelIndex::GetRow() const noexcept
+//{
+//     return position.second;
+// }
+//
+// void
+// MenuModelIndex::SetColumn(MenuModelIndex::Column new_column) noexcept
+//{
+//     position.first = new_column;
+// }
+//
+// void
+// MenuModelIndex::SetIndex(MenuModelIndex::Row new_row) noexcept
+//{
+//     position.second = new_row;
+// }

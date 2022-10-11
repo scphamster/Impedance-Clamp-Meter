@@ -19,7 +19,7 @@ template<KeyboardC Keyboard>
 class MenuModel {
   public:
     explicit MenuModel(std ::unique_ptr<Keyboard> &&new_keyboard, std::shared_ptr<Mutex> new_mutex)
-      : mutex{ new_mutex }
+      : mutex{ std::move(new_mutex) }
       , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
     {}
 

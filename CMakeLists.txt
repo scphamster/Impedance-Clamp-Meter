@@ -78,6 +78,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/menu/menu.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
+    ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
     )
 
 set(C_SOURCES
@@ -101,6 +102,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/concepts
     ${SOURCES_DIRECTORY}/keyboard_fast
     ${SOURCES_DIRECTORY}/menu
+    ${SOURCES_DIRECTORY}/utilities
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

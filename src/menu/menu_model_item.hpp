@@ -16,73 +16,75 @@
 #include <string>
 #include <utility>
 
+#include "universal_type.hpp"
 #include "clamp_meter_concepts.hpp"
+//
+// class MenuModelIndex {
+//  public:
+//    using Column = int;
+//    using Row    = int;
+//
+//    MenuModelIndex() = default;
+//    MenuModelIndex(std::pair<Column, Row> new_position)
+//      : position{ new_position }
+//    { }
+//
+//    [[nodiscard]] Column GetColumn() const noexcept;
+//    [[nodiscard]] Row    GetRow() const noexcept;
+//    void                 SetColumn(Column new_column) noexcept;
+//    void                 SetIndex(Row new_row) noexcept;
+//
+//  private:
+//    std::pair<Column, Row> position{ 0, 0 };
+//};
 
-class MenuModelIndex {
-  public:
-    using Column = int;
-    using Row    = int;
-
-    MenuModelIndex() = default;
-    MenuModelIndex(std::pair<Column, Row> new_position)
-      : position{ new_position }
-    { }
-
-    [[nodiscard]] Column GetColumn() const noexcept;
-    [[nodiscard]] Row    GetRow() const noexcept;
-    void                 SetColumn(Column new_column) noexcept;
-    void                 SetRow(Row new_row) noexcept;
-
-  private:
-    std::pair<Column, Row> position{ 0, 0 };
-};
+using MenuModelIndex = int;
 
 class MenuModelPageItemData {
   public:
-    using NameT         = std::string;
-    using IntegerType   = int;
-    using FloatType     = float;
-    using StringType    = std::string;
-    using UniversalType = std::variant<IntegerType, FloatType, StringType>;
+    using NameT       = std::string;
+    using IntegerType = int;
+    using FloatType   = float;
+    using StringType  = std::string;
 
-    enum class StoredDataType {
-        Integer = 0,
-        Float,
-        String
-    };
+    MenuModelPageItemData(const NameT &new_name, const auto new_value);
+    MenuModelPageItemData()
+      : MenuModelPageItemData{ NameT{}, UniversalType{} }
+    { }
 
-    MenuModelPageItemData(const NameT &new_name, const UniversalType &new_value);
+    void SetName(const NameT &new_name) { name = new_name; }
+    void SetValue(auto new_value) noexcept {value = std::move(new_value);}
+    void SetValue(const std::string &new_value) noexcept {value = new_value;}
 
-    void SetValue(const auto &new_value) noexcept;
+    [[nodiscard]] NameT         GetName() const noexcept;
+    [[nodiscard]] UniversalType GetValue() const noexcept;
 
-    [[nodiscard]] NameT GetName() const noexcept;
-    template<typename RetType>
-    [[nodiscard]] RetType GetValue() const noexcept;
-    [[nodiscard]] int     GetStoredDataType() const noexcept;
+    bool operator==(const auto &rhs)
+    {
+        if (name == rhs.name and value == rhs.value)
+            return true;
+        else
+            return false;
+    }
 
   private:
-    StoredDataType storedDataType;
-    NameT          name;
-    UniversalType  value;
-//    int value;
-
+    NameT         name;
+    UniversalType value;
 };
 
-template<typename RetType>
-RetType
-MenuModelPageItemData::GetValue() const noexcept
-{
-    return std::get<RetType>(value);
-}
+MenuModelPageItemData::MenuModelPageItemData(const MenuModelPageItemData::NameT &new_name, const auto new_value)
+  : name{ new_name }
+  , value{ std::move(new_value) }
+{ }
 
 class MenuModelPageItem {
   public:
     using ChildIndex       = int;
     using EditorCursorPosT = int;
 
-    [[nodiscard]] std::shared_ptr<MenuModelPageItemData> GetData() const noexcept;
-    [[nodiscard]] bool                                   HasChild(const MenuModelIndex &at_position) const noexcept;
-    [[nodiscard]] std::shared_ptr<MenuModelPageItem>     GetChild(const MenuModelIndex &at_position) const noexcept;
+    [[nodiscard]] std::shared_ptr<MenuModelPageItemData>          GetData() const noexcept;
+    [[nodiscard]] bool                                            HasChild(MenuModelIndex at_position) const noexcept;
+    [[nodiscard]] std::shared_ptr<MenuModelPageItem>              GetChild(MenuModelIndex at_position) const noexcept;
     [[nodiscard]] std::vector<std::shared_ptr<MenuModelPageItem>> GetChildren() const noexcept;
     [[nodiscard]] MenuModelIndex                                  GetPosition() const noexcept;
     [[nodiscard]] MenuModelIndex                                  GetSelection() const noexcept;
@@ -92,12 +94,12 @@ class MenuModelPageItem {
     [[nodiscard]] MenuModelPageItem                              *GetParent() const noexcept;
 
     void SetData(std::shared_ptr<MenuModelPageItemData> new_data) noexcept;
-    void InsertChild(std::shared_ptr<MenuModelPageItem> child, const MenuModelIndex &at_position) noexcept;
+    void InsertChild(std::shared_ptr<MenuModelPageItem> child, MenuModelIndex at_position) noexcept;
     void InsertChild(std::shared_ptr<MenuModelPageItem> child) noexcept;
-    void SetPosition(const MenuModelIndex &new_position) noexcept;
-    void SetRow(MenuModelIndex::Row new_row) noexcept;
-    void SetColumn(MenuModelIndex::Column new_column) noexcept;
-    void SetSelectionPosition(const MenuModelIndex &selected_item_position) noexcept;
+    //    void SetPosition(MenuModelIndex new_position) noexcept;
+    void SetIndex(MenuModelIndex idx) noexcept;
+    //    void SetColumn(MenuModelIndex::Column new_column) noexcept;
+    void SetSelectionPosition(MenuModelIndex selected_item_position) noexcept;
     void SetEddittingCursorPosition(EditorCursorPosT new_position) noexcept;
     void ActivateEdittingCursor(bool if_activate) noexcept;
     void SetParent(MenuModelPageItem *new_parent) noexcept;

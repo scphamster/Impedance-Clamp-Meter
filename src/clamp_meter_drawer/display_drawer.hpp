@@ -44,7 +44,7 @@ class DisplayDrawer {
     void DrawFiledCircle(Point, ScreenSizeT r, Color) const noexcept;
     void DrawRectangle(Point, ScreenSizeT w, ScreenSizeT h, Color) const noexcept;
     void DrawFiledRectangle(Point, ScreenSizeT w, ScreenSizeT h, Color) noexcept;
-    void Print(const char *string, Byte fontsize) noexcept;
+    void Print(const std::string &string, Byte fontsize) noexcept;
     void Print(uint16_t number, Byte fontsize) noexcept;
     void Print(float number, Byte digits, Byte fontsize) noexcept;
 
@@ -352,8 +352,10 @@ DisplayDrawer<Driver>::DrawFiledRectangle(Point point, ScreenSizeT w, ScreenSize
 
 template<DisplayDriver Driver>
 void
-DisplayDrawer<Driver>::Print(const char *string, const Byte size) noexcept
+DisplayDrawer<Driver>::Print(const std::string &str, const Byte size) noexcept
 {
+    auto string = str.c_str();
+
     Byte i      = 0;
     Byte font_w = (FONT_WIDTH - FONT_SQUISH) * size;
     Byte font_h = (FONT_HEIGHT - FONT_SQUISH) * size;
