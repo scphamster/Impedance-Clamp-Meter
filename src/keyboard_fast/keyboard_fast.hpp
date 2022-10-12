@@ -21,6 +21,7 @@ class Keyboard {
     using TimeT               = typename TimerT::TimeT;
     using ButtonState         = typename ButtonT::ButtonState;
     using ButtonEventCallback = std::function<void()>;
+    using ButtonId            = int;
 
     enum {
         NumberOfButtons = 16
@@ -46,38 +47,38 @@ class Keyboard {
     Keyboard(Keyboard &&other)               = default;
     Keyboard &operator=(Keyboard &&rhs)      = default;
     ~Keyboard() { }
-    void SetButtonEventCallback(int button_number, ButtonEvent event, ButtonEventCallback &&callback);
+
+    void SetButtonEventCallback(int button_number, ButtonEvent event, ButtonEventCallback &&callback)
+    {
+        buttons.at(button_number).SetEventCallback(static_cast<int>(event), std::forward<decltype(callback)>(callback));
+    }
+
+    void SetCallbacks(std::vector<std::tuple<ButtonId, ButtonEvent, ButtonEventCallback> &&callbacks, KeyGroupId group) {
+
+    }
+
+    void ClearButtonsCallbacks(std::vector<ButtonId> buttons) {
+
+    }
 
   protected:
     // slots:
-    void ButtonsStateChangeCallback(const Pin &pin) noexcept;
+    void ButtonsStateChangeCallback(const Pin &pin) noexcept
+    {
+        if (static_cast<ButtonState>(pin.GetPinState()) == ButtonT::ButtonState::Released) {
+            if (timer->GetCurrentTime() - lastChangeTime > debounceDelay) {
+                lastChangeTime = timer->GetCurrentTime();
+                buttons.at(pin.GetNumber()).InvokeEventCallback(static_cast<int>(ButtonEvent::Release));
+            }
+        }
+    }
 
   private:
     std::shared_ptr<Driver>              ioDriver;
     std::shared_ptr<TimerT>              timer;
     std::array<ButtonT, NumberOfButtons> buttons;
+    std::array<std::tuple<ButtonT,
     TimeT                                lastChangeTime{ 0 };
 
     TimeT debounceDelay = 5;
 };
-
-template<IODriver Driver, Timer TimerT, ButtonC ButtonT>
-void
-Keyboard<Driver, TimerT, ButtonT>::ButtonsStateChangeCallback(const Pin &pin) noexcept
-{
-    if (static_cast<ButtonState>(pin.GetPinState()) == ButtonT::ButtonState::Released) {
-        if (timer->GetCurrentTime() - lastChangeTime > debounceDelay) {
-            lastChangeTime = timer->GetCurrentTime();
-            buttons.at(pin.GetNumber()).InvokeEventCallback(static_cast<int>(ButtonEvent::Release));
-        }
-    }
-}
-
-template<IODriver Driver, Timer TimerT, ButtonC ButtonT>
-void
-Keyboard<Driver, TimerT, ButtonT>::SetButtonEventCallback(int                             button_number,
-                                                          Keyboard::ButtonEvent           event,
-                                                          Keyboard::ButtonEventCallback &&callback)
-{
-    buttons.at(button_number).SetEventCallback(static_cast<int>(event), std::forward<decltype(callback)>(callback));
-}

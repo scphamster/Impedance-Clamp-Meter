@@ -30,7 +30,7 @@ tasks_setup2()
     static volatile auto clamp_meter =
       Clamp{std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()), std::make_unique<KeyboardT>() };
 
-    auto data = MenuModelPageItemData{"testdata", 1};
+//    auto data = MenuModelPageItemData{"testdata", 1};
 
     //    clamp_meter.StartMeasurementsTask();
     clamp_meter.StartDisplayMeasurementsTask();
