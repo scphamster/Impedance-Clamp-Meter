@@ -29,8 +29,11 @@ class MCP23016Button {
     [[nodiscard]] ButtonState GetCurrentState() const noexcept;
 
     void SetState(ButtonState state) noexcept;
-    void SetEventCallback(EventId compare_by_first__left, Callback &&compare_by_first__right);
-    void InvokeEventCallback(EventId wanted_event_id);
+    void SetEventCallback(EventId event_id, Callback &&callback) noexcept;
+    void SetEventCallback(std::vector<std::pair<EventId, Callback>> &&callbacks) noexcept;
+    void ClearEventCallback(const std::vector<EventId> &event_ids) noexcept;
+    void ClearEventCallback() noexcept;
+    void InvokeEventCallback(EventId wanted_event_id) noexcept;
 
   private:
     ButtonState currentState{ ButtonState::Released };

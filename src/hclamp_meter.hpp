@@ -39,20 +39,32 @@ class ClampMeterInTaskHandler;
 template<typename Drawer, typename Sensor, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter : private Sensor {
   public:
+    using Item = MenuModelPageItem<Keyboard>;
+    using Model = MenuModel<Keyboard>;
+
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
-      , timer{ pdMS_TO_TICKS(10) }
-      , model{ std::make_shared<MenuModel<Keyboard>>(std::forward<decltype(new_keyboard)>(new_keyboard), mutex) }
-      , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
-      , shared_data{ std::make_shared<MenuModelPageItemData>("dummy item 1", 1) }
+    , timer{ pdMS_TO_TICKS(10) }
+    , model{ std::make_shared<Model>(std::forward<decltype(new_keyboard)>(new_keyboard), mutex) }
+    , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
+    , shared_data{ std::make_shared<UniversalType>(static_cast<int>(5)) }
     {
-        auto dummy_item0 = std::make_shared<MenuModelPageItem>();
-        dummy_item0->SetData(shared_data);
-        dummy_item0->SetIndex(0);
+        auto dummy_item01 = std::make_shared<Item>(model);
+        dummy_item01->SetName("sub page");
+        dummy_item01->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(10) });
+        dummy_item01->SetIndex(0);
 
-        auto top_item = std::make_shared<MenuModelPageItem>();
+
+        auto dummy_item0 = std::make_shared<Item>(model);
+        dummy_item0->SetData(MenuModelPageItemData{ shared_data });
+        dummy_item0->SetName("dummy item");
+        dummy_item0->SetIndex(0);
+        dummy_item0->InsertChild(dummy_item01);
+
+        auto top_item = std::make_shared<Item>(model);
         top_item->SetIndex(0);
-        top_item->SetData(std::make_shared<MenuModelPageItemData>("Main Page", 1));
+        top_item->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(1) });
+        top_item->SetName("Main Page");
         top_item->InsertChild(dummy_item0);
 
         model->SetTopLevelItem(top_item);
@@ -95,7 +107,7 @@ class ClampMeter : private Sensor {
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<Drawer, Keyboard>    drawer;
 
-    std::shared_ptr<MenuModelPageItemData> shared_data;
+    std::shared_ptr<UniversalType> shared_data;
 
     int counter = 0;
 };
@@ -106,9 +118,11 @@ ClampMeter<Drawer, Sensor, Keyboard>::DisplayMeasurementsTask()
 {
     drawer.DrawerTask();
 
-    shared_data->SetValue(counter++);
+    *shared_data = counter;
 
-    if (counter == 100) counter = 0;
+    counter++;
+    if (counter == 100)
+        counter = 0;
     vTaskDelay(pdMS_TO_TICKS(100));
 }
 

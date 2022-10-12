@@ -17,11 +17,31 @@
 #include "menu_model_item.hpp"
 #include "menu_model.hpp"
 
+template<KeyboardC Keyboard>
+class PageItemStateStorage {
+  public:
+    using Item = MenuModelPageItem<Keyboard>;
+
+    [[nodiscard]] typename Item::NameT GetName() const noexcept { return name; }
+    [[nodiscard]] UniversalType        GetValue() const noexcept { return value; }
+
+    void SetName(const typename Item::NameT &new_name) noexcept { name = new_name; }
+    void SetValue(const UniversalType &new_value) noexcept { value = new_value; }
+    void SetValue(UniversalType &&new_value) noexcept { value = std::move(new_value); }
+
+  private:
+    typename Item::NameT name;
+    UniversalType        value;
+};
+
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 class MenuModelDrawer {
   public:
+    using Item  = MenuModelPageItem<Keyboard>;
+    using NameT = typename Item::NameT;
+
     using MenuModelT       = MenuModel<Keyboard>;
-    using EditorCursorPosT = MenuModelPageItem::EditorCursorPosT;
+    using EditorCursorPosT = typename Item::EditorCursorPosT;
 
     MenuModelDrawer(std::shared_ptr<Mutex> new_mutex, std::unique_ptr<Drawer> &&new_drawer)
       : mutex{ new_mutex }
@@ -40,25 +60,24 @@ class MenuModelDrawer {
     }
 
   protected:
-    MenuModelPageItem GetCurrentModelPageData() noexcept;
-    void              StoreCurrentModelData() noexcept;
-    void              TestFunction() const noexcept;
-    void              DrawStaticPageItems() const noexcept;
-    void              DrawDynamicPageItems() noexcept;
+    Item GetCurrentModelPageData() noexcept;
+    void StoreCurrentModelData() noexcept;
+    void TestFunction() const noexcept;
+    void DrawStaticPageItems() const noexcept;
+    void DrawDynamicPageItems() noexcept;
 
   private:
-    std::vector<MenuModelPageItemData> drawnPageItems;
-    std::shared_ptr<MenuModelT>        model;   // model with data to be drawn
-    std::shared_ptr<Mutex>             mutex;
-    std::unique_ptr<Drawer>            drawer;
-    std::shared_ptr<MenuModelPageItem> currentPage;
-    bool                               staticPageItemsDrawn{ false };
+    std::vector<PageItemStateStorage<Keyboard>> drawnPageItems;
+    std::shared_ptr<MenuModelT>                 model;   // model with data to be drawn
+    std::shared_ptr<Mutex>                      mutex;
+    std::unique_ptr<Drawer>                     drawer;
+    std::shared_ptr<Item>                       currentPage;
+    bool                                        staticPageItemsDrawn{ false };
 
     MenuModelIndex   childSelectionIndex;
     bool             isSomeChildSelected{ false };
     bool             editCursorActive{ false };
     EditorCursorPosT edittingCursorPosition{ 0 };
-
     // todo: make more versatile
     // display sizes section
     const int displayHeight        = 480;
@@ -111,7 +130,7 @@ MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-MenuModelPageItem
+MenuModelPageItem<Keyboard>
 MenuModelDrawer<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
 {
     // todo: implement
@@ -130,7 +149,7 @@ MenuModelDrawer<Drawer, Keyboard>::TestFunction() const noexcept
     drawer->SetCursor({ 0, 30 });
     drawer->Print(page_items.at(0)->GetData()->GetName(), 1);
 
-    std::visit([this](auto &&value) { drawer->Print(value, 1); }, page_items.at(0)->GetData()->GetValue());
+    std::visit([this](auto &&value) { drawer->Print(value, 1); }, *page_items.at(0)->GetData()->GetValue());
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
@@ -144,7 +163,7 @@ MenuModelDrawer<Drawer, Keyboard>::DrawStaticPageItems() const noexcept
 
     drawer->SetCursor({ pageHeaderXPos, pageHeaderYPos });
     drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
-    drawer->Print(currentPage->GetData()->GetName(), pageNameFontSize);
+    drawer->Print(currentPage->GetName(), pageNameFontSize);
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
@@ -164,21 +183,20 @@ MenuModelDrawer<Drawer, Keyboard>::DrawDynamicPageItems() noexcept
     auto page_item_value_drawer = [this](auto item_index, const auto &value) {
         drawer->SetCursor({ valuesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
         drawer->SetTextColor(COLOR_CYAN, COLOR_BLACK);
-        std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, value);
+        std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, *value);
     };
 
     for (auto item_index = 0; const auto &child_page : model->GetCurrentItem()->GetChildren()) {
-        if (drawnPageItems.at(item_index).GetName() != child_page->GetData()->GetName()) {
-            drawnPageItems.at(item_index).SetName(child_page->GetData()->GetName());
+        if (drawnPageItems.at(item_index).GetName() != child_page->GetName()) {
+            drawnPageItems.at(item_index).SetName(child_page->GetName());
             page_item_name_drawer(item_index, drawnPageItems.at(item_index).GetName());
         }
-//        page_item_name_drawer(item_index, drawnPageItems.at(item_index).GetName());
+        //        page_item_name_drawer(item_index, drawnPageItems.at(item_index).GetName());
 
-        if (drawnPageItems.at(item_index).GetValue() != child_page->GetData()->GetValue()) {
-            drawnPageItems.at(item_index).SetValue(child_page->GetData()->GetValue());
-            page_item_value_drawer(item_index, child_page->GetData()->GetValue());
+        if (drawnPageItems.at(item_index).GetValue() != *child_page->GetData().GetValue()) {
+            drawnPageItems.at(item_index).SetValue(*child_page->GetData().GetValue());
+            page_item_value_drawer(item_index, child_page->GetData().GetValue());
         }
-//        page_item_value_drawer(item_index, child_page->GetData()->GetValue());
-
+        //        page_item_value_drawer(item_index, child_page->GetData()->GetValue());
     }
 }

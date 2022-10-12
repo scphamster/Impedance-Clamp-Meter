@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "FreeRTOS.h"
 
 class Mutex {
   public:
