@@ -77,6 +77,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/menu/menu.hpp
     ${SOURCES_DIRECTORY}/menu/menu.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
     )

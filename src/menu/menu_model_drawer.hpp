@@ -17,6 +17,19 @@
 #include "menu_model_item.hpp"
 #include "menu_model.hpp"
 
+class ItemCursor {
+  public:
+    void SetItemNum(int new_item_num, bool activate_edit_cursor = true) noexcept;
+    void ActivateItemCursor(bool if_activate) noexcept;
+
+    [[nodiscard]]int GetItemCursorPos() const noexcept;
+    [[nodiscard]] bool IsItemCursorIsActive()const noexcept;
+
+  private:
+    int itemNum{0};
+    bool itemCursorState{false};
+};
+
 template<KeyboardC Keyboard>
 class PageItemStateStorage {
   public:
@@ -56,20 +69,11 @@ class MenuModelDrawer {
     }
 
     void DrawerTask() noexcept;
-    using DifferenceType = void;   // todo : to be implemented
     void SetModel(std::shared_ptr<MenuModelT> new_model) noexcept { model = new_model; }
-
-    void PrintTestValue(int value) const noexcept
-    {
-        drawer->SetCursor({ 0, 0 });
-        drawer->SetTextColor(COLOR_GREEN, COLOR_BLACK);
-        drawer->Print(value, 1);
-    }
 
   protected:
     Item GetCurrentModelPageData() noexcept;
     void StoreCurrentModelData() noexcept;
-    void TestFunction() const noexcept;
     void DrawStaticPageItems() const noexcept;
     void DrawDynamicPageItems() noexcept;
 
@@ -82,10 +86,10 @@ class MenuModelDrawer {
     std::shared_ptr<Mutex>                      mutex;
     std::unique_ptr<Drawer>                     drawer;
     std::unique_ptr<Keyboard>                   keyboard;
-
     std::shared_ptr<Item> currentPage;
-    //    std::unique_ptr<Keyboard> keyboard;
     bool staticPageItemsDrawn{ false };
+    ItemCursor                                  pageCursor;
+
 
     MenuModelIndex   childSelectionIndex{};
     bool             isSomeChildSelected{ false };
@@ -147,22 +151,6 @@ MenuModelPageItem<Keyboard>
 MenuModelDrawer<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
 {
     // todo: implement
-}
-
-template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-void
-MenuModelDrawer<Drawer, Keyboard>::TestFunction() const noexcept
-{
-    auto page_items = model->GetCurrentItem()->GetChildren();
-
-    drawer->SetCursor({ 0, 0 });
-    drawer->SetTextColor(COLOR_GREEN, COLOR_BLACK);
-    drawer->Print(page_items.size(), 1);
-
-    drawer->SetCursor({ 0, 30 });
-    drawer->Print(page_items.at(0)->GetData()->GetName(), 1);
-
-    std::visit([this](auto &&value) { drawer->Print(value, 1); }, *page_items.at(0)->GetData()->GetValue());
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>

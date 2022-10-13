@@ -118,6 +118,9 @@ class Keyboard {
                 buttons.at(pin.GetNumber()).InvokeEventCallback(static_cast<int>(ButtonEvent::Release));
             }
         }
+        else {
+            lastChangeTime = timer->GetCurrentTime();
+        }
     }
 
   private:
