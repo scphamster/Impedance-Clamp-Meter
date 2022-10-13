@@ -37,8 +37,8 @@ class MenuModel {
         keyboard->SetCallbacks(system_keys_callbacks, )
     }
 
-    [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return topLevelItem; }
-    [[nodiscard]] std::shared_ptr<Item> GetCurrentItem() const noexcept { return currentItem; }
+    [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetTopLevelItem() const noexcept;
+    [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetCurrentItem() const noexcept;
 
     void SetTopLevelItem(std::shared_ptr<Item> top_item) noexcept
     {
@@ -53,8 +53,30 @@ class MenuModel {
     }
 
   private:
-    std::shared_ptr<Mutex>    mutex;
-    std::shared_ptr<Item>     topLevelItem;
-    std::shared_ptr<Item>     currentItem;
-    std::unique_ptr<Keyboard> keyboard;
+    std::shared_ptr<Mutex>             mutex;
+    std::shared_ptr<MenuModelPageItem> topLevelItem;
+    std::shared_ptr<MenuModelPageItem> currentItem;
+    std::unique_ptr<Keyboard>          keyboard;
 };
+
+template<KeyboardC Keyboard>
+void
+MenuModel<Keyboard>::SetTopLevelItem(std::shared_ptr<MenuModelPageItem> top_item) noexcept
+{
+    topLevelItem = top_item;
+    currentItem  = topLevelItem;
+}
+
+template<KeyboardC Keyboard>
+std::shared_ptr<MenuModelPageItem>
+MenuModel<Keyboard>::GetTopLevelItem() const noexcept
+{
+    return topLevelItem;
+}
+
+template<KeyboardC Keyboard>
+std::shared_ptr<MenuModelPageItem>
+MenuModel<Keyboard>::GetCurrentItem() const noexcept
+{
+    return currentItem;
+}
