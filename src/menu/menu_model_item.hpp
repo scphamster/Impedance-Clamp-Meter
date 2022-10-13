@@ -120,8 +120,8 @@ class MenuModelPageItem {
   private:
     NameT                                           name;
     std::shared_ptr<Model>                          model;
-    MenuModelIndex                                  residesAtIndex;
-    MenuModelIndex                                  childSelectionIndex;
+    MenuModelIndex                                  residesAtIndex{};
+    MenuModelIndex                                  childSelectionIndex{};
     bool                                            isSomeChildSelected{ false };
     bool                                            editCursorActive{ false };
     EditorCursorPosT                                editingCursorPosition{ 0 };

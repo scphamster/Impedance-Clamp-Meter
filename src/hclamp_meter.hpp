@@ -39,21 +39,22 @@ class ClampMeterInTaskHandler;
 template<typename Drawer, typename Sensor, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter : private Sensor {
   public:
-    using Item = MenuModelPageItem<Keyboard>;
+    using Item  = MenuModelPageItem<Keyboard>;
     using Model = MenuModel<Keyboard>;
 
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
-    , timer{ pdMS_TO_TICKS(10) }
-    , model{ std::make_shared<Model>(std::forward<decltype(new_keyboard)>(new_keyboard), mutex) }
-    , drawer{ mutex, std::forward<decltype(display_to_be_used)>(display_to_be_used) }
-    , shared_data{ std::make_shared<UniversalType>(static_cast<int>(5)) }
+      , timer{ pdMS_TO_TICKS(10) }
+      , model{ std::make_shared<Model>(mutex) }
+      , drawer{ mutex,
+                std::forward<decltype(display_to_be_used)>(display_to_be_used),
+                std::forward<decltype(new_keyboard)>(new_keyboard) }
+      , shared_data{ std::make_shared<UniversalType>(static_cast<int>(5)) }
     {
         auto dummy_item01 = std::make_shared<Item>(model);
         dummy_item01->SetName("sub page");
         dummy_item01->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(10) });
         dummy_item01->SetIndex(0);
-
 
         auto dummy_item0 = std::make_shared<Item>(model);
         dummy_item0->SetData(MenuModelPageItemData{ shared_data });

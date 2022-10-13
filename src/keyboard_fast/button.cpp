@@ -62,3 +62,17 @@ MCP23016Button::ClearEventCallback() noexcept
 {
     eventCallbacks.clear();
 }
+void
+MCP23016Button::SetGroup(MCP23016Button::ButtonGroupIdT new_group) noexcept
+{
+    group = new_group;
+}
+
+MCP23016Button::ButtonGroupIdT
+MCP23016Button::GetGroup() const noexcept
+{
+    return group;
+}
+MCP23016Button::MCP23016Button(MCP23016Button::ButtonGroupIdT new_group) noexcept
+  : group{ new_group }
+{ }

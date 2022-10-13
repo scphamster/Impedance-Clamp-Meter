@@ -43,10 +43,17 @@ class MenuModelDrawer {
     using MenuModelT       = MenuModel<Keyboard>;
     using EditorCursorPosT = typename Item::EditorCursorPosT;
 
-    MenuModelDrawer(std::shared_ptr<Mutex> new_mutex, std::unique_ptr<Drawer> &&new_drawer)
-      : mutex{ new_mutex }
+    explicit MenuModelDrawer(std::shared_ptr<Mutex>      new_mutex,
+                             std::unique_ptr<Drawer>   &&new_drawer,
+                             std::unique_ptr<Keyboard> &&new_keyboard)
+      : mutex{ std::move(new_mutex) }
       , drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
-    { }
+      , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
+    {
+        keyboard->SetButtonEventCallback(Keyboard::ButtonName::Enter, Keyboard::ButtonEvent::Release, [this]() {
+            EnterButtonPushEvent();
+        });
+    }
 
     void DrawerTask() noexcept;
     using DifferenceType = void;   // todo : to be implemented
@@ -66,15 +73,21 @@ class MenuModelDrawer {
     void DrawStaticPageItems() const noexcept;
     void DrawDynamicPageItems() noexcept;
 
+    // slots:
+    void EnterButtonPushEvent() noexcept { model->GetCurrentItem()->GetChild(0)->SetName("DUPA"); }
+
   private:
     std::vector<PageItemStateStorage<Keyboard>> drawnPageItems;
     std::shared_ptr<MenuModelT>                 model;   // model with data to be drawn
     std::shared_ptr<Mutex>                      mutex;
     std::unique_ptr<Drawer>                     drawer;
-    std::shared_ptr<Item>                       currentPage;
-    bool                                        staticPageItemsDrawn{ false };
+    std::unique_ptr<Keyboard>                   keyboard;
 
-    MenuModelIndex   childSelectionIndex;
+    std::shared_ptr<Item> currentPage;
+    //    std::unique_ptr<Keyboard> keyboard;
+    bool staticPageItemsDrawn{ false };
+
+    MenuModelIndex   childSelectionIndex{};
     bool             isSomeChildSelected{ false };
     bool             editCursorActive{ false };
     EditorCursorPosT edittingCursorPosition{ 0 };

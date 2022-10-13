@@ -14,13 +14,17 @@ concept Timer = requires(TimerT timer) {
                 };
 
 template<typename ButtonT>
-concept ButtonC = requires(ButtonT button) { typename ButtonT::ButtonState; };
+concept ButtonC = requires(ButtonT button) {
+                      typename ButtonT::ButtonState;
+                      typename ButtonT::ButtonGroupIdT;
+                  };
 
 template<typename KeyboardT>
 concept KeyboardC = requires(KeyboardT                                 keyboard,
                              typename KeyboardT::ButtonEvent           event,
                              typename KeyboardT::ButtonEventCallback &&callback) {
-                        keyboard.SetButtonEventCallback(int{}, event, std::move(callback));
+                        keyboard.SetButtonEventCallback(typename KeyboardT::ButtonName{}, event, std::move(callback));
+                        typename KeyboardT::ButtonId;
                     };
 
 template<typename TestedDriver>

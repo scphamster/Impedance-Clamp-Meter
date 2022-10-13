@@ -3,4 +3,4 @@
 /build-clion
 /build-release
 tools_configs.cmake
-/build*/**
+/build*/
