@@ -136,10 +136,12 @@ class PageItemStateStorage {
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 class MenuModelDrawer {
   public:
-    using Item       = MenuModelPageItem<Keyboard>;
-    using NameT      = typename Item::NameT;
-    using MenuModelT = MenuModel<Keyboard>;
-    using ColorT     = typename Drawer::ColorT;
+    using Item        = MenuModelPageItem<Keyboard>;
+    using NameT       = typename Item::NameT;
+    using MenuModelT  = MenuModel<Keyboard>;
+    using ColorT      = typename Drawer::ColorT;
+    using ButtonName  = typename Keyboard::ButtonName;
+    using ButtonEvent = typename Keyboard::ButtonEvent;
 
     explicit MenuModelDrawer(std::shared_ptr<Mutex>      new_mutex,
                              std::unique_ptr<Drawer>   &&new_drawer,
@@ -148,15 +150,17 @@ class MenuModelDrawer {
       , drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
       , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
     {
-        keyboard->SetButtonEventCallback(Keyboard::ButtonName::Enter, Keyboard::ButtonEvent::Release, [this]() {
-            EnterButtonPushEvent();
-        });
+        //        keyboard->SetButtonEventCallback(Keyboard::ButtonName::Enter, Keyboard::ButtonEvent::Release, [this]() {
+        //            EnterButtonPushEvent();
+        //        });
         keyboard->SetButtonEventCallback(Keyboard::ButtonName::Back, Keyboard::ButtonEvent::Release, [this]() {
             BackButtonPushEvent();
         });
         keyboard->SetButtonEventCallback(Keyboard::ButtonName::Up, Keyboard::ButtonEvent::Release, [this]() {
             UpButtonReleaseEvent();
         });
+
+        keyboard->SetMasterCallback([this](ButtonEvent event, ButtonName name) { KeyboardMasterCallback(event, name); });
     }
 
     void DrawerTask() noexcept;
@@ -278,6 +282,18 @@ class MenuModelDrawer {
     }
 
     // slots:
+    void KeyboardMasterCallback(ButtonEvent event, ButtonName button)
+    {
+        if (event != ButtonEvent::Release)
+            return;
+
+        model->GetCurrentItem()->InvokeSpecialKeyboardCallback(button);
+
+        switch (button) {
+        case ButtonName::Enter: EnterButtonPushEvent(); break;
+        default: return;
+        }
+    }
     void ModelCurrentItemChangedEvent() noexcept
     {
         cursor.Reset();
@@ -285,6 +301,9 @@ class MenuModelDrawer {
     }
     void EnterButtonPushEvent() noexcept
     {
+        // check if page has special callback for this key
+        //...
+
         if (cursor.GetItemCursor().IsActive()) {
             if (cursor.GetValueCursor().IsActive()) {
                 cursor.GetValueCursor().Activate(false);

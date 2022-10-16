@@ -1,4 +1,16 @@
 #pragma once
+#ifdef min
+#undef min
+#endif   // max
+#ifdef max
+#undef max
+#endif   // max
+#ifdef printf
+#undef printf
+#endif
+
+
+#include <functional>
 #include "compiler.h"
 #include "pin.hpp"
 
@@ -20,12 +32,17 @@ concept ButtonC = requires(ButtonT button) {
                   };
 
 template<typename KeyboardT>
-concept KeyboardC = requires(KeyboardT                                 keyboard,
-                             typename KeyboardT::ButtonEvent           event,
-                             typename KeyboardT::ButtonEventCallback &&callback) {
-                        keyboard.SetButtonEventCallback(typename KeyboardT::ButtonName{}, event, std::move(callback));
-                        typename KeyboardT::ButtonId;
-                    };
+concept KeyboardC =
+  requires(KeyboardT                                                                              keyboard,
+           typename KeyboardT::ButtonEvent                                                        event,
+           typename KeyboardT::ButtonEventCallback                                              &&callback,
+           std::function<void(typename KeyboardT::ButtonEvent, typename KeyboardT::ButtonName)> &&master_callback) {
+      keyboard.SetButtonEventCallback(typename KeyboardT::ButtonName{}, event, std::move(callback));
+      keyboard.SetMasterCallback(std::move(master_callback));
+      typename KeyboardT::ButtonId;
+      typename KeyboardT::ButtonName;
+      typename KeyboardT::ButtonEvent;
+  };
 
 template<typename TestedDriver>
 concept DisplayDriver = requires(TestedDriver drv) {

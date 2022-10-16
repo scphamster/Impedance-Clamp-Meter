@@ -21,6 +21,7 @@ class MCP23016Button {
     using Callback       = std::function<void()>;
     using IsInitialized  = bool;
     using ButtonGroupIdT = int;
+    using ButtonId       = int;
     enum class ButtonState : bool {
         Pushed   = static_cast<bool>(Pin::PinState::Low),
         Released = static_cast<bool>(Pin::PinState::High)

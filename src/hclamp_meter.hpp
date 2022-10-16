@@ -23,6 +23,9 @@
 #include "menu_model.hpp"
 #include "menu_model_item.hpp"
 #include "menu_model_drawer.hpp"
+
+#include "signal_conditioning.h"
+
 // test
 #include "timer.hpp"
 #include "mcp23016_driver_fast.hpp"
@@ -52,23 +55,6 @@ class ClampMeter : private Sensor {
       , shared_data{ std::make_shared<UniversalType>(static_cast<std::string>("dupa")) }
       , some_string{ "dupa" }
     {
-        //        auto dummy_item011 = std::make_shared<Item>(model);
-        //        dummy_item011->SetName("subsub page");
-        //        dummy_item011->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(011) });
-        //        dummy_item011->SetIndex(0);
-        //
-        //        auto dummy_item01 = std::make_shared<Item>(model);
-        //        dummy_item01->SetName("sub page");
-        //        dummy_item01->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(10) });
-        //        dummy_item01->SetIndex(0);
-        //        dummy_item01->InsertChild(dummy_item011);
-        //
-        //        auto dummy_item0 = std::make_shared<Item>(model);
-        //        dummy_item0->SetData(MenuModelPageItemData{ shared_data });
-        //        dummy_item0->SetName("dummy item");
-        //        dummy_item0->SetIndex(0);
-        //        dummy_item0->InsertChild(dummy_item01);
-
         auto clamp_value0 = std::make_shared<Item>(model);
         clamp_value0->SetName("some value1234");
         clamp_value0->SetData(
@@ -86,6 +72,8 @@ class ClampMeter : private Sensor {
         top_item->SetName("Main Page");
         top_item->InsertChild(clamp_value0);
         top_item->InsertChild(clamp_value1);
+        top_item->SetKeyCallback(Keyboard::ButtonName::F1, []() { measurement_start(); });
+        top_item->SetKeyCallback(Keyboard::ButtonName::F2, []() { measurement_stop(); });
 
         model->SetTopLevelItem(top_item);
         drawer.SetModel(model);
@@ -132,18 +120,18 @@ class ClampMeter : private Sensor {
 
     virtual void MeasurementsTask()
     {
-        //        *shared_data = counter;
-        //        counter+= 1.2;
-        //        if (counter >= 100)
-        //            counter = 0;
+        if (Analog.generator_is_active) {
+            dsp_integrating_filter();
 
-        if (some_string == "dupa") {
-            some_string  = "APPLE";
-            *shared_data = some_string;
-        }
-        else if (some_string == "APPLE") {
-            some_string  = "dupa";
-            *shared_data = some_string;
+            if (Dsp.new_data_is_ready) {
+                Dsp.new_data_is_ready = false;
+                //                display_refresh();
+            }
+
+            if ((Calibrator.is_calibrating) && (Calibrator.new_data_is_ready)) {
+                calibration_display_measured_data();
+                Calibrator.new_data_is_ready = false;
+            }
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));

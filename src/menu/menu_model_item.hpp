@@ -54,12 +54,14 @@ class MenuModelPageItemData {
 template<KeyboardC Keyboard>
 class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<Keyboard>> {
   public:
-    using ChildIndex       = int;
-    using EditorCursorPosT = int;
-    using NameT            = std::string;
-    using Model            = MenuModel<Keyboard>;
-    using ButtonId         = typename Keyboard::ButtonId;
-    using CallbacksVector  = std::vector<std::pair<ButtonId, std::function<void()>>>;
+    using ChildIndex               = int;
+    using EditorCursorPosT         = int;
+    using NameT                    = std::string;
+    using Model                    = MenuModel<Keyboard>;
+    using ButtonId                 = typename Keyboard::ButtonId;
+    using ButtonName               = typename Keyboard::ButtonName;
+    using SpecialKeyboardCallback  = std::function<void()>;
+    using SpecialKeyboardCallbacks = std::map<ButtonName, SpecialKeyboardCallback>;
 
     using std::enable_shared_from_this<MenuModelPageItem<Keyboard>>::shared_from_this;
 
@@ -92,13 +94,9 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
         else
             return parent;
     }
-    [[nodiscard]] NameT GetName() noexcept { return name; }
-    CallbacksVector     GetKeyboardCallbacks() const noexcept
-    {
-        constexpr auto number_of_callbacks = 5;
-        auto           callbacks           = CallbacksVector{ std::pair{ 1, []() {} } };
-    }
-    bool IsEditable() const noexcept { return isEditable; }
+    [[nodiscard]] NameT                    GetName() noexcept { return name; }
+    [[nodiscard]] SpecialKeyboardCallbacks GetKeyboardCallbacks() const noexcept { return specialKeyCallbacks; }
+    [[nodiscard]] bool                     IsEditable() const noexcept { return isEditable; }
 
     void SetData(const MenuModelPageItemData &new_data) noexcept { data = new_data; }
     void InsertChild(std::shared_ptr<MenuModelPageItem> child, MenuModelIndex at_position) noexcept
@@ -127,6 +125,15 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     void SetParent(std::shared_ptr<MenuModelPageItem> new_parent) noexcept { parent = new_parent; }
     void SetName(const NameT &new_name) noexcept { name = new_name; }
     void SetModifiability(bool if_editable = true) noexcept { isEditable = if_editable; }
+    void SetKeyCallback(ButtonName for_button, SpecialKeyboardCallback &&new_callback) noexcept {
+        specialKeyCallbacks[for_button] = std::move(new_callback);
+    }
+    void InvokeSpecialKeyboardCallback(ButtonName button)
+    {
+        if (specialKeyCallbacks.contains(button))
+            specialKeyCallbacks.at(button)();
+    }
+
 
   protected:
     auto This() noexcept { return GetPtr(); }
@@ -138,9 +145,10 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     MenuModelIndex                                  childSelectionIndex{};
     bool                                            isSomeChildSelected{ false };
     bool                                            editCursorActive{ false };
+    bool                                            isEditable{ false };
     EditorCursorPosT                                editingCursorPosition{ 0 };
     MenuModelPageItemData                           data;
     std::vector<std::shared_ptr<MenuModelPageItem>> childItems{};
     std::shared_ptr<MenuModelPageItem>              parent;
-    bool                                            isEditable{ false };
+    SpecialKeyboardCallbacks                        specialKeyCallbacks;
 };

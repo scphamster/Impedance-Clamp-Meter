@@ -13,6 +13,7 @@
 #include "task.h"
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
+#include "signal_conditioning.h"
 
 using Drawer                      = DisplayDrawer<ILI9486Driver>;
 using Clamp                       = ClampMeter<Drawer, ClampSensor>;
@@ -27,6 +28,7 @@ tasks_setup2()
       Clamp{ std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()),
              std::make_unique<KeyboardT>() };
 
+//    measurement_start();
     vTaskStartScheduler();
     while (true) { }
 }

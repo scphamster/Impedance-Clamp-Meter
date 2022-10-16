@@ -11,6 +11,10 @@
 #include <algorithm>
 #include "button.hpp"
 
+MCP23016Button::MCP23016Button(MCP23016Button::ButtonGroupIdT new_group) noexcept
+  : group{ new_group }
+{ }
+
 MCP23016Button::ButtonState
 MCP23016Button::GetCurrentState() const noexcept
 {
@@ -49,7 +53,6 @@ MCP23016Button::InvokeEventCallback(MCP23016Button::EventId wanted_event_id) noe
         eventCallbacks.at(wanted_event_id)();
     }
 }
-
 void
 MCP23016Button::ClearEventCallback(const std::vector<EventId> &event_ids) noexcept
 {
@@ -62,17 +65,14 @@ MCP23016Button::ClearEventCallback() noexcept
 {
     eventCallbacks.clear();
 }
+
 void
 MCP23016Button::SetGroup(MCP23016Button::ButtonGroupIdT new_group) noexcept
 {
     group = new_group;
 }
-
 MCP23016Button::ButtonGroupIdT
 MCP23016Button::GetGroup() const noexcept
 {
     return group;
 }
-MCP23016Button::MCP23016Button(MCP23016Button::ButtonGroupIdT new_group) noexcept
-  : group{ new_group }
-{ }
