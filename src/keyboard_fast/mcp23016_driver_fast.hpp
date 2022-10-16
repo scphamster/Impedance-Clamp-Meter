@@ -33,7 +33,7 @@ class MCP23016_driver {
     // todo: implement twi driver to benefit from encapsulation
 
   public:
-    using PinStateChangeCallback = std::function<void(const Pin &)>;
+    using PinStateChangeCallback = std::function<void(const Pin_MCP23016 &)>;
 
     enum class Register : Byte {
         GP0     = 0X00,
@@ -64,15 +64,15 @@ class MCP23016_driver {
     void                          SetPinStateChangeCallback(PinStateChangeCallback &&pin_change_callback);
     void                          InterruptHandler() noexcept;
     void                          StartTask() noexcept;
-    [[nodiscard]] static std::array<Pin::PinState, NumberOfPins> StreamBufferToPinStateArray(
+    [[nodiscard]] static std::array<Pin_MCP23016::PinState, NumberOfPins> StreamBufferToPinStateArray(
       std::array<Byte, StreamBufferSinglePacketSize> &&serial_data);
 
   protected:
   private:
     static bool isInitialized;
-    const int   rtosTaskPriority          = 4;   // todo: make configurable
-    const int   hardwareInterruptPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
+    auto constexpr static rtosTaskPriority          = 4;   // todo: make configurable
+    auto constexpr static hardwareInterruptPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
 
-    std::array<Pin, NumberOfPins> pins;
+    std::array<Pin_MCP23016, NumberOfPins> pins;
     PinStateChangeCallback        pinStateChangeCallback;
 };

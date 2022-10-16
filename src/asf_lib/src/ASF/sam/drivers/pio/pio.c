@@ -133,7 +133,7 @@ void pio_clear(Pio *p_pio, const uint32_t ul_mask)
 }
 
 /**
- * \brief Return 1 if one or more PIOs of the given Pin instance currently have
+ * \brief Return 1 if one or more PIOs of the given Pin_MCP23016 instance currently have
  * a high level; otherwise returns 0. This method returns the actual value that
  * is being read on the pin. To return the supposed output value of a pin, use
  * pio_get_output_data_status() instead.
@@ -379,7 +379,7 @@ uint32_t pio_configure(Pio *p_pio, const pio_type_t ul_type,
 }
 
 /**
- * \brief Return 1 if one or more PIOs of the given Pin are configured to
+ * \brief Return 1 if one or more PIOs of the given Pin_MCP23016 are configured to
  * output a high level (even if they are not output).
  * To get the actual value of the pin, use PIO_Get() instead.
  *
@@ -620,7 +620,7 @@ uint32_t pio_get_interrupt_mask(const Pio *p_pio)
  *
  * \param p_pio Pointer to a PIO instance.
  * \param ul_mask Interrupt sources bit map.
- * \param ul_attribute Pin(s) attributes.
+ * \param ul_attribute Pin_MCP23016(s) attributes.
  */
 void pio_set_additional_interrupt_mode(Pio *p_pio,
 		const uint32_t ul_mask, const uint32_t ul_attribute)
@@ -856,7 +856,7 @@ void pio_toggle_pin_group(Pio *p_pio, uint32_t ul_mask)
  *
  * \param p_pio Pointer to a PIO instance.
  * \param ul_mask Bitmask of one or more pin(s) to configure.
- * \param ul_flags Pin(s) attributes.
+ * \param ul_flags Pin_MCP23016(s) attributes.
  *
  * \return Whether the pin(s) have been configured properly.
  */

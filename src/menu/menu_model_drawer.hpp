@@ -119,18 +119,19 @@ class PageCursor {
 template<KeyboardC Keyboard>
 class PageItemStateStorage {
   public:
-    using Item = MenuModelPageItem<Keyboard>;
+    using Item  = MenuModelPageItem<Keyboard>;
+    using DataT = UniversalType;
 
     [[nodiscard]] typename Item::NameT GetName() const noexcept { return name; }
-    [[nodiscard]] UniversalType        GetValue() const noexcept { return value; }
+    [[nodiscard]] DataT                GetValue() const noexcept { return value; }
 
     void SetName(const typename Item::NameT &new_name) noexcept { name = new_name; }
-    void SetValue(const UniversalType &new_value) noexcept { value = new_value; }
-    void SetValue(UniversalType &&new_value) noexcept { value = std::move(new_value); }
+    void SetValue(const DataT &new_value) noexcept { value = new_value; }
+    void SetValue(DataT &&new_value) noexcept { value = std::move(new_value); }
 
   private:
     typename Item::NameT name;
-    UniversalType        value;
+    DataT                value;
 };
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
@@ -211,7 +212,7 @@ class MenuModelDrawer {
 
         drawer->SetCursor({ valuesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
         drawer->SetTextColor(itemValueColor, back_color);
-        std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, *value);
+        std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, value);
     }
     void DrawSinglePageItem(int item_index, PageItemDrawingMode mode) noexcept
     {
@@ -236,7 +237,10 @@ class MenuModelDrawer {
         }
 
         if (mode == PageItemDrawingMode::WholeItem or mode == PageItemDrawingMode::OnlyValue) {
-            DrawPageItemValue(item_index, model->GetCurrentItem()->GetChild(item_index)->GetData().GetValue());
+            if (model->GetCurrentItem()->GetChild(item_index)->IsValueless())
+                return;
+
+            DrawPageItemValue(item_index, model->GetCurrentItem()->GetChild(item_index)->GetData()->GetValue());
         }
     }
     void DrawStaticPageItems() const noexcept
@@ -272,9 +276,11 @@ class MenuModelDrawer {
                 DrawPageItemName(item_index, drawnPageItems.at(item_index).GetName());
             }
 
-            if (drawnPageItems.at(item_index).GetValue() != *child_page->GetData().GetValue()) {
-                drawnPageItems.at(item_index).SetValue(*child_page->GetData().GetValue());
-                DrawPageItemValue(item_index, child_page->GetData().GetValue());
+            if (not child_page->IsValueless()) {
+                if (drawnPageItems.at(item_index).GetValue() != child_page->GetData()->GetValue()) {
+                    drawnPageItems.at(item_index).SetValue(child_page->GetData()->GetValue());
+                    DrawPageItemValue(item_index, child_page->GetData()->GetValue());
+                }
             }
 
             item_index++;
@@ -388,8 +394,8 @@ class MenuModelDrawer {
     int static constexpr pageHeaderXPos{ screenUsedAreaLeftX + 60 };
     int static constexpr pageNameFontSize = 2;
 
-    ColorT static constexpr itemValueColor            = COLOR_RED;
-    ColorT static constexpr itemNameColor             = COLOR_GREEN;
+    ColorT static constexpr itemValueColor            = COLOR_DARKCYAN;
+    ColorT static constexpr itemNameColor             = COLOR_DARKGREEN;
     ColorT static constexpr selectedItemBackground    = COLOR_DARKDARKGREY;
     ColorT static constexpr nonSelectedItemBackground = COLOR_BLACK;
 };

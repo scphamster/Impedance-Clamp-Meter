@@ -59,7 +59,7 @@ typedef struct {
   __O  uint32_t PIO_SODR;       /**< \brief (Pio Offset: 0x0030) Set Output Data Register */
   __O  uint32_t PIO_CODR;       /**< \brief (Pio Offset: 0x0034) Clear Output Data Register */
   __IO uint32_t PIO_ODSR;       /**< \brief (Pio Offset: 0x0038) Output Data Status Register */
-  __I  uint32_t PIO_PDSR;       /**< \brief (Pio Offset: 0x003C) Pin Data Status Register */
+  __I  uint32_t PIO_PDSR;       /**< \brief (Pio Offset: 0x003C) Pin_MCP23016 Data Status Register */
   __O  uint32_t PIO_IER;        /**< \brief (Pio Offset: 0x0040) Interrupt Enable Register */
   __O  uint32_t PIO_IDR;        /**< \brief (Pio Offset: 0x0044) Interrupt Disable Register */
   __I  uint32_t PIO_IMR;        /**< \brief (Pio Offset: 0x0048) Interrupt Mask Register */
@@ -518,7 +518,7 @@ typedef struct {
 #define PIO_ODSR_P29 (0x1u << 29) /**< \brief (PIO_ODSR) Output Data Status */
 #define PIO_ODSR_P30 (0x1u << 30) /**< \brief (PIO_ODSR) Output Data Status */
 #define PIO_ODSR_P31 (0x1u << 31) /**< \brief (PIO_ODSR) Output Data Status */
-/* -------- PIO_PDSR : (PIO Offset: 0x003C) Pin Data Status Register -------- */
+/* -------- PIO_PDSR : (PIO Offset: 0x003C) Pin_MCP23016 Data Status Register -------- */
 #define PIO_PDSR_P0 (0x1u << 0) /**< \brief (PIO_PDSR) Output Data Status */
 #define PIO_PDSR_P1 (0x1u << 1) /**< \brief (PIO_PDSR) Output Data Status */
 #define PIO_PDSR_P2 (0x1u << 2) /**< \brief (PIO_PDSR) Output Data Status */

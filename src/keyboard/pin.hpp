@@ -9,7 +9,7 @@
 #undef printf
 #endif
 
-class Pin {
+class Pin_MCP23016 {
   public:
     using PinNumT = int;
     enum {
@@ -28,8 +28,8 @@ class Pin {
         High  = true
     };
 
-    Pin() = default;
-    Pin(PinNumT pin_number, PinMode new_mode, PinState new_state)
+    Pin_MCP23016() = default;
+    Pin_MCP23016(PinNumT pin_number, PinMode new_mode, PinState new_state)
       : pinNumber{ pin_number }
       , state{ new_state }
       , mode{ new_mode }
@@ -47,3 +47,4 @@ class Pin {
     PinState state     = PinState::Low;
     PinMode  mode      = PinMode::HiZ;
 };
+

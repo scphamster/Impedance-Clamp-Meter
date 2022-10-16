@@ -72,14 +72,22 @@ MCP23016_DriverTask(void *driver_instance)
 }
 
 MCP23016_driver::MCP23016_driver(MCP23016_driver::PinStateChangeCallback &&callback)
-  : pins{ Pin{ 0, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 1, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 2, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 3, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 4, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 5, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 6, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 7, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 8, Pin::PinMode::Input, Pin::PinState::Low },  Pin{ 9, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 10, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 11, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 12, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 13, Pin::PinMode::Input, Pin::PinState::Low },
-          Pin{ 14, Pin::PinMode::Input, Pin::PinState::Low }, Pin{ 15, Pin::PinMode::Input, Pin::PinState::Low } }
+  : pins{ Pin_MCP23016{ 0, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 1, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 2, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 3, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 4, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 5, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 6, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 7, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 8, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 9, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 10, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 11, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 12, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 13, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 14, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low },
+          Pin_MCP23016{ 15, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low } }
   , pinStateChangeCallback{ std::forward<PinStateChangeCallback>(callback) }
 {
     StartTask();
@@ -211,20 +219,20 @@ MCP23016_driver::StartTask() noexcept
                 nullptr);
 }
 void
-MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin &)> &&pin_change_callback)
+MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin_MCP23016 &)> &&pin_change_callback)
 {
     pinStateChangeCallback = std::move(pin_change_callback);
 }
 
-std::array<Pin::PinState, MCP23016_driver::NumberOfPins>
+std::array<Pin_MCP23016::PinState, MCP23016_driver::NumberOfPins>
 MCP23016_driver::StreamBufferToPinStateArray(
   std::array<Byte, MCP23016_driver::StreamBufferSinglePacketSize> &&serial_data)
 {
-    auto pins_state = std::array<Pin::PinState, NumberOfPins>{};
+    auto pins_state = std::array<Pin_MCP23016::PinState, NumberOfPins>{};
 
     for (int pin_num = 0, bit_num = 0, byte_num = 0; pin_num < NumberOfPins; pin_num++) {
         pins_state.at(pin_num) =
-          static_cast<Pin::PinState>(static_cast<bool>((serial_data.at(byte_num) & (1 << bit_num))));
+          static_cast<Pin_MCP23016::PinState>(static_cast<bool>((serial_data.at(byte_num) & (1 << bit_num))));
 
         if (bit_num == 7) {
             bit_num = 0;

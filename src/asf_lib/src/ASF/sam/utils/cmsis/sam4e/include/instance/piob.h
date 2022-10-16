@@ -49,7 +49,7 @@
   #define REG_PIOB_SODR                     (0x400E1030U) /**< \brief (PIOB) Set Output Data Register */
   #define REG_PIOB_CODR                     (0x400E1034U) /**< \brief (PIOB) Clear Output Data Register */
   #define REG_PIOB_ODSR                     (0x400E1038U) /**< \brief (PIOB) Output Data Status Register */
-  #define REG_PIOB_PDSR                     (0x400E103CU) /**< \brief (PIOB) Pin Data Status Register */
+  #define REG_PIOB_PDSR                     (0x400E103CU) /**< \brief (PIOB) Pin_MCP23016 Data Status Register */
   #define REG_PIOB_IER                      (0x400E1040U) /**< \brief (PIOB) Interrupt Enable Register */
   #define REG_PIOB_IDR                      (0x400E1044U) /**< \brief (PIOB) Interrupt Disable Register */
   #define REG_PIOB_IMR                      (0x400E1048U) /**< \brief (PIOB) Interrupt Mask Register */
@@ -104,7 +104,7 @@
   #define REG_PIOB_SODR    (*(__O  uint32_t*)0x400E1030U) /**< \brief (PIOB) Set Output Data Register */
   #define REG_PIOB_CODR    (*(__O  uint32_t*)0x400E1034U) /**< \brief (PIOB) Clear Output Data Register */
   #define REG_PIOB_ODSR    (*(__IO uint32_t*)0x400E1038U) /**< \brief (PIOB) Output Data Status Register */
-  #define REG_PIOB_PDSR    (*(__I  uint32_t*)0x400E103CU) /**< \brief (PIOB) Pin Data Status Register */
+  #define REG_PIOB_PDSR    (*(__I  uint32_t*)0x400E103CU) /**< \brief (PIOB) Pin_MCP23016 Data Status Register */
   #define REG_PIOB_IER     (*(__O  uint32_t*)0x400E1040U) /**< \brief (PIOB) Interrupt Enable Register */
   #define REG_PIOB_IDR     (*(__O  uint32_t*)0x400E1044U) /**< \brief (PIOB) Interrupt Disable Register */
   #define REG_PIOB_IMR     (*(__I  uint32_t*)0x400E1048U) /**< \brief (PIOB) Interrupt Mask Register */

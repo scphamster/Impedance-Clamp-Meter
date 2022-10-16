@@ -47,9 +47,7 @@ class Keyboard {
         Release,
         LongPush
     };
-
     using MasterCallback = std::function<void(ButtonEvent, ButtonName)>;
-
     enum class ButtonGroup : ButtonGroupIdT {
         PageIndependent = 0,
         PageDependent
@@ -77,7 +75,7 @@ class Keyboard {
     { }
 
     Keyboard()
-      : Keyboard{ std::make_shared<Driver>([this](const Pin &pin) { ButtonsStateChangeCallback(pin); }),
+      : Keyboard{ std::make_shared<Driver>([this](const Pin_MCP23016 &pin) { ButtonsStateChangeCallback(pin); }),
                   std::make_shared<TimerT>(KeyboardTimerPeriod) }
     { }
 
@@ -118,7 +116,7 @@ class Keyboard {
 
   protected:
     // slots:
-    void ButtonsStateChangeCallback(const Pin &pin) noexcept
+    void ButtonsStateChangeCallback(const Pin_MCP23016 &pin) noexcept
     {
         if (static_cast<ButtonState>(pin.GetPinState()) == ButtonT::ButtonState::Released) {
             if (timer->GetCurrentTime() - lastChangeTime > debounceDelay) {

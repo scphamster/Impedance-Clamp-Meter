@@ -42,8 +42,9 @@ class ClampMeterInTaskHandler;
 template<typename Drawer, typename Sensor, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter : private Sensor {
   public:
-    using Item  = MenuModelPageItem<Keyboard>;
-    using Model = MenuModel<Keyboard>;
+    using Item          = MenuModelPageItem<Keyboard>;
+    using Model         = MenuModel<Keyboard>;
+    using ModelItemData = std::shared_ptr<MenuModelPageItemData>;
 
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
@@ -52,35 +53,34 @@ class ClampMeter : private Sensor {
       , drawer{ mutex,
                 std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , vOverall{ std::make_shared<UniversalType>(static_cast<float>(0)) }
-      , iOverallI{ std::make_shared<UniversalType>(static_cast<float>(0)) }
-      , zClamp{ std::make_shared<UniversalType>(static_cast<float>(0)) }
+      , vOverall{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
+      , iOverallI{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
+      , zClamp{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
     {
         auto vout_info = std::make_shared<Item>(model);
         vout_info->SetName("V out");
-        vout_info->SetData(MenuModelPageItemData{ vOverall });
+        vout_info->SetData(vOverall);
         vout_info->SetIndex(0);
 
         auto iout_info = std::make_shared<Item>(model);
         iout_info->SetName("I out");
-        iout_info->SetData(MenuModelPageItemData{ iOverallI });
+        iout_info->SetData(iOverallI);
         iout_info->SetIndex(1);
 
         auto zout_info = std::make_shared<Item>(model);
         zout_info->SetName("Z out");
-        zout_info->SetData(MenuModelPageItemData{ zClamp });
+        zout_info->SetData(zClamp);
         zout_info->SetIndex(2);
 
-        auto top_item = std::make_shared<Item>(model);
-        top_item->SetIndex(0);
-        top_item->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(1) });
-        top_item->SetName("Main Page");
-        top_item->InsertChild(vout_info);
-        top_item->InsertChild(iout_info);
-        top_item->InsertChild(zout_info);
-        top_item->SetKeyCallback(Keyboard::ButtonName::F1, []() { measurement_start(); });
-        top_item->SetKeyCallback(Keyboard::ButtonName::F2, []() { measurement_stop(); });
-        top_item->SetKeyCallback(Keyboard::ButtonName::F3, []() {
+        auto measurements_page = std::make_shared<Item>(model);
+        measurements_page->SetIndex(0);
+        measurements_page->SetName("Measurement");
+        measurements_page->InsertChild(vout_info);
+        measurements_page->InsertChild(iout_info);
+        measurements_page->InsertChild(zout_info);
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, []() { measurement_start(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, []() { measurement_stop(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, []() {
             if (Analog.generator_is_active) {
                 switch (Analog.selected_sensor) {
                 case VOLTAGE_SENSOR: ::switch_sensing_chanel(SHUNT_SENSOR); break;
@@ -98,7 +98,28 @@ class ClampMeter : private Sensor {
             }
         });
 
-        model->SetTopLevelItem(top_item);
+//        auto calibration_page0 = std::make_shared<Item>(model);
+//        auto calibration_page0 = std::make_shared<Item>(model);
+//        auto calibration_page0 = std::make_shared<Item>(model);
+//        auto calibration_page0 = std::make_shared<Item>(model);
+//        auto calibration_page0 = std::make_shared<Item>(model);
+        auto calibration_page0 = std::make_shared<Item>(model);
+//        calibration_page0->SetName
+        auto start_calibration = std::make_shared<Item>(model);
+        start_calibration->SetIndex(0);
+        start_calibration->SetName("press ENTER to start");
+
+        auto calibration_page = std::make_shared<Item>(model);
+        calibration_page->SetIndex(1);
+        calibration_page->SetName("Calibration");
+        calibration_page->InsertChild(start_calibration);
+
+        auto main_page = std::make_shared<Item>(model);
+        main_page->SetName("Main");
+        main_page->InsertChild(measurements_page);
+        main_page->InsertChild(calibration_page);
+
+        model->SetTopLevelItem(main_page);
         drawer.SetModel(model);
 
         StartDisplayMeasurementsTask();
@@ -165,9 +186,9 @@ class ClampMeter : private Sensor {
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<Drawer, Keyboard>    drawer;
 
-    std::shared_ptr<UniversalType> vOverall;
-    std::shared_ptr<UniversalType> iOverallI;
-    std::shared_ptr<UniversalType> zClamp;
+    ModelItemData vOverall;
+    ModelItemData iOverallI;
+    ModelItemData zClamp;
 };
 
 template<typename Drawer, typename Reader>

@@ -65,7 +65,7 @@ typedef struct {
 #define   RSTC_SR_RSTTYP_WDT_RST (0x2u << 8) /**< \brief (RSTC_SR) Watchdog fault occurred */
 #define   RSTC_SR_RSTTYP_SOFT_RST (0x3u << 8) /**< \brief (RSTC_SR) Processor reset required by the software */
 #define   RSTC_SR_RSTTYP_USER_RST (0x4u << 8) /**< \brief (RSTC_SR) NRST pin detected low */
-#define RSTC_SR_NRSTL (0x1u << 16) /**< \brief (RSTC_SR) NRST Pin Level */
+#define RSTC_SR_NRSTL (0x1u << 16) /**< \brief (RSTC_SR) NRST Pin_MCP23016 Level */
 #define RSTC_SR_SRCMP (0x1u << 17) /**< \brief (RSTC_SR) Software Reset Command in Progress */
 /* -------- RSTC_MR : (RSTC Offset: 0x08) Mode Register -------- */
 #define RSTC_MR_URSTEN (0x1u << 0) /**< \brief (RSTC_MR) User Reset Enable */

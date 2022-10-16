@@ -74,10 +74,8 @@ class DisplayDrawer {
     void Print(const std::string &string, Byte fontsize) noexcept;
     void Print(uint16_t number, Byte fontsize) noexcept;
     void Print(float number, Byte digits, Byte fontsize) noexcept;
-    void Print(float number, int fontsize) noexcept
-    {
-        Print(number, 5, fontsize);
-    }
+    void Print(float number, int fontsize) noexcept { Print(number, 5, fontsize); }
+
   protected:
     void DrawFiledCircleHelper(const Point  point,
                                ScreenSizeT  r,
@@ -386,18 +384,18 @@ DisplayDrawer<Driver>::Print(const std::string &str, const Byte size) noexcept
 {
     auto string = str.c_str();
 
-    Byte i      = 0;
+    Byte idx    = 0;
     Byte font_w = (FONT_WIDTH - FONT_SQUISH) * size;
     Byte font_h = (FONT_HEIGHT - FONT_SQUISH) * size;
 
-    while ((*(string + i) != '\0') && (*string)) {
-        if (*(string + i) == '\n') {
+    for (const auto &character : str) {
+        if (character == '\n') {
             cursorPosition.x += font_h;
             cursorPosition.x = 0;
-            string++;
+            continue;
         }
 
-        if (cursorPosition.x > driver->screen_width - font_w) {
+        if (cursorPosition.x > driver->screen_width - font_w - 10) {
             cursorPosition.x = 0;
             cursorPosition.y += font_h;
         }
@@ -405,10 +403,29 @@ DisplayDrawer<Driver>::Print(const std::string &str, const Byte size) noexcept
         if (cursorPosition.y > driver->screen_height - font_h)
             cursorPosition.y = cursorPosition.x = 0;
 
-        driver->PrintChar(Point{ cursorPosition }, *(string + i), size);
+        driver->PrintChar(Point{ cursorPosition }, character, size);
         cursorPosition.x += font_w;
-        i++;
     }
+
+//    while ((*(string + idx) != '\0')) {
+//        if (*(string + idx) == '\n') {
+//            cursorPosition.x += font_h;
+//            cursorPosition.x = 0;
+//            string++;
+//        }
+//
+//        if (cursorPosition.x > driver->screen_width - font_w) {
+//            cursorPosition.x = 0;
+//            cursorPosition.y += font_h;
+//        }
+//
+//        if (cursorPosition.y > driver->screen_height - font_h)
+//            cursorPosition.y = cursorPosition.x = 0;
+//
+//        driver->PrintChar(Point{ cursorPosition }, *(string + idx), size);
+//        cursorPosition.x += font_w;
+//        idx++;
+//    }
 }
 
 template<DisplayDriver Driver>

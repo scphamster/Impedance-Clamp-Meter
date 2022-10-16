@@ -23,8 +23,8 @@ class MCP23016Button {
     using ButtonGroupIdT = int;
     using ButtonId       = int;
     enum class ButtonState : bool {
-        Pushed   = static_cast<bool>(Pin::PinState::Low),
-        Released = static_cast<bool>(Pin::PinState::High)
+        Pushed   = static_cast<bool>(Pin_MCP23016::PinState::Low),
+        Released = static_cast<bool>(Pin_MCP23016::PinState::High)
     };
 
     MCP23016Button() = default;

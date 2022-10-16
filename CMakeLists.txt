@@ -73,6 +73,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
+    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
     ${SOURCES_DIRECTORY}/menu/menu.hpp

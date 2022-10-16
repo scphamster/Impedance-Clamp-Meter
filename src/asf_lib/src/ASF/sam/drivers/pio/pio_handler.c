@@ -183,8 +183,8 @@ void pio_capture_handler_set(void (*p_handler)(Pio *))
  * The provided handler will be called with the triggering pin as its parameter
  * as soon as an interrupt is detected.
  *
- * \param ul_pin Pin index to configure.
- * \param ul_flag Pin flag.
+ * \param ul_pin Pin_MCP23016 index to configure.
+ * \param ul_flag Pin_MCP23016 flag.
  * \param p_handler Interrupt handler function pointer.
  *
  * \return 0 if successful, 1 if the maximum number of sources has been defined.
