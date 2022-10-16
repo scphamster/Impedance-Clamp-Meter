@@ -63,8 +63,8 @@ int main ()
         if (Analog.generator_is_active) {
             dsp_integrating_filter();
 
-            if (Dsp.new_data_is_ready) {
-                Dsp.new_data_is_ready = false;
+            if (clamp_measurements_result.new_data_is_ready) {
+                clamp_measurements_result.new_data_is_ready = false;
                 display_refresh();
             }
 
