@@ -140,7 +140,6 @@ adc_interrupt_handler(uint32_t id, uint32_t mask)
     }
 
     adc_data = MCP3462_read(0);
-    // adc_data = 1000;
     check_amplitude(adc_data);
 
 #ifdef TEST_DATA_LEN

@@ -52,6 +52,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/mutex/semaphore.cpp
     ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.cpp
     ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.hpp
+    ${SOURCES_DIRECTORY}/ili9486/font.hpp
     ${SOURCES_DIRECTORY}/clamp_sensor/clamp_sensor.cpp
     ${SOURCES_DIRECTORY}/clamp_sensor/clamp_sensor.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/clamp_meter_drawing.cpp
@@ -80,6 +81,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
+    ${SOURCES_DIRECTORY}/dsp/dsp.hpp
     )
 
 set(C_SOURCES
@@ -104,6 +106,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/keyboard_fast
     ${SOURCES_DIRECTORY}/menu
     ${SOURCES_DIRECTORY}/utilities
+    ${SOURCES_DIRECTORY}/dsp
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

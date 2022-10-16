@@ -31,12 +31,12 @@ class Keyboard {
         NumberOfButtons = 16
     };
     enum class ButtonName {
-        Up = 0,
-        Down,
+        Back = 0,
         Left,
         Right,
         Enter,
-        Back,
+        Up,
+        Down,
         Menu,
         F1,
         F2,

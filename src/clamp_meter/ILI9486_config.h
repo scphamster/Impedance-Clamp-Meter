@@ -2,6 +2,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define TFT_WIDTH   320
 #define TFT_HEIGHT  480
 #define FONT_HEIGHT 24

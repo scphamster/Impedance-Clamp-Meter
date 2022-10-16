@@ -11,8 +11,8 @@
 #include "asf.h"
 #include <cstdint>
 #include "ili9486_driver.hpp"
-#include "ILI9486_fonts.h"
-#include "ILI9486_config.h"
+#include "font.hpp"
+// #include "ILI9486_config.h"
 
 extern "C" char *gcvtf(float, int, char *);
 
@@ -25,22 +25,22 @@ ILI9486Driver::Init() noexcept
     InitGPIO();
     Reset();
 
-    WriteCommand(0x11);   // Sleep out, also SW reset
+    WriteCommand(static_cast<Command>(0x11));   // Sleep out, also SW reset
     delay_ms(60);
 
-    WriteCommand(0x3A);   // interface pixel format
+    WriteCommand(static_cast<Command>(0x3A));   // interface pixel format
     WriteData(0x55);      // 16bit RGB & 16bit CPU
 
-    WriteCommand(0xC2);   // Power Control 3 Normal mode
+    WriteCommand(static_cast<Command>(0xC2));   // Power Control 3 Normal mode
     WriteData(0x44);
 
-    WriteCommand(0xC5);   // vcom control
+    WriteCommand(static_cast<Command>(0xC5));   // vcom control
     WriteData(0x00);
     WriteData(0x00);
     WriteData(0x00);
     WriteData(0x00);
 
-    WriteCommand(0xE0);   // Positive gamma CTRL
+    WriteCommand(static_cast<Command>(0xE0));   // Positive gamma CTRL
     WriteData(0x0F);
     WriteData(0x1F);
     WriteData(0x1C);
@@ -57,7 +57,7 @@ ILI9486Driver::Init() noexcept
     WriteData(0x0D);
     WriteData(0x00);
 
-    WriteCommand(0xE1);   // Negative gamma CTRL
+    WriteCommand(static_cast<Command>(0xE1));   // Negative gamma CTRL
     WriteData(0x0F);
     WriteData(0x32);
     WriteData(0x2E);
@@ -74,12 +74,12 @@ ILI9486Driver::Init() noexcept
     WriteData(0x20);
     WriteData(0x00);
 
-    WriteCommand(0x20);   // display inversion OFF
+    WriteCommand(Command::invoff);   // display inversion OFF
+    WriteCommand(Command::madctl);   // memory access CTRL
 
-    WriteCommand(0x36);      // memory access CTRL
-    WriteData(0b01001001);   // MY MX MV ML BGR MH X X
+    WriteData(0b01001001);           // MY MX MV ML BGR MH X X
 
-    WriteCommand(0x29);   // display on
+    WriteCommand(static_cast<Command>(0x29));   // display on
     delay_ms(60);
 
     SetOrientation<Orientation::Portrait>();
@@ -93,32 +93,32 @@ ILI9486Driver::SetPin() const noexcept
 {
     if constexpr (pin == Pin::ChipSelect) {
         if constexpr (to_be_set) {
-            pio_clear(TFT_CS_PIO, TFT_CS_PIN);
+            pio_clear(TFT_CS_PIO, tft_cs_pin);
         }
         else {
-            pio_set(TFT_CS_PIO, TFT_CS_PIN);
+            pio_set(TFT_CS_PIO, tft_cs_pin);
         };
     }
     else if constexpr (pin == Pin::Data) {
-        pio_set(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN);
+        pio_set(TFT_CMD_DATA_PIO, tft_cmd_data_pin);
     }
     else if constexpr (pin == Pin::Command) {
-        pio_clear(TFT_CMD_DATA_PIO, TFT_CMD_DATA_PIN);
+        pio_clear(TFT_CMD_DATA_PIO, tft_cmd_data_pin);
     }
     else if constexpr (pin == Pin::Write) {
         if constexpr (to_be_set) {
-            pio_clear(TFT_WR_PIO, TFT_WR_PIN);
+            pio_clear(TFT_WR_PIO, tft_wr_pin);
         }
         else {
-            pio_set(TFT_WR_PIO, TFT_WR_PIN);
+            pio_set(TFT_WR_PIO, tft_wr_pin);
         };
     }
     else if constexpr (pin == Pin::Reset) {
         if constexpr (to_be_set) {
-            pio_clear(TFT_RESET_PIO, TFT_RESET_PIN);
+            pio_clear(TFT_RESET_PIO, tft_reset_pin);
         }
         else {
-            pio_set(TFT_RESET_PIO, TFT_RESET_PIN);
+            pio_set(TFT_RESET_PIO, tft_reset_pin);
         };
     }
     else if constexpr (pin == Pin::Read) { }
@@ -131,7 +131,7 @@ ILI9486Driver::InitGPIO() const noexcept
 
     // configure control pins
     pio_set_output(PIOD, 0x20008600ul, 0x20008600ul, 0, 0);
-    pio_set_output(TFT_CS_PIO, TFT_CS_PIN, TFT_CS_PIN, 0, 0);
+    pio_set_output(TFT_CS_PIO, tft_cs_pin, tft_cs_pin, 0, 0);
 
     // configure data pins
     p_matrix->CCFG_SYSIO |= CCFG_SYSIO_SYSIO10 | CCFG_SYSIO_SYSIO11;
@@ -177,14 +177,14 @@ ILI9486Driver::SetDataH(uint8_t data) const noexcept
     pio_enable_output_write(PIOB, 0x4C00ul);
     pio_enable_output_write(PIOD, 0x1Eul);
 
-    data_b |= (((data & (1 << 0)) && 1) << 11);
-    data_b |= (((data & (1 << 1)) && 1) << 14);
-    data_b |= (((data & (1 << 3)) && 1) << 10);
+    data_b |= (data & (1 << 0)) << 11;
+    data_b |= (data & (1 << 1)) << 14;
+    data_b |= (data & (1 << 3)) << 10;
 
-    data_d |= (((data & (1 << 2)) && 1) << 1);
-    data_d |= (((data & (1 << 5)) && 1) << 2);
-    data_d |= (((data & (1 << 6)) && 1) << 4);
-    data_d |= (((data & (1 << 7)) && 1) << 3);
+    data_d |= (data & (1 << 2)) << 1;
+    data_d |= (data & (1 << 5)) << 2;
+    data_d |= (data & (1 << 6)) << 4;
+    data_d |= (data & (1 << 7)) << 3;
 
     data_a |= (((data & (1 << 4)) && 1) << 29);
 
@@ -263,7 +263,7 @@ ILI9486Driver::WriteCommandDouble(uint16_t cmd) const noexcept
 }
 
 [[gnu::hot]] inline void
-ILI9486Driver::WriteParameter(Byte cmd, int n_bytes, Byte *data) const noexcept
+ILI9486Driver::WriteParameter(Command cmd, int n_bytes, Byte *data) const noexcept
 {
     WriteCommand(cmd);
 
@@ -285,38 +285,38 @@ ILI9486Driver::SetPartial(const Point point_beg, const Point point_end) const no
                               static_cast<uint8_t>(point_end.y >> 8),
                               static_cast<uint8_t>(point_end.y) };
 
-    WriteParameter(TFT_CASET, 4, caset_data);
-    WriteParameter(TFT_PASET, 4, paset_data);
+    WriteParameter(Command::caset, 4, caset_data);
+    WriteParameter(Command::paset, 4, paset_data);
 }
 
 void
-ILI9486Driver::PrintChar(const Point point, Byte data, int size) const noexcept
+ILI9486Driver::PrintChar(const Point at_point, Byte data, int size) const noexcept
 {
-    if ((point.x > m_screen_width - FONT_WIDTH * size) || (point.y > m_screen_height - FONT_HEIGHT * size))
+    if ((at_point.x > screen_width - font_width * size) || (at_point.y > screen_height - font_height * size))
         return;
 
-    uint8_t byte_row, bit_row, column, temp;
-    uint8_t bit_row_counter   = 0;
-    bool    char_color_is_set = false;
-    uint8_t counter           = 0;
-    uint8_t data_from_memory[FONT_ONE_CHAR_BYTES];
+    bool                                  char_color_is_set = false;
+    Byte                                  byte_row, bit_row, column, temp;
+    Byte                                  bit_row_counter = 0;
+    auto                                  counter         = 0;
+    std::array<Byte, font_one_char_bytes> pixel_array;
 
-    SetPartial(point, Point{ point.x + FONT_WIDTH * size - 1, point.y + FONT_HEIGHT * size - 1 });
-    WriteCommand(TFT_RAMWR);
+    SetPartial(at_point, Point{ at_point.x + font_width * size - 1, at_point.y + font_height * size - 1 });
+    WriteCommand(Command::ramwr);
 
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
 
-    SetDataL(0xff & backColour);
-    SetDataH((backColour >> 8) && 0Xff);
+    SetDataL(backColour bitand 0xff);
+    SetDataH((backColour >> 8) bitand 0xff);
 
-    for (; counter < FONT_ONE_CHAR_BYTES; counter++)
-        data_from_memory[counter] = Consolas14x24[(data - ' ') * FONT_ONE_CHAR_BYTES + counter];
+    for (; counter < font_one_char_bytes; counter++)
+        pixel_array[counter] = _Consolas14x24[(data - ' ') * font_one_char_bytes + counter];
 
     for (byte_row = 0; byte_row < 3; byte_row++) {
         for (bit_row = 0; bit_row < 8; bit_row++) {
-            for (column = 0; column < FONT_WIDTH; column++) {
-                temp = data_from_memory[column * 3 + byte_row];
+            for (column = 0; column < font_width; column++) {
+                temp = pixel_array[column * 3 + byte_row];
 
                 if (temp & (1 << bit_row)) {
                     if (char_color_is_set) {
@@ -367,9 +367,9 @@ ILI9486Driver::PrintChar(const Point point, Byte data, int size) const noexcept
 }
 
 void
-ILI9486Driver::PutPixel(const Color color, int n) const noexcept
+ILI9486Driver::PutPixel(const ColorT color, int n) const noexcept
 {
-    WriteCommand(TFT_RAMWR);
+    WriteCommand(Command::ramwr);
 
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -389,37 +389,37 @@ template<ILI9486Driver::Orientation orientation>
 constexpr void
 ILI9486Driver::SetOrientation() noexcept
 {
-    WriteCommand(TFT_MADCTL);
+    WriteCommand(Command::madctl);
 
     if constexpr (orientation == Orientation::Portrait) {
         WriteData(0x48);   // 0b 0100 1000;
-        m_screen_width  = TFT_WIDTH;
-        m_screen_height = TFT_HEIGHT;
+        screen_width  = tft_width;
+        screen_height = tft_height;
     }
 
     if constexpr (orientation == Orientation::Landscape) {   // 0b 0010 1000;
         WriteData(0x28);
-        m_screen_width  = TFT_HEIGHT;
-        m_screen_height = TFT_WIDTH;
+        screen_width  = tft_height;
+        screen_height = tft_width;
     }
 
     if constexpr (orientation == Orientation::ReversePortrait) {
         WriteData(0x98);   // 0b 1001 1000;
-        m_screen_width  = TFT_WIDTH;
-        m_screen_height = TFT_HEIGHT;
+        screen_width  = tft_width;
+        screen_height = tft_height;
     }
 
     if constexpr (orientation == Orientation::ReverseLandscape) {
         WriteData(0xF8);
-        m_screen_width  = TFT_HEIGHT;
-        m_screen_height = TFT_WIDTH;
+        screen_width  = tft_height;
+        screen_height = tft_width;
     }
 }
 
 void
-ILI9486Driver::DrawPixel(const Point point, const Color color) const noexcept
+ILI9486Driver::DrawPixel(const Point point, const ColorT color) const noexcept
 {
-    if (point.x < 0 || point.y < 0 || point.x >= m_screen_width || point.y >= m_screen_height)
+    if (point.x < 0 || point.y < 0 || point.x >= screen_width || point.y >= screen_height)
         return;
 
     uint8_t caset_data[4] = { static_cast<uint8_t>(point.x >> 8),
@@ -432,17 +432,17 @@ ILI9486Driver::DrawPixel(const Point point, const Color color) const noexcept
                               static_cast<uint8_t>(point.y >> 8),
                               static_cast<uint8_t>(point.y) };
 
-    WriteParameter(TFT_CASET, 4, caset_data);
-    WriteParameter(TFT_PASET, 4, paset_data);
+    WriteParameter(Command::caset, 4, caset_data);
+    WriteParameter(Command::paset, 4, paset_data);
 
-    WriteCommand(TFT_RAMWR);
+    WriteCommand(Command::ramwr);
     PutPixel(color, 1);
 }
 
 void
-ILI9486Driver::PutPixel(const Color color) const noexcept
+ILI9486Driver::PutPixel(const ColorT color) const noexcept
 {
-    WriteCommand(TFT_RAMWR);
+    WriteCommand(Command::ramwr);
 
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -456,12 +456,12 @@ ILI9486Driver::PutPixel(const Color color) const noexcept
 }
 
 void
-ILI9486Driver::WriteCommand(Byte cmd) const noexcept
+ILI9486Driver::WriteCommand(Command cmd) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Command, true>();
 
-    SetDataL(cmd);
+    SetDataL(static_cast<std::underlying_type_t<Command>>(cmd));
     StrobeWritePin();
 
     SetPin<Pin::ChipSelect, false>();

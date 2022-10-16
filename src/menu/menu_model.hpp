@@ -37,11 +37,16 @@ class MenuModel {
     [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return topLevelItem; }
     [[nodiscard]] std::shared_ptr<Item> GetCurrentItem() const noexcept { return currentItem; }
 
+
     void SetTopLevelItem(std::shared_ptr<Item> top_item) noexcept
     {
         topLevelItem = top_item;
-        currentItem  = topLevelItem;
+        SetCurrentItem(topLevelItem);
     }
+    void SetCurrentItem(std::shared_ptr<Item> new_current_item) noexcept {
+        currentItem = new_current_item;
+    }
+
 
   private:
     std::shared_ptr<Mutex>    mutex;

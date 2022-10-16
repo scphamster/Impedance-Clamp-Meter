@@ -189,6 +189,7 @@ void twiPdc_init (void)
 	twi_instance.is_free = true;
 	twiPdc_enable();
 }
+
 #ifdef __cplusplus
 }
 #endif

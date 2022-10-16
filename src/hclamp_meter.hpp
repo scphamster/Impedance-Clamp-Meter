@@ -49,27 +49,49 @@ class ClampMeter : private Sensor {
       , drawer{ mutex,
                 std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , shared_data{ std::make_shared<UniversalType>(static_cast<int>(5)) }
+      , shared_data{ std::make_shared<UniversalType>(static_cast<std::string>("dupa")) }
+      , some_string{ "dupa" }
     {
-        auto dummy_item01 = std::make_shared<Item>(model);
-        dummy_item01->SetName("sub page");
-        dummy_item01->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(10) });
-        dummy_item01->SetIndex(0);
+        //        auto dummy_item011 = std::make_shared<Item>(model);
+        //        dummy_item011->SetName("subsub page");
+        //        dummy_item011->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(011) });
+        //        dummy_item011->SetIndex(0);
+        //
+        //        auto dummy_item01 = std::make_shared<Item>(model);
+        //        dummy_item01->SetName("sub page");
+        //        dummy_item01->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(10) });
+        //        dummy_item01->SetIndex(0);
+        //        dummy_item01->InsertChild(dummy_item011);
+        //
+        //        auto dummy_item0 = std::make_shared<Item>(model);
+        //        dummy_item0->SetData(MenuModelPageItemData{ shared_data });
+        //        dummy_item0->SetName("dummy item");
+        //        dummy_item0->SetIndex(0);
+        //        dummy_item0->InsertChild(dummy_item01);
 
-        auto dummy_item0 = std::make_shared<Item>(model);
-        dummy_item0->SetData(MenuModelPageItemData{ shared_data });
-        dummy_item0->SetName("dummy item");
-        dummy_item0->SetIndex(0);
-        dummy_item0->InsertChild(dummy_item01);
+        auto clamp_value0 = std::make_shared<Item>(model);
+        clamp_value0->SetName("some value1234");
+        clamp_value0->SetData(
+          MenuModelPageItemData{ std::make_shared<UniversalType>(static_cast<std::string>("very big dupa")) });
+        clamp_value0->SetIndex(0);
+
+        auto clamp_value1 = std::make_shared<Item>(model);
+        clamp_value1->SetName("some value1");
+        clamp_value1->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(static_cast<int>(1)) });
+        clamp_value1->SetIndex(1);
 
         auto top_item = std::make_shared<Item>(model);
         top_item->SetIndex(0);
         top_item->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(1) });
         top_item->SetName("Main Page");
-        top_item->InsertChild(dummy_item0);
+        top_item->InsertChild(clamp_value0);
+        top_item->InsertChild(clamp_value1);
 
         model->SetTopLevelItem(top_item);
         drawer.SetModel(model);
+
+        StartDisplayMeasurementsTask();
+        StartMeasurementsTask();
     }
 
     ClampMeter(ClampMeter &&other)          = default;
@@ -82,7 +104,7 @@ class ClampMeter : private Sensor {
                     "measure",
                     300,
                     std::remove_volatile_t<void *const>(this),
-                    3,
+                    4,
                     nullptr);
     }
 
@@ -97,8 +119,35 @@ class ClampMeter : private Sensor {
     }
 
   protected:
-    virtual void DisplayMeasurementsTask();
-    virtual void MeasurementsTask() { vTaskDelay(pdMS_TO_TICKS(500)); }
+    virtual void DisplayMeasurementsTask()
+    {
+        drawer.DrawerTask();
+
+        //        *shared_data = counter;
+        //        counter++;
+        //        if (counter == 100)
+        //            counter = 0;
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+
+    virtual void MeasurementsTask()
+    {
+        //        *shared_data = counter;
+        //        counter+= 1.2;
+        //        if (counter >= 100)
+        //            counter = 0;
+
+        if (some_string == "dupa") {
+            some_string  = "APPLE";
+            *shared_data = some_string;
+        }
+        else if (some_string == "APPLE") {
+            some_string  = "dupa";
+            *shared_data = some_string;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 
   private:
     friend class ClampMeterInTaskHandler<Drawer, Sensor>;
@@ -110,33 +159,13 @@ class ClampMeter : private Sensor {
 
     std::shared_ptr<UniversalType> shared_data;
 
-    int counter = 0;
+    float       counter = 0;
+    std::string some_string;
 };
-
-template<typename Drawer, typename Sensor, KeyboardC Keyboard>
-void
-ClampMeter<Drawer, Sensor, Keyboard>::DisplayMeasurementsTask()
-{
-    drawer.DrawerTask();
-
-    *shared_data = counter;
-
-    counter++;
-    if (counter == 100)
-        counter = 0;
-    vTaskDelay(pdMS_TO_TICKS(100));
-}
 
 template<typename Drawer, typename Reader>
 class ClampMeterInTaskHandler {
   public:
-    //    ClampMeterInTaskHandler(const ClampMeter<Drawer, Reader> &instance)
-    //      : ClampMeter<Drawer, Reader>{ instance }
-    //    { }
-    //
-    //    void DisplayMeasurementsTask() override { ClampMeter<Drawer, Reader>::DisplayMeasurementsTask(); }
-    //    void MeasurementsTask() override { ClampMeter<Drawer, Reader>::MeasurementsTask(); }
-
     ClampMeterInTaskHandler(ClampMeter<Drawer, Reader> &instance)
       : true_instance{ instance }
     { }

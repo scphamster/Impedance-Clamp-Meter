@@ -274,8 +274,8 @@ system_init(void)
     twi_init();
     twiPdc_init();
 
-//    ten_milliseconds_timer_init();
-//    buzzer_timer_init();
+    ten_milliseconds_timer_init();
+    buzzer_timer_init();
 
     delay_ms(100);
 
@@ -285,8 +285,8 @@ system_init(void)
 
 //    delay_ms(10);
 
-//    MCP3462_init();
-//    dsp_init();
+    MCP3462_init();
+    dsp_init();
 }
 
 
