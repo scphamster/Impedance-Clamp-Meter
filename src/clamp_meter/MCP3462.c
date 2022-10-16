@@ -1,9 +1,4 @@
-/*
- * MCP3462.c
- *
- * Created: 23.09.2021 21:40:57
- *  Author: malygosstationar
- */ 
+#pragma once
 
 #include "MCP3462.h"
 #include "pmc.h"

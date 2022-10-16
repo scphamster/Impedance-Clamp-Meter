@@ -1,9 +1,3 @@
-/*
- * system.h
- *
- * Created: 02.11.2021 22:20:52
- *  Author: malygosstationar
- */ 
 
 
 #ifndef SYSTEM_H_

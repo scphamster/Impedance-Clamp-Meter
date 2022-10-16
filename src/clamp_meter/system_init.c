@@ -2,7 +2,6 @@
 #include "system_init.h"
 #include "system.h"
 #include "twi_pdc.h"
-#include "LCD1608.h"
 #include "keyboard.h"
 #include "DSP_functions.h"
 #include "external_periph_ctrl.h"
