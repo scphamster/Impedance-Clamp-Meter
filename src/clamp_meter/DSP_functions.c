@@ -36,7 +36,7 @@ bool              fir2_dataready_flag;
 uint32_t          test_counter_dacc;
 uint32_t          test_counter_adc;
 
-Dsp_t Dsp;
+Dsp_t clamp_measurements_result;
 
 #ifdef TEST_DATA_LEN
 float32_t my_test_data[TEST_DATA_LEN];
@@ -363,7 +363,7 @@ dsp_init(void)
     Analog.overall_gain        = 1;
     Analog.mes_mode            = MEASUREMENT_MODE_MANUAL;
 
-    Dsp.integrator_len = INTEGRATOR_LENGTH;
+    clamp_measurements_result.integrator_len = INTEGRATOR_LENGTH;
 
     filters_init();
     dsp_calculate_sine_table(Analog.generator_amplitude);
@@ -402,11 +402,11 @@ dsp_integrating_filter(void)
     else
         return;
 
-    if (counter == (Dsp.integrator_len - 1)) {
+    if (counter == (clamp_measurements_result.integrator_len - 1)) {
         counter = 0;
 
-        sin_vect /= Dsp.integrator_len;
-        cos_vect /= Dsp.integrator_len;
+        sin_vect /= clamp_measurements_result.integrator_len;
+        cos_vect /= clamp_measurements_result.integrator_len;
 
         manage_sensed_data(sin_vect, cos_vect);
 
@@ -522,35 +522,41 @@ calculate_clamp_sensor(float32_t I, float32_t Q, float32_t abs_val, float32_t de
     float32_t gain = Cal_data.clamp_gain[Analog.clamp_sensor_gain] * adc_gain_coeffs[Analog.adc_gain];
 
     if (Clamp_calibrator.is_calibrated)
-        Dsp.I_clamp *= Clamp_calibrator.position_gain;
+        clamp_measurements_result.I_clamp *= Clamp_calibrator.position_gain;
 
-    Dsp.I_clamp = abs_val / gain;
+    clamp_measurements_result.I_clamp = abs_val / gain;
 
     if (Clamp_calibrator.is_calibrated)
-        Dsp.I_clamp *= Clamp_calibrator.position_gain;
+        clamp_measurements_result.I_clamp *= Clamp_calibrator.position_gain;
 
-    Dsp.I_clamp_phi = degree - Dsp.V_ovrl_phi - Dsp.V_applied_phi - Cal_data.clamp_phi[Analog.clamp_sensor_gain];
+    clamp_measurements_result.I_clamp_phi = degree - clamp_measurements_result.V_ovrl_phi -
+                                            clamp_measurements_result.V_applied_phi -
+                                            Cal_data.clamp_phi[Analog.clamp_sensor_gain];
 
-    Dsp.Z_clamp     = Dsp.V_applied / Dsp.I_clamp;
-    Dsp.Z_clamp_phi = normalize_angle(Dsp.I_clamp_phi);
+    clamp_measurements_result.Z_clamp     = clamp_measurements_result.V_applied / clamp_measurements_result.I_clamp;
+    clamp_measurements_result.Z_clamp_phi = normalize_angle(clamp_measurements_result.I_clamp_phi);
 
-    arm_sin_cos_f32(Dsp.I_clamp_phi, &sine, &cosine);
-    Dsp.I_clamp_I = Dsp.I_clamp * cosine;
-    Dsp.I_clamp_Q = Dsp.I_clamp * sine;
+    arm_sin_cos_f32(clamp_measurements_result.I_clamp_phi, &sine, &cosine);
+    clamp_measurements_result.I_clamp_I = clamp_measurements_result.I_clamp * cosine;
+    clamp_measurements_result.I_clamp_Q = clamp_measurements_result.I_clamp * sine;
 
-    Dsp.R_clamp = Dsp.V_applied / Dsp.I_clamp_I;
-    Dsp.X_clamp = Dsp.V_applied / Dsp.I_clamp_Q;
+    clamp_measurements_result.R_clamp = clamp_measurements_result.V_applied / clamp_measurements_result.I_clamp_I;
+    clamp_measurements_result.X_clamp = clamp_measurements_result.V_applied / clamp_measurements_result.I_clamp_Q;
 }
 
 static inline void
 calculate_V_applied(void)
 {
-    Dsp.V_applied_I = Dsp.V_ovrl_I - Dsp.V_shunt_I;
-    Dsp.V_applied_Q = Dsp.V_ovrl_Q - Dsp.V_shunt_Q;
+    clamp_measurements_result.V_applied_I = clamp_measurements_result.V_ovrl_I - clamp_measurements_result.V_shunt_I;
+    clamp_measurements_result.V_applied_Q = clamp_measurements_result.V_ovrl_Q - clamp_measurements_result.V_shunt_Q;
 
-    arm_sqrt_f32(Dsp.V_applied_I * Dsp.V_applied_I + Dsp.V_applied_Q * Dsp.V_applied_Q, &Dsp.V_applied);
+    arm_sqrt_f32(clamp_measurements_result.V_applied_I * clamp_measurements_result.V_applied_I +
+                   clamp_measurements_result.V_applied_Q * clamp_measurements_result.V_applied_Q,
+                 &clamp_measurements_result.V_applied);
 
-    Dsp.V_applied_phi = find_angle(Dsp.V_applied_Q, Dsp.V_applied_I, Dsp.V_applied);
+    clamp_measurements_result.V_applied_phi = find_angle(clamp_measurements_result.V_applied_Q,
+                                                         clamp_measurements_result.V_applied_I,
+                                                         clamp_measurements_result.V_applied);
 }
 
 void
@@ -563,31 +569,31 @@ calculate_shunt_sensor(float32_t I, float32_t Q, float32_t abs_val, float32_t de
 
     float32_t gain = Cal_data.shunt_gain[Analog.shunt_sensor_gain] * adc_gain_coeffs[Analog.adc_gain];
 
-    Dsp.V_shunt     = abs_val / gain;
-    Dsp.V_shunt_phi = normalize_angle(degree - Cal_data.shunt_phi[Analog.shunt_sensor_gain]);
+    clamp_measurements_result.V_shunt     = abs_val / gain;
+    clamp_measurements_result.V_shunt_phi = normalize_angle(degree - Cal_data.shunt_phi[Analog.shunt_sensor_gain]);
 
-    arm_sin_cos_f32(Dsp.V_shunt_phi, &sine, &cosine);
+    arm_sin_cos_f32(clamp_measurements_result.V_shunt_phi, &sine, &cosine);
 
-    Dsp.V_shunt_I = Dsp.V_shunt * cosine;
-    Dsp.V_shunt_Q = Dsp.V_shunt * sine;
+    clamp_measurements_result.V_shunt_I = clamp_measurements_result.V_shunt * cosine;
+    clamp_measurements_result.V_shunt_Q = clamp_measurements_result.V_shunt * sine;
 
     calculate_V_applied();
 
-    A_i = Dsp.V_ovrl_I - Dsp.V_shunt_I;
-    A_q = Dsp.V_ovrl_Q - Dsp.V_shunt_Q;
+    A_i = clamp_measurements_result.V_ovrl_I - clamp_measurements_result.V_shunt_I;
+    A_q = clamp_measurements_result.V_ovrl_Q - clamp_measurements_result.V_shunt_Q;
 
-    magic_mag = Dsp.V_shunt / (R_SHUNT * Dsp.V_applied);
-    magic_phi = Dsp.V_shunt_phi - Dsp.V_applied_phi;
+    magic_mag = clamp_measurements_result.V_shunt / (R_SHUNT * clamp_measurements_result.V_applied);
+    magic_phi = clamp_measurements_result.V_shunt_phi - clamp_measurements_result.V_applied_phi;
 
     arm_sin_cos_f32(magic_phi, &sine, &cosine);
 
     magic_i = magic_mag * cosine;
     magic_q = magic_mag * sine;
 
-    Dsp.R_ovrl     = 1 / magic_i;
-    Dsp.X_ovrl     = 1 / magic_q;
-    Dsp.Z_ovrl_phi = magic_phi;
-    Dsp.Z_ovrl     = 1 / magic_mag;
+    clamp_measurements_result.R_ovrl     = 1 / magic_i;
+    clamp_measurements_result.X_ovrl     = 1 / magic_q;
+    clamp_measurements_result.Z_ovrl_phi = magic_phi;
+    clamp_measurements_result.Z_ovrl     = 1 / magic_mag;
 }
 
 void
@@ -597,14 +603,14 @@ calculate_voltage_sensor(float32_t I, float32_t Q, float32_t abs_val, float32_t 
     float32_t sine;
     float32_t cosine;
 
-    Dsp.V_ovrl          = abs_val / gain;
-    Dsp.V_ovrl_phi_orig = degree;
-    Dsp.V_ovrl_phi      = degree - Cal_data.v_sens_phi;
+    clamp_measurements_result.V_ovrl          = abs_val / gain;
+    clamp_measurements_result.V_ovrl_phi_orig = degree;
+    clamp_measurements_result.V_ovrl_phi      = degree - Cal_data.v_sens_phi;
 
-    arm_sin_cos_f32(Dsp.V_ovrl_phi, &sine, &cosine);
+    arm_sin_cos_f32(clamp_measurements_result.V_ovrl_phi, &sine, &cosine);
 
-    Dsp.V_ovrl_I = Dsp.V_ovrl * cosine;
-    Dsp.V_ovrl_Q = Dsp.V_ovrl * sine;
+    clamp_measurements_result.V_ovrl_I = clamp_measurements_result.V_ovrl * cosine;
+    clamp_measurements_result.V_ovrl_Q = clamp_measurements_result.V_ovrl * sine;
 }
 
 void
@@ -623,8 +629,8 @@ manage_sensed_data(float32_t sin_vect, float32_t cos_vect)
         Calibrator.new_data_is_ready = true;
     }
     else {
-        Dsp.new_data_is_ready = true;
-        Dsp.degree            = degree;
+        clamp_measurements_result.new_data_is_ready = true;
+        clamp_measurements_result.degree            = degree;
 
         if (Analog.selected_sensor == VOLTAGE_SENSOR)
             calculate_voltage_sensor(cos_vect, sin_vect, abs_val, degree);

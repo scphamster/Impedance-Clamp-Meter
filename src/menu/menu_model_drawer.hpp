@@ -388,8 +388,8 @@ class MenuModelDrawer {
     int static constexpr pageHeaderXPos{ screenUsedAreaLeftX + 60 };
     int static constexpr pageNameFontSize = 2;
 
-    ColorT static constexpr itemValueColor            = COLOR_CYAN;
-    ColorT static constexpr itemNameColor             = COLOR_DARKGREEN;
+    ColorT static constexpr itemValueColor            = COLOR_RED;
+    ColorT static constexpr itemNameColor             = COLOR_GREEN;
     ColorT static constexpr selectedItemBackground    = COLOR_DARKDARKGREY;
     ColorT static constexpr nonSelectedItemBackground = COLOR_BLACK;
 };

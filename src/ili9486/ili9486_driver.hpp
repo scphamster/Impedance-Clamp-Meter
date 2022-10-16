@@ -71,22 +71,22 @@ class ILI9486Driver {
     void InitGPIO() const noexcept;
     template<Pin, bool to_be_set>
     constexpr inline void SetPin() const noexcept;
-    void                  SetDataL(uint8_t data) const noexcept;
-    void                  SetDataH(uint8_t data) const noexcept;
-    void                  StrobeWritePin() const noexcept;
-    void                  Reset() const noexcept;
-    void                  WriteData(Byte data) const noexcept;
-    void                  WriteCommand(Command cmd) const noexcept;
-    void                  WriteDataDouble(uint16_t data) const noexcept;
-    void                  WriteCommandDouble(uint16_t cmd) const noexcept;
-    void                  WriteParameter(Command cmd, int n_bytes, Byte *data) const noexcept;
+    void                  SetDataL(Byte data) const noexcept;
+    void                  SetDataH(Byte data) const noexcept;
+    void constexpr StrobeWritePin() const noexcept;
+    void Reset() const noexcept;
+    void WriteData(Byte data) const noexcept;
+    void WriteCommand(Command cmd) const noexcept;
+    void WriteDataDouble(uint16_t data) const noexcept;
+    void WriteCommandDouble(uint16_t cmd) const noexcept;
+    void WriteParameter(Command cmd, int n_bytes, Byte *data) const noexcept;
     template<Orientation orientation>
-    constexpr void SetOrientation() noexcept;
-    void           SetPartial(const Point, const Point) const noexcept;
-    void           DrawPixel(const Point, const ColorT) const noexcept;
-    void           PutPixel(const ColorT color) const noexcept;
-    void           PutPixel(const ColorT color, int n) const noexcept;
-    void           PrintChar(const Point at_point, Byte data, int size) const noexcept;
+    void constexpr SetOrientation() noexcept;
+    void SetPartial(const Point, const Point) const noexcept;
+    void DrawPixel(const Point, const ColorT) const noexcept;
+    void PutPixel(const ColorT color) const noexcept;
+    void PutPixel(const ColorT color, int n) const noexcept;
+    void PrintChar(const Point at_point, Byte data, int size) const noexcept;
 
     ScreenSizeT screen_width, screen_height;
     ColorT      pixelColour, backColour;

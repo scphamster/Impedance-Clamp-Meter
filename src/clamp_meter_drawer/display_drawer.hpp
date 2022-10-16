@@ -74,7 +74,10 @@ class DisplayDrawer {
     void Print(const std::string &string, Byte fontsize) noexcept;
     void Print(uint16_t number, Byte fontsize) noexcept;
     void Print(float number, Byte digits, Byte fontsize) noexcept;
-
+    void Print(float number, int fontsize) noexcept
+    {
+        Print(number, 5, fontsize);
+    }
   protected:
     void DrawFiledCircleHelper(const Point  point,
                                ScreenSizeT  r,

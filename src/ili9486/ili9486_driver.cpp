@@ -29,7 +29,7 @@ ILI9486Driver::Init() noexcept
     delay_ms(60);
 
     WriteCommand(static_cast<Command>(0x3A));   // interface pixel format
-    WriteData(0x55);      // 16bit RGB & 16bit CPU
+    WriteData(0x55);                            // 16bit RGB & 16bit CPU
 
     WriteCommand(static_cast<Command>(0xC2));   // Power Control 3 Normal mode
     WriteData(0x44);
@@ -77,7 +77,7 @@ ILI9486Driver::Init() noexcept
     WriteCommand(Command::invoff);   // display inversion OFF
     WriteCommand(Command::madctl);   // memory access CTRL
 
-    WriteData(0b01001001);           // MY MX MV ML BGR MH X X
+    WriteData(0b01001001);   // MY MX MV ML BGR MH X X
 
     WriteCommand(static_cast<Command>(0x29));   // display on
     delay_ms(60);
@@ -88,7 +88,7 @@ ILI9486Driver::Init() noexcept
 }
 
 template<ILI9486Driver::Pin pin, bool to_be_set>
-[[gnu::hot]] constexpr void
+[[gnu::hot]] constexpr inline void
 ILI9486Driver::SetPin() const noexcept
 {
     if constexpr (pin == Pin::ChipSelect) {
@@ -142,7 +142,7 @@ ILI9486Driver::InitGPIO() const noexcept
 }
 
 [[gnu::hot]] void
-ILI9486Driver::SetDataL(uint8_t data) const noexcept
+ILI9486Driver::SetDataL(Byte data) const noexcept
 {
     auto data_a = uint32_t{ 0 };
     auto data_d = uint32_t{ 0 };
@@ -150,14 +150,14 @@ ILI9486Driver::SetDataL(uint8_t data) const noexcept
     pio_enable_output_write(PIOA, 0xD0000040ul);
     pio_enable_output_write(PIOD, 0x1E0ul);
 
-    data_d |= (((data & (1 << 0)) && 1) << 8);
-    data_a |= (((data & (1 << 1)) && 1) << 28);
-    data_a |= (((data & (1 << 2)) && 1) << 30);
-    data_a |= (((data & (1 << 3)) && 1) << 6);
-    data_d |= (((data & (1 << 4)) && 1) << 7);
-    data_a |= (((data & (1 << 5)) && 1) << 31);
-    data_d |= (((data & (1 << 6)) && 1) << 5);
-    data_d |= (((data & (1 << 7)) && 1) << 6);
+    data_d |= static_cast<bool>(data & (1 << 0)) << 8;
+    data_a |= static_cast<bool>(data & (1 << 1)) << 28;
+    data_a |= static_cast<bool>(data & (1 << 2)) << 30;
+    data_a |= static_cast<bool>(data & (1 << 3)) << 6;
+    data_d |= static_cast<bool>(data & (1 << 4)) << 7;
+    data_a |= static_cast<bool>(data & (1 << 5)) << 31;
+    data_d |= static_cast<bool>(data & (1 << 6)) << 5;
+    data_d |= static_cast<bool>(data & (1 << 7)) << 6;
 
     pio_sync_output_write(PIOA, data_a);
     pio_sync_output_write(PIOD, data_d);
@@ -167,7 +167,7 @@ ILI9486Driver::SetDataL(uint8_t data) const noexcept
 }
 
 [[gnu::hot]] void
-ILI9486Driver::SetDataH(uint8_t data) const noexcept
+ILI9486Driver::SetDataH(Byte data) const noexcept
 {
     uint32_t data_a = 0;
     uint32_t data_b = 0;
@@ -177,16 +177,14 @@ ILI9486Driver::SetDataH(uint8_t data) const noexcept
     pio_enable_output_write(PIOB, 0x4C00ul);
     pio_enable_output_write(PIOD, 0x1Eul);
 
-    data_b |= (data & (1 << 0)) << 11;
-    data_b |= (data & (1 << 1)) << 14;
-    data_b |= (data & (1 << 3)) << 10;
-
-    data_d |= (data & (1 << 2)) << 1;
-    data_d |= (data & (1 << 5)) << 2;
-    data_d |= (data & (1 << 6)) << 4;
-    data_d |= (data & (1 << 7)) << 3;
-
-    data_a |= (((data & (1 << 4)) && 1) << 29);
+    data_b |= static_cast<bool>(data & (1 << 0)) << 11;
+    data_b |= static_cast<bool>(data & (1 << 1)) << 14;
+    data_b |= static_cast<bool>(data & (1 << 3)) << 10;
+    data_d |= static_cast<bool>(data & (1 << 2)) << 1;
+    data_d |= static_cast<bool>(data & (1 << 5)) << 2;
+    data_d |= static_cast<bool>(data & (1 << 6)) << 4;
+    data_d |= static_cast<bool>(data & (1 << 7)) << 3;
+    data_a |= static_cast<bool>(data & (1 << 4)) << 29;
 
     pio_sync_output_write(PIOA, data_a);
     pio_sync_output_write(PIOB, data_b);
@@ -197,7 +195,7 @@ ILI9486Driver::SetDataH(uint8_t data) const noexcept
     pio_disable_output_write(PIOD, 0x1Eul);
 }
 
-[[gnu::hot]] inline void
+[[gnu::hot]] constexpr inline void
 ILI9486Driver::StrobeWritePin() const noexcept
 {
     SetPin<Pin::Write, true>();
@@ -222,7 +220,7 @@ ILI9486Driver::Reset() const noexcept
 }
 
 [[gnu::hot]] void
-ILI9486Driver::WriteData(uint8_t data) const noexcept
+ILI9486Driver::WriteData(Byte data) const noexcept
 {
     SetPin<Pin::ChipSelect, true>();
     SetPin<Pin::Data, true>();
@@ -275,15 +273,15 @@ ILI9486Driver::WriteParameter(Command cmd, int n_bytes, Byte *data) const noexce
 void
 ILI9486Driver::SetPartial(const Point point_beg, const Point point_end) const noexcept
 {
-    uint8_t caset_data[4] = { static_cast<uint8_t>(point_beg.x >> 8),
-                              static_cast<uint8_t>(point_beg.x),
-                              static_cast<uint8_t>(point_end.x >> 8),
-                              static_cast<uint8_t>(point_end.x) };
+    Byte caset_data[4] = { static_cast<Byte>(point_beg.x >> 8),
+                           static_cast<Byte>(point_beg.x),
+                           static_cast<Byte>(point_end.x >> 8),
+                           static_cast<Byte>(point_end.x) };
 
-    uint8_t paset_data[4] = { static_cast<uint8_t>(point_beg.y >> 8),
-                              static_cast<uint8_t>(point_beg.y),
-                              static_cast<uint8_t>(point_end.y >> 8),
-                              static_cast<uint8_t>(point_end.y) };
+    Byte paset_data[4] = { static_cast<Byte>(point_beg.y >> 8),
+                           static_cast<Byte>(point_beg.y),
+                           static_cast<Byte>(point_end.y >> 8),
+                           static_cast<Byte>(point_end.y) };
 
     WriteParameter(Command::caset, 4, caset_data);
     WriteParameter(Command::paset, 4, paset_data);
@@ -422,15 +420,15 @@ ILI9486Driver::DrawPixel(const Point point, const ColorT color) const noexcept
     if (point.x < 0 || point.y < 0 || point.x >= screen_width || point.y >= screen_height)
         return;
 
-    uint8_t caset_data[4] = { static_cast<uint8_t>(point.x >> 8),
-                              static_cast<uint8_t>(point.x),
-                              static_cast<uint8_t>(point.x >> 8),
-                              static_cast<uint8_t>(point.x) };
+    Byte caset_data[4] = { static_cast<Byte>(point.x >> 8),
+                           static_cast<Byte>(point.x),
+                           static_cast<Byte>(point.x >> 8),
+                           static_cast<Byte>(point.x) };
 
-    uint8_t paset_data[4] = { static_cast<uint8_t>(point.y >> 8),
-                              static_cast<uint8_t>(point.y),
-                              static_cast<uint8_t>(point.y >> 8),
-                              static_cast<uint8_t>(point.y) };
+    Byte paset_data[4] = { static_cast<Byte>(point.y >> 8),
+                           static_cast<Byte>(point.y),
+                           static_cast<Byte>(point.y >> 8),
+                           static_cast<Byte>(point.y) };
 
     WriteParameter(Command::caset, 4, caset_data);
     WriteParameter(Command::paset, 4, paset_data);

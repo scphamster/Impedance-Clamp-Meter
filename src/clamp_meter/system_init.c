@@ -130,10 +130,10 @@ buzzer_set_freq(float32_t current)
     float32_t rc_lf_val_f;
     float32_t clamp_I_i;
 
-    if (Dsp.I_clamp_I < 0)
-        clamp_I_i = -Dsp.I_clamp_I;
+    if (clamp_measurements_result.I_clamp_I < 0)
+        clamp_I_i = -clamp_measurements_result.I_clamp_I;
     else
-        clamp_I_i = Dsp.I_clamp_I;
+        clamp_I_i = clamp_measurements_result.I_clamp_I;
 
     rc_val_f    = 50 + k * (-log2f(current) - offst);
     rc_lf_val_f = 10000 + 90e3 * (-log2f(clamp_I_i) - 9.95f);

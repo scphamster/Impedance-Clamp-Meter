@@ -49,8 +49,7 @@ km_page_measurement(void)
 		MMMenu.if_reprint_all = true;
 		display_show_bot_bar();
 		break;
-		
-		
+
 	case KEY_F2:
 		measurement_stop();
 		

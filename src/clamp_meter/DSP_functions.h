@@ -117,7 +117,7 @@ typedef struct {
     float32_t degree;
 } Dsp_t;
 
-extern Dsp_t Dsp;
+extern Dsp_t clamp_measurements_result;
 
 void      dsp_calculate_sine_table(uint16_t amplitude);
 void      adc_interrupt_handler(uint32_t id, uint32_t mask);

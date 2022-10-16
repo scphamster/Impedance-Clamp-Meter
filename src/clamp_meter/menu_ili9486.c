@@ -300,7 +300,7 @@ show_page_measurement_all(void)
 
     switch (MMMenu.line_to_reprint) {
     case MENU_MEASUREMENT_ITEM_OVRL_Z:
-        print_value_f(Dsp.Z_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_Z, 1);
+        print_value_f(clamp_measurements_result.Z_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_Z, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Overall Z:", MENU_MEASUREMENT_ITEM_OVRL_Z, 1);
@@ -309,7 +309,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_OVRL_R:
-        print_value_f(Dsp.R_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_R, 1);
+        print_value_f(clamp_measurements_result.R_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_R, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Overall R:", MENU_MEASUREMENT_ITEM_OVRL_R, 1);
@@ -318,7 +318,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_OVRL_X:
-        print_value_f(Dsp.X_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_X, 1);
+        print_value_f(clamp_measurements_result.X_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_X, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Overall X:", MENU_MEASUREMENT_ITEM_OVRL_X, 1);
@@ -327,7 +327,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_OVRL_PHI:
-        print_value_f(Dsp.Z_ovrl_phi, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_PHI, 1);
+        print_value_f(clamp_measurements_result.Z_ovrl_phi, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_OVRL_PHI, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Overall phi:", MENU_MEASUREMENT_ITEM_OVRL_PHI, 1);
@@ -336,7 +336,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_Z:
-        print_value_f(Dsp.Z_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_Z, 1);
+        print_value_f(clamp_measurements_result.Z_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_Z, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp Z:", MENU_MEASUREMENT_ITEM_CLAMP_Z, 1);
@@ -345,7 +345,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_R:
-        print_value_f(Dsp.R_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_R, 1);
+        print_value_f(clamp_measurements_result.R_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_R, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp R:", MENU_MEASUREMENT_ITEM_CLAMP_R, 1);
@@ -354,7 +354,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_X:
-        print_value_f(Dsp.X_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_X, 1);
+        print_value_f(clamp_measurements_result.X_clamp, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_X, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp X:", MENU_MEASUREMENT_ITEM_CLAMP_X, 1);
@@ -363,7 +363,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_I_I:
-        print_value_f(Dsp.I_clamp_I, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_I_I, 1);
+        print_value_f(clamp_measurements_result.I_clamp_I, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_I_I, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp I_i:", MENU_MEASUREMENT_ITEM_CLAMP_I_I, 1);
@@ -372,7 +372,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_I_Q:
-        print_value_f(Dsp.I_clamp_Q, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_I_Q, 1);
+        print_value_f(clamp_measurements_result.I_clamp_Q, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_I_Q, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp I_q:", MENU_MEASUREMENT_ITEM_CLAMP_I_Q, 1);
@@ -381,7 +381,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_CLAMP_PHI:
-        print_value_f(Dsp.Z_clamp_phi, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_PHI, 1);
+        print_value_f(clamp_measurements_result.Z_clamp_phi, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_CLAMP_PHI, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("Clamp phi:", MENU_MEASUREMENT_ITEM_CLAMP_PHI, 1);
@@ -390,7 +390,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_VAPPLIED_MAG:
-        print_value_f(Dsp.V_applied, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_VAPPLIED_MAG, 1);
+        print_value_f(clamp_measurements_result.V_applied, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_VAPPLIED_MAG, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("V applied:", MENU_MEASUREMENT_ITEM_VAPPLIED_MAG, 1);
@@ -399,7 +399,7 @@ show_page_measurement_all(void)
             break;
 
     case MENU_MEASUREMENT_ITEM_VOUT_MAG:
-        print_value_f(Dsp.V_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_VOUT_MAG, 1);
+        print_value_f(clamp_measurements_result.V_ovrl, page_params_Measure.value_precision, MENU_MEASUREMENT_ITEM_VOUT_MAG, 1);
 
         if (MMMenu.reprint == REPRINT_ALL)
             print_line_text("V gen:", MENU_MEASUREMENT_ITEM_VOUT_MAG, 1);

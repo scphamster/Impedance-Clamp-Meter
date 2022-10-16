@@ -261,16 +261,16 @@ void menu_manager_main(void)
 	break;
 
 	case KEY_ENCL: {
-		/*if (Dsp.pos_ch == REF_CH0)
+		/*if (clamp_measurements_result.pos_ch == REF_CH0)
 			return;
-		else if (Dsp.pos_ch == REF_CH2) {
+		else if (clamp_measurements_result.pos_ch == REF_CH2) {
 			MCP3462_set_mux(REF_CH0, REF_CH1);
-			Dsp.pos_ch = REF_CH0;
-			Dsp.neg_ch = REF_CH1;
-		} else if (Dsp.pos_ch == REF_CH4) {
+			clamp_measurements_result.pos_ch = REF_CH0;
+			clamp_measurements_result.neg_ch = REF_CH1;
+		} else if (clamp_measurements_result.pos_ch == REF_CH4) {
 			MCP3462_set_mux(REF_CH2, REF_CH3);
-			Dsp.pos_ch = REF_CH2;
-			Dsp.neg_ch = REF_CH3;
+			clamp_measurements_result.pos_ch = REF_CH2;
+			clamp_measurements_result.neg_ch = REF_CH3;
 		}*/
 		Analog.AGC_on = false;
 		decrease_gain();
@@ -278,16 +278,16 @@ void menu_manager_main(void)
 	break;
 
 	case KEY_ENCR: {
-		/*if (Dsp.pos_ch == REF_CH4)
+		/*if (clamp_measurements_result.pos_ch == REF_CH4)
 			return;
-		else if (Dsp.pos_ch == REF_CH2) {
+		else if (clamp_measurements_result.pos_ch == REF_CH2) {
 			MCP3462_set_mux(REF_CH4, REF_CH5);
-			Dsp.pos_ch = REF_CH4;
-			Dsp.neg_ch = REF_CH5;
-		} else if (Dsp.pos_ch == REF_CH0) {
+			clamp_measurements_result.pos_ch = REF_CH4;
+			clamp_measurements_result.neg_ch = REF_CH5;
+		} else if (clamp_measurements_result.pos_ch == REF_CH0) {
 			MCP3462_set_mux(REF_CH2, REF_CH3);
-			Dsp.pos_ch = REF_CH2;
-			Dsp.neg_ch = REF_CH3;
+			clamp_measurements_result.pos_ch = REF_CH2;
+			clamp_measurements_result.neg_ch = REF_CH3;
 		}*/
 		Analog.AGC_on = false;
 		increase_gain();
@@ -373,23 +373,23 @@ void menu_display_value_page(bool reprint_all)
 
 
 	if (Analog.selected_sensor == CLAMP_SENSOR) {
-		LCD_write_float2(Dsp.R_clamp, 8);
+		LCD_write_float2(clamp_measurements_result.R_clamp, 8);
 		LCD_cursor_setpos(3, 3);
-		LCD_write_float2(Dsp.X_clamp, 8);
+		LCD_write_float2(clamp_measurements_result.X_clamp, 8);
 		LCD_cursor_setpos(5, 4);
-		LCD_write_float2(Dsp.Z_clamp_phi, 8);
+		LCD_write_float2(clamp_measurements_result.Z_clamp_phi, 8);
 	} else if (Analog.selected_sensor == SHUNT_SENSOR) {
-		LCD_write_float2(Dsp.R_ovrl, 8);
+		LCD_write_float2(clamp_measurements_result.R_ovrl, 8);
 		LCD_cursor_setpos(3, 3);
-		LCD_write_float2(Dsp.X_ovrl, 8);
+		LCD_write_float2(clamp_measurements_result.X_ovrl, 8);
 		LCD_cursor_setpos(5, 4);
-		LCD_write_float2(Dsp.Z_ovrl_phi, 8);
+		LCD_write_float2(clamp_measurements_result.Z_ovrl_phi, 8);
 	} else {
-		LCD_write_float2(Dsp.V_ovrl_I, 8);
+		LCD_write_float2(clamp_measurements_result.V_ovrl_I, 8);
 		LCD_cursor_setpos(3, 3);
-		LCD_write_float2(Dsp.V_ovrl_Q, 8);
+		LCD_write_float2(clamp_measurements_result.V_ovrl_Q, 8);
 		LCD_cursor_setpos(5, 4);
-		LCD_write_float2(Dsp.V_ovrl_phi, 8);
+		LCD_write_float2(clamp_measurements_result.V_ovrl_phi, 8);
 	}
 }
 
@@ -423,8 +423,8 @@ void menu_display_globalconfig_page(bool reprint_all)
 	LCD_write_number(Analog.generator_amplitude);
 	LCD_write("V");
 
-}
 
+}
 void menu_refresh_page(void)
 {
 	if (Clamp_calibrator.is_calibrating)

@@ -25,7 +25,7 @@
 #include "menu_model_drawer.hpp"
 
 #include "signal_conditioning.h"
-
+#include "system_init.h"
 // test
 #include "timer.hpp"
 #include "mcp23016_driver_fast.hpp"
@@ -52,28 +52,51 @@ class ClampMeter : private Sensor {
       , drawer{ mutex,
                 std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , shared_data{ std::make_shared<UniversalType>(static_cast<std::string>("dupa")) }
-      , some_string{ "dupa" }
+      , vOverall{ std::make_shared<UniversalType>(static_cast<float>(0)) }
+      , iOverallI{ std::make_shared<UniversalType>(static_cast<float>(0)) }
+      , zClamp{ std::make_shared<UniversalType>(static_cast<float>(0)) }
     {
-        auto clamp_value0 = std::make_shared<Item>(model);
-        clamp_value0->SetName("some value1234");
-        clamp_value0->SetData(
-          MenuModelPageItemData{ std::make_shared<UniversalType>(static_cast<std::string>("very big dupa")) });
-        clamp_value0->SetIndex(0);
+        auto vout_info = std::make_shared<Item>(model);
+        vout_info->SetName("V out");
+        vout_info->SetData(MenuModelPageItemData{ vOverall });
+        vout_info->SetIndex(0);
 
-        auto clamp_value1 = std::make_shared<Item>(model);
-        clamp_value1->SetName("some value1");
-        clamp_value1->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(static_cast<int>(1)) });
-        clamp_value1->SetIndex(1);
+        auto iout_info = std::make_shared<Item>(model);
+        iout_info->SetName("I out");
+        iout_info->SetData(MenuModelPageItemData{ iOverallI });
+        iout_info->SetIndex(1);
+
+        auto zout_info = std::make_shared<Item>(model);
+        zout_info->SetName("Z out");
+        zout_info->SetData(MenuModelPageItemData{ zClamp });
+        zout_info->SetIndex(2);
 
         auto top_item = std::make_shared<Item>(model);
         top_item->SetIndex(0);
         top_item->SetData(MenuModelPageItemData{ std::make_shared<UniversalType>(1) });
         top_item->SetName("Main Page");
-        top_item->InsertChild(clamp_value0);
-        top_item->InsertChild(clamp_value1);
+        top_item->InsertChild(vout_info);
+        top_item->InsertChild(iout_info);
+        top_item->InsertChild(zout_info);
         top_item->SetKeyCallback(Keyboard::ButtonName::F1, []() { measurement_start(); });
         top_item->SetKeyCallback(Keyboard::ButtonName::F2, []() { measurement_stop(); });
+        top_item->SetKeyCallback(Keyboard::ButtonName::F3, []() {
+            if (Analog.generator_is_active) {
+                switch (Analog.selected_sensor) {
+                case VOLTAGE_SENSOR: ::switch_sensing_chanel(SHUNT_SENSOR); break;
+
+                case SHUNT_SENSOR:
+                    ::switch_sensing_chanel(CLAMP_SENSOR);
+                    ::buzzer_enable();
+                    break;
+
+                case CLAMP_SENSOR:
+                    ::switch_sensing_chanel(VOLTAGE_SENSOR);
+                    ::buzzer_disable();
+                    break;
+                }
+            }
+        });
 
         model->SetTopLevelItem(top_item);
         drawer.SetModel(model);
@@ -110,12 +133,7 @@ class ClampMeter : private Sensor {
     virtual void DisplayMeasurementsTask()
     {
         drawer.DrawerTask();
-
-        //        *shared_data = counter;
-        //        counter++;
-        //        if (counter == 100)
-        //            counter = 0;
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 
     virtual void MeasurementsTask()
@@ -123,9 +141,11 @@ class ClampMeter : private Sensor {
         if (Analog.generator_is_active) {
             dsp_integrating_filter();
 
-            if (Dsp.new_data_is_ready) {
-                Dsp.new_data_is_ready = false;
-                //                display_refresh();
+            if (clamp_measurements_result.new_data_is_ready) {
+                clamp_measurements_result.new_data_is_ready = false;
+                *vOverall                                   = clamp_measurements_result.V_ovrl;
+                *iOverallI                                  = clamp_measurements_result.I_ovrl_I_norm;
+                *zClamp                                     = clamp_measurements_result.Z_clamp;
             }
 
             if ((Calibrator.is_calibrating) && (Calibrator.new_data_is_ready)) {
@@ -145,10 +165,9 @@ class ClampMeter : private Sensor {
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<Drawer, Keyboard>    drawer;
 
-    std::shared_ptr<UniversalType> shared_data;
-
-    float       counter = 0;
-    std::string some_string;
+    std::shared_ptr<UniversalType> vOverall;
+    std::shared_ptr<UniversalType> iOverallI;
+    std::shared_ptr<UniversalType> zClamp;
 };
 
 template<typename Drawer, typename Reader>

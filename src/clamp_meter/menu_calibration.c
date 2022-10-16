@@ -30,13 +30,13 @@ void calibration_save(void);
 
 float32_t calibration_clamp_pos_refsel(void)
 {
-	if (Dsp.Z_clamp < CALIBRATION_CLAMP_POS_Z0) {
+	if (clamp_measurements_result.Z_clamp < CALIBRATION_CLAMP_POS_Z0) {
 		return CALIBRATION_CLAMP_POS_Z0;
-	} else if (Dsp.Z_clamp < CALIBRATION_CLAMP_POS_Z1) {
+	} else if (clamp_measurements_result.Z_clamp < CALIBRATION_CLAMP_POS_Z1) {
 		return CALIBRATION_CLAMP_POS_Z0;
-	} else if (Dsp.Z_clamp < CALIBRATION_CLAMP_POS_Z2) {
+	} else if (clamp_measurements_result.Z_clamp < CALIBRATION_CLAMP_POS_Z2) {
 		return CALIBRATION_CLAMP_POS_Z1;
-	} else if (Dsp.Z_clamp < CALIBRATION_CLAMP_POS_Z3) {
+	} else if (clamp_measurements_result.Z_clamp < CALIBRATION_CLAMP_POS_Z3) {
 		return CALIBRATION_CLAMP_POS_Z2;
 	} else {
 		return CALIBRATION_CLAMP_POS_Z3;
@@ -51,15 +51,15 @@ void calibration_clamp_pos_display_data(void)
 
 	switch (Clamp_calibrator.phase) {
 	case CLAMP_CAL_VOUT:
-		LCD_write_float2(Dsp.V_ovrl, 5);
+		LCD_write_float2(clamp_measurements_result.V_ovrl, 5);
 		break;
 
 	case CLAMP_CAL_SHUNT:
-		LCD_write_float2(Dsp.V_shunt, 5);
+		LCD_write_float2(clamp_measurements_result.V_shunt, 5);
 		break;
 
 	case CLAMP_CAL_CLAMP:
-		LCD_write_float2(Dsp.I_clamp, 5);
+		LCD_write_float2(clamp_measurements_result.I_clamp, 5);
 		break;
 	}
 }
@@ -78,7 +78,8 @@ void calibration_clamp_pos_calculate(void)
 	measurement_stop();
 	switch_sensing_chanel(VOLTAGE_SENSOR);
 	
-	Clamp_calibrator.I_clamp_delta = Dsp.I_clamp *
+	Clamp_calibrator.I_clamp_delta =
+      clamp_measurements_result.I_clamp *
 	                                 Clamp_calibrator.normalize_coeff - Clamp_calibrator.I_clamp_orig;
 	Clamp_calibrator.position_gain = Clamp_calibrator.I_clamp_delta_calc /
 	                                 Clamp_calibrator.I_clamp_delta;
@@ -102,7 +103,7 @@ void calibration_clamp_pos_clamp(calibrator_action_type_t action)
 {
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
 		Clamp_calibrator.normalize_coeff = Clamp_calibrator.V_applied_1 
-											/ Dsp.V_applied;
+											/ clamp_measurements_result.V_applied;
 
 		switch_sensing_chanel(CLAMP_SENSOR);
 
@@ -161,8 +162,8 @@ void calibration_clamp_pos_connect_ref(calibrator_action_type_t action)
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
 		Clamp_calibrator.is_calibrating = true;
 		Clamp_calibrator.reference_resistance = calibration_clamp_pos_refsel();
-		Clamp_calibrator.I_clamp_orig = Dsp.I_clamp;
-		Clamp_calibrator.V_applied_1 = Dsp.V_applied;
+		Clamp_calibrator.I_clamp_orig = clamp_measurements_result.I_clamp;
+		Clamp_calibrator.V_applied_1 = clamp_measurements_result.V_applied;
 		Clamp_calibrator.I_clamp_delta_calc = Clamp_calibrator.V_applied_1 /
 		                                      Clamp_calibrator.reference_resistance;
 
