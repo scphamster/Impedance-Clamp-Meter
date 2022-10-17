@@ -45,6 +45,7 @@ class MenuModel {
     }
     void SetCurrentItem(std::shared_ptr<Item> new_current_item) noexcept {
         currentItem = new_current_item;
+        currentItem->InvokeEventCallback(Item::Event::Entrance);
     }
 
 

@@ -31,7 +31,7 @@ endif ()
 
 set(C_CXX_COMPILE_FLAGS "${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu17")
-set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -D__FPU_PRESENT -DARM_MATH_CM4=true -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=gnu++20")
+set(CXX_COMPILE_FLAGS "-Werror=return-type ${CXX_CONDITIONAL_COMPILE_FLAGS} -D__FPU_PRESENT -DARM_MATH_CM4=true -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=gnu++20")
 
 #set(LINKER_SCRIPT_DIR "C:/Program Files (x86)/Atmel/Studio/7.0/packs/atmel/SAM4E_DFP/1.1.57/ic.sam4e/gcc/gcc")
 set(LINKER_SCRIPT_DIR "${CMAKE_SOURCE_DIR}/src/asf_lib/src/ASF/sam/utils/linker_scripts/sam4e/sam4e8/gcc")
@@ -73,8 +73,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
-    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
-    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
+#    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
+#    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
     ${SOURCES_DIRECTORY}/menu/menu.hpp

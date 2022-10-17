@@ -626,16 +626,16 @@ void calibration_semiauto_measure_vout_gX(calibrator_action_type_t action)
 void calibration_semiauto_set_gX(calibrator_action_type_t action)
 {
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		calibration_write_phase_header(Calibrator.cal_phase_num);
-
-		LCD_cursor_setpos(1, 2);
-		LCD_write("Vout:               ");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("Phi:                ");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("Push ENC if stable  ");
+//		calibration_write_phase_header(Calibrator.cal_phase_num);
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("Vout:               ");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("Phi:                ");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("Push ENC if stable  ");
 
 		Calibrator.cal_phase++;
 
@@ -644,23 +644,22 @@ void calibration_semiauto_set_gX(calibrator_action_type_t action)
 		calibration_terminate();
 }
 
-
 void calibration_semiauto_warning_g0(calibrator_action_type_t action)
 {
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		LCD_cursor_setpos(1, 1);
-		LCD_write("Connect             ");
-		LCD_cursor_setpos(9, 1);
-		LCD_write(conv_to_str(CALIBRATION_G0_R)" Ohm");
-
-		LCD_cursor_setpos(1, 2);
-		LCD_write("Do not change CLAMP ");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("residesAtIndex after start");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("Push ENC to start...");
+//		LCD_cursor_setpos(1, 1);
+//		LCD_write("Connect             ");
+//		LCD_cursor_setpos(9, 1);
+//		LCD_write(conv_to_str(CALIBRATION_G0_R)" Ohm");
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("Do not change CLAMP ");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("residesAtIndex after start");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("Push ENC to start...");
 
 		Calibrator.cal_phase = CALIBRATION_SET_G0R;
 		Calibrator.cal_phase_num = 1;
@@ -674,25 +673,29 @@ void calibration_semiauto_helper_input_vout_mesd(calibrator_action_type_t
 	LCD_cursor_disable();
 
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		LCD_cursor_setpos(1, 1);
-		LCD_write("Press ENC to proceed");
+//		LCD_cursor_setpos(1, 1);
+//		LCD_write("Press ENC to proceed");
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("Press BACK to repeat");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("measured output     ");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("voltage:            ");
 
-		LCD_cursor_setpos(1, 2);
-		LCD_write("Press BACK to repeat");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("measured output     ");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("voltage:            ");
+        //test
+        Calibrator.externally_measured_vout = 9.81f;
+        //end test
 
 		Calibrator.v_sens_gain = Calibrator.sensor_mag /
 		                         Calibrator.externally_measured_vout;
 
 		Calibrator.vout_phi_noload = Calibrator.sensor_phi;
 
-		LCD_cursor_setpos(9, 4);
-		LCD_write_float2(Calibrator.sensor_mag / Calibrator.v_sens_gain, 4);
+//		LCD_cursor_setpos(9, 4);
+//		LCD_write_float2(Calibrator.sensor_mag / Calibrator.v_sens_gain, 4);
 
 		Calibrator.cal_phase = CALIBRATION_WARNING_G0;
 	} else
@@ -705,23 +708,23 @@ void calibration_semiauto_helper_vout(calibrator_action_type_t action)
 	calibration_pause();
 
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		LCD_cursor_setpos(1, 1);
-		LCD_write("Turn Encoder to set ");
-
-		LCD_cursor_setpos(1, 2);
-		LCD_write("externally mes'd    ");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("output voltage..... ");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("voltage:");
-		LCD_write_float2(Calibrator.externally_measured_vout, 4);
-		LCD_write("       ");
-		LCD_cursor_setpos(14, 4);
-		LCD_cursor_enable();
-
-		menu_set_inputbox_f(9, 4, 1, 70, &Calibrator.externally_measured_vout, 7, 4);
+//		LCD_cursor_setpos(1, 1);
+//		LCD_write("Turn Encoder to set ");
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("externally mes'd    ");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("output voltage..... ");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("voltage:");
+//		LCD_write_float2(Calibrator.externally_measured_vout, 4);
+//		LCD_write("       ");
+//		LCD_cursor_setpos(14, 4);
+//		LCD_cursor_enable();
+//
+//		menu_set_inputbox_f(9, 4, 1, 70, &Calibrator.externally_measured_vout, 7, 4);
 
 		Calibrator.cal_phase = CALIBRATION_GET_VOUT_MEASURED_EXT;
 	} else
@@ -732,17 +735,17 @@ void calibration_semiauto_helper_vout_warning_shown(calibrator_action_type_t
     action)
 {
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		LCD_cursor_setpos(1, 1);
-		LCD_write("Calibrating VOUT... ");
-
-		LCD_cursor_setpos(1, 2);
-		LCD_write("Data:               ");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("Phi:                ");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("Push ENC if stable  ");
+//		LCD_cursor_setpos(1, 1);
+//		LCD_write("Calibrating VOUT... ");
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("Data:               ");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("Phi:                ");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("Push ENC if stable  ");
 
 		Calibrator.cal_phase = CALIBRATION_VOUT;
 		calibration_start();
@@ -753,17 +756,17 @@ void calibration_semiauto_helper_vout_warning_shown(calibrator_action_type_t
 void calibration_semiauto_helper_start(calibrator_action_type_t action)
 {
 	if (action == CALIBRATOR_GO_NEXT_STEP) {
-		LCD_cursor_setpos(1, 1);
-		LCD_write("Discon. TNC output  ");
-
-		LCD_cursor_setpos(1, 2);
-		LCD_write("Carefully measure:  ");
-
-		LCD_cursor_setpos(1, 3);
-		LCD_write("Center pin<->Shield.");
-
-		LCD_cursor_setpos(1, 4);
-		LCD_write("ENC to enable output");
+//		LCD_cursor_setpos(1, 1);
+//		LCD_write("Discon. TNC output  ");
+//
+//		LCD_cursor_setpos(1, 2);
+//		LCD_write("Carefully measure:  ");
+//
+//		LCD_cursor_setpos(1, 3);
+//		LCD_write("Center pin<->Shield.");
+//
+//		LCD_cursor_setpos(1, 4);
+//		LCD_write("ENC to enable output");
 
 		Calibrator.cal_phase = CALIBRATION_VOUT_MSG_SHOWN;
 	} else
@@ -774,17 +777,17 @@ void calibration_semiauto_helper_hellopage(void)
 {
 	calibration_reset_variables();
 
-	LCD_cursor_setpos(1, 1);
-	LCD_write("Semiautomatic       ");
-
-	LCD_cursor_setpos(1, 2);
-	LCD_write("calibration         ");
-
-	LCD_cursor_setpos(1, 3);
-	LCD_write("procedure           ");
-
-	LCD_cursor_setpos(1, 4);
-	LCD_write("Push ENC to start   ");
+//	LCD_cursor_setpos(1, 1);
+//	LCD_write("Semiautomatic       ");
+//
+//	LCD_cursor_setpos(1, 2);
+//	LCD_write("calibration         ");
+//
+//	LCD_cursor_setpos(1, 3);
+//	LCD_write("procedure           ");
+//
+//	LCD_cursor_setpos(1, 4);
+//	LCD_write("Push ENC to start   ");
 
 	Calibrator.cal_phase = CALIBRATION_START;
 }

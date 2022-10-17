@@ -15,6 +15,7 @@
 #include "pin.hpp"
 #include "button.hpp"
 #include "clamp_meter_concepts.hpp"
+//#include "encoder.hpp"
 
 auto constexpr KeyboardTimerPeriod = 10;
 

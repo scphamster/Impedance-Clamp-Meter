@@ -72,17 +72,23 @@ class MenuModelPageItemData {
 template<KeyboardC Keyboard>
 class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<Keyboard>> {
   public:
+    using std::enable_shared_from_this<MenuModelPageItem<Keyboard>>::shared_from_this;
+
     using ChildIndex               = int;
     using EditorCursorPosT         = int;
     using NameT                    = std::string;
+    using HeaderT                  = NameT;
     using Model                    = MenuModel<Keyboard>;
     using ButtonId                 = typename Keyboard::ButtonId;
     using ButtonName               = typename Keyboard::ButtonName;
     using SpecialKeyboardCallback  = std::function<void()>;
     using SpecialKeyboardCallbacks = std::map<ButtonName, SpecialKeyboardCallback>;
     using DataT                    = std::shared_ptr<MenuModelPageItemData>;
-
-    using std::enable_shared_from_this<MenuModelPageItem<Keyboard>>::shared_from_this;
+    using EventCallback            = std::function<void()>;
+    enum class Event {
+        Entrance
+    };
+    using EventCallbacks = std::map<Event, EventCallback>;
 
     MenuModelPageItem(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
       : model{ belongs_to_model }
@@ -114,15 +120,10 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     [[nodiscard]] NameT                    GetName() noexcept { return name; }
     [[nodiscard]] SpecialKeyboardCallbacks GetKeyboardCallbacks() const noexcept { return specialKeyCallbacks; }
     [[nodiscard]] bool                     IsEditable() const noexcept { return isEditable; }
-    [[nodiscard]] bool                     IsValueless() const noexcept
-    {
-        if (not data)
-            return true;
-        else
-            false;
-    }
-
-    void SetData(DataT new_data) noexcept { data = new_data; }
+    [[nodiscard]] bool                     IsValueless() const noexcept { return (data) ? false : true; }
+    [[nodiscard]] HeaderT                  GetHeader() const noexcept { return pageHeader; }
+    [[nodiscard]] bool                     HasHeader() const noexcept { return (pageHeader.empty()) ? false : true; }
+    void                                   SetData(DataT new_data) noexcept { data = new_data; }
     void InsertChild(std::shared_ptr<MenuModelPageItem> child, MenuModelIndex at_idx) noexcept
     {
         child->SetParent(This());
@@ -149,6 +150,13 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
         if (specialKeyCallbacks.contains(button))
             specialKeyCallbacks.at(button)();
     }
+    void SetHeader(const HeaderT &new_header) noexcept { pageHeader = new_header; }
+    void SetEventCallback(Event event, EventCallback &&callback) noexcept { eventCallbacks[event] = std::move(callback); }
+    void InvokeEventCallback(Event event) noexcept
+    {
+        if (eventCallbacks.contains(event))
+            eventCallbacks.at(event)();
+    }
 
   protected:
     auto This() noexcept { return GetPtr(); }
@@ -156,11 +164,12 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
   private:
     std::shared_ptr<MenuModelPageItem>              parent;
     std::shared_ptr<Model>                          model;
-    MenuModelIndex                                  residesAtIndex{0};
+    MenuModelIndex                                  residesAtIndex{ 0 };
     NameT                                           name;
     NameT                                           pageHeader;
     DataT                                           data;
     std::vector<std::shared_ptr<MenuModelPageItem>> childItems{};
     bool                                            isEditable{ false };
     SpecialKeyboardCallbacks                        specialKeyCallbacks;
+    EventCallbacks                                  eventCallbacks;
 };

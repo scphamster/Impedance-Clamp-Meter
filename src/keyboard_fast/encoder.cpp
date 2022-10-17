@@ -1,7 +1,7 @@
 #include "encoder.hpp"
 
 extern "C" void
-encoder_a_handler(uint32_t id, uint32_t mask)
+encoder_left_leg_it_handler(uint32_t id, uint32_t mask)
 {
     if (!pio_get_pin_value(ENCODER_A_PIN_NUM)) {
         g_Encoder_state |= ENC_STATE_A_DOWN;
@@ -24,7 +24,7 @@ encoder_a_handler(uint32_t id, uint32_t mask)
 }
 
 extern "C" void
-encoder_b_handler(uint32_t id, uint32_t mask)
+encoder_right_leg_it_handler(uint32_t id, uint32_t mask)
 {
     if (!pio_get_pin_value(ENCODER_B_PIN_NUM)) {
         g_Encoder_state |= ENC_STATE_B_DOWN;

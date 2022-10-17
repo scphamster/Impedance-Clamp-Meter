@@ -42,9 +42,9 @@ class ClampMeterInTaskHandler;
 template<typename Drawer, typename Sensor, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter : private Sensor {
   public:
-    using Item          = MenuModelPageItem<Keyboard>;
-    using Model         = MenuModel<Keyboard>;
-    using ModelItemData = std::shared_ptr<MenuModelPageItemData>;
+    using Item           = MenuModelPageItem<Keyboard>;
+    using Model          = MenuModel<Keyboard>;
+    using ModelItemDataT = std::shared_ptr<MenuModelPageItemData>;
 
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : mutex{ std::make_shared<Mutex>() }
@@ -56,6 +56,8 @@ class ClampMeter : private Sensor {
       , vOverall{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , iOverallI{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , zClamp{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
+      , sensorMag{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
+      , sensorPhi{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
     {
         auto vout_info = std::make_shared<Item>(model);
         vout_info->SetName("V out");
@@ -98,16 +100,50 @@ class ClampMeter : private Sensor {
             }
         });
 
-//        auto calibration_page0 = std::make_shared<Item>(model);
-//        auto calibration_page0 = std::make_shared<Item>(model);
-//        auto calibration_page0 = std::make_shared<Item>(model);
-//        auto calibration_page0 = std::make_shared<Item>(model);
-//        auto calibration_page0 = std::make_shared<Item>(model);
-        auto calibration_page0 = std::make_shared<Item>(model);
-//        calibration_page0->SetName
+        auto calibration_page0_vout_value = std::make_shared<Item>(model);
+        calibration_page0_vout_value->SetName("magnitude = ");
+        calibration_page0_vout_value->SetData(sensorMag);
+        calibration_page0_vout_value->SetIndex(1);
+
+        auto calibration_page0_phi_value = std::make_shared<Item>(model);
+        calibration_page0_phi_value->SetName("phi = ");
+        calibration_page0_phi_value->SetData(sensorPhi);
+        calibration_page0_phi_value->SetIndex(2);
+
+        auto calibration_G1 = std::make_shared<Item>(model);
+        calibration_G1->SetName("Enter if data is stable");
+
+
+        auto calibration_G0 = std::make_shared<Item>(model);
+        calibration_G0->SetName("Put resistor 6.73kOhm");
+        calibration_G0->SetEventCallback(Item::Event::Entrance, [](){ calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);});
+        calibration_G0->SetHeader("Calibration");
+        calibration_G0->InsertChild(calibration_G1);
+        calibration_G0->InsertChild(calibration_page0_vout_value);
+        calibration_G0->InsertChild(calibration_page0_phi_value);
+        calibration_G0->SetKeyCallback(Keyboard::ButtonName::F1, [calibration_G1](){ calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);});
+
+        auto calibration_vout = std::make_shared<Item>(model);
+        calibration_vout->SetName("enter if data is stable");
+        calibration_vout->SetHeader("Calibration");
+        calibration_vout->SetEventCallback(Item::Event::Entrance, [](){
+            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
+            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
+            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP); //warning g0 shown
+        });
+        calibration_vout->InsertChild(calibration_G0);
+
         auto start_calibration = std::make_shared<Item>(model);
-        start_calibration->SetIndex(0);
-        start_calibration->SetName("press ENTER to start");
+        start_calibration->SetName("enter to start");
+        start_calibration->SetHeader("Calibration");
+        start_calibration->InsertChild(calibration_vout);
+        start_calibration->InsertChild(calibration_page0_vout_value);
+        start_calibration->InsertChild(calibration_page0_phi_value);
+        start_calibration->SetEventCallback(Item::Event::Entrance, []() {
+            calibration_semiauto(CALIBRATOR_START);
+            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
+            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
+        });
 
         auto calibration_page = std::make_shared<Item>(model);
         calibration_page->SetIndex(1);
@@ -170,7 +206,9 @@ class ClampMeter : private Sensor {
             }
 
             if ((Calibrator.is_calibrating) && (Calibrator.new_data_is_ready)) {
-                calibration_display_measured_data();
+                //                calibration_display_measured_data();
+                *sensorMag                   = Calibrator.sensor_mag;
+                *sensorPhi                   = Calibrator.sensor_phi;
                 Calibrator.new_data_is_ready = false;
             }
         }
@@ -186,9 +224,11 @@ class ClampMeter : private Sensor {
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<Drawer, Keyboard>    drawer;
 
-    ModelItemData vOverall;
-    ModelItemData iOverallI;
-    ModelItemData zClamp;
+    ModelItemDataT vOverall;
+    ModelItemDataT iOverallI;
+    ModelItemDataT zClamp;
+    ModelItemDataT sensorMag;
+    ModelItemDataT sensorPhi;
 };
 
 template<typename Drawer, typename Reader>

@@ -13,8 +13,8 @@
 #include "pio.h"
 #include "pin.hpp"
 
-extern "C" void encoder_a_handler(uint32_t id, uint32_t mask);
-extern "C" void encoder_b_handler(uint32_t id, uint32_t mask);
+extern "C" void encoder_left_leg_it_handler(uint32_t id, uint32_t mask);
+extern "C" void encoder_right_leg_it_handler(uint32_t id, uint32_t mask);
 
 auto
 convert_pio_to_id(Pio *pio_of_interest)
@@ -31,37 +31,37 @@ convert_pio_to_id(Pio *pio_of_interest)
 
 class Encoder {
   public:
-    Encoder(int  _left_leg_pin_num  = 1,
-            int  _right_leg_pin_num = 13,
-            Pio *_left_leg_pin_PIO  = PIOA,
-            Pio *_right_leg_pin_PIO = PIOD)
+    Encoder(int  _left_leg_pin_num /*= 1*/,
+            int  _right_leg_pin_num /*= 13*/,
+            Pio *_left_leg_pin_PIO /*= PIOA*/,
+            Pio *_right_leg_pin_PIO /*= PIOD*/)
       : left_leg_pin_num{ _left_leg_pin_num }
       , right_leg_pin_num{ _right_leg_pin_num }
       , left_leg_pin_PIO(_left_leg_pin_PIO)
       , right_leg_pin_PIO(_right_leg_pin_PIO)
     {
-        auto encoder_a_pin_mask = (1 << left_leg_pin_num);
-        auto encoder_b_pin_mask = (1 << right_leg_pin_num);
+        auto left_pin_mask      = (1 << left_leg_pin_num);
+        auto right_pin_mask     = (1 << right_leg_pin_num);
 
-        pio_set_debounce_filter(left_leg_pin_PIO, encoder_a_pin_mask, encoder_filter_debounce_hz);
-        pio_set_debounce_filter(right_leg_pin_PIO, encoder_b_pin_mask, encoder_filter_debounce_hz);
+        pio_set_debounce_filter(left_leg_pin_PIO, left_pin_mask, encoder_filter_debounce_hz);
+        pio_set_debounce_filter(right_leg_pin_PIO, right_pin_mask, encoder_filter_debounce_hz);
 
-        pio_set_input(left_leg_pin_PIO, encoder_a_pin_mask, pio_attribute);
-        pio_set_input(right_leg_pin_PIO, encoder_b_pin_mask, pio_attribute);
+        pio_set_input(left_leg_pin_PIO, left_pin_mask, pio_attribute);
+        pio_set_input(right_leg_pin_PIO, right_pin_mask, pio_attribute);
 
         pio_handler_set(left_leg_pin_PIO,
                         convert_pio_to_id(left_leg_pin_PIO),
-                        encoder_a_pin_mask,
+                        left_pin_mask,
                         interruptDetectionType,
-                        encoder_a_handler);
-        pio_enable_interrupt(left_leg_pin_PIO, encoder_b_pin_mask);
+                        encoder_left_leg_it_handler);
+        pio_enable_interrupt(left_leg_pin_PIO, left_pin_mask);
 
         pio_handler_set(right_leg_pin_PIO,
                         convert_pio_to_id(right_leg_pin_PIO),
-                        encoder_a_pin_mask,
+                        right_pin_mask,
                         interruptDetectionType,
-                        encoder_b_handler);
-        pio_enable_interrupt(right_leg_pin_PIO, encoder_b_pin_mask);
+                        encoder_right_leg_it_handler);
+        pio_enable_interrupt(right_leg_pin_PIO, right_pin_mask);
     }
 
   protected:

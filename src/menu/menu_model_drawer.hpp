@@ -184,7 +184,7 @@ class MenuModelDrawer {
 
     Item GetCurrentModelPageData() noexcept;
     void StoreCurrentModelData() noexcept;
-    void DrawPageItemName(auto item_index, const auto &value) noexcept
+    void DrawPageItemName(auto item_index, const auto &name) noexcept
     {
         ColorT back_color;
         if (cursor.GetState() == PageCursor::State::ItemLevel and cursor.GetItemCursor().GetPos() == item_index) {
@@ -196,7 +196,7 @@ class MenuModelDrawer {
 
         drawer->SetCursor({ namesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
         drawer->SetTextColor(itemNameColor, back_color);
-        drawer->Print(value, itemsFontSize);
+        drawer->Print(name, itemsFontSize);
     }
     void DrawPageItemValue(auto item_index, auto const &value) noexcept
     {
@@ -252,7 +252,10 @@ class MenuModelDrawer {
 
         drawer->SetCursor({ pageHeaderXPos, pageHeaderYPos });
         drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
-        drawer->Print(currentPage->GetName(), pageNameFontSize);
+        if (currentPage->HasHeader())
+            drawer->Print(currentPage->GetHeader(), pageNameFontSize);
+        else
+            drawer->Print(currentPage->GetName(), pageNameFontSize);
     }
     void DrawDynamicPageItems() noexcept
     {
