@@ -232,7 +232,7 @@ int32_t MCP3462_read(uint16_t data)
 	while((!spi_is_tx_ready(SPI)) && (timeout_counter--));
 	
 	if (!timeout_counter)
-		return;
+		return 0;
 	
 	spi_set_bits_per_transfer(SPI, 0, SPI_CSR_BITS_8_BIT);
 	spi_configure_cs_behavior(SPI, 0, SPI_CS_KEEP_LOW);
@@ -249,7 +249,8 @@ int32_t MCP3462_read(uint16_t data)
 	spi_set_lastxfer(SPI);
 	
 	retval =  data2| (data1 << 8) | (data0 << 16);
-	
+
+    //sign bit
 	if (retval & (1 << 23)) {
 		retval--;
 		retval = -(~retval & (0xffffff));

@@ -152,6 +152,7 @@ class ClampMeter : private Sensor {
 
         auto main_page = std::make_shared<Item>(model);
         main_page->SetName("Main");
+        main_page->SetHeader(" ");
         main_page->InsertChild(measurements_page);
         main_page->InsertChild(calibration_page);
 
