@@ -20,6 +20,10 @@ auto const CLOCK_PIO             = PIOA;
 auto constexpr CLOCK_PIO_PIN_MSK = 0x40000UL;
 auto constexpr CLOCK_PIO_PERIPH  = PIO_PERIPH_B;
 
+auto constexpr CMD_STATIC_READ       = 0x01;
+auto constexpr CMD_INCREMENTAL_WRITE = 0x02;
+auto constexpr CMD_INCREMENTAL_READ  = 0x03;
+
 void
 MCP3462_driver::ClockInit() noexcept
 {
@@ -52,15 +56,6 @@ MCP3462_driver::Initialize() noexcept
     uint16_t retval1        = 0;
     uint16_t retval2        = 0;
 
-    //    config0_regval = ADC_MODE(ADC_CONV_MODE) | CS_SEL(CS_SEL_0) | CLK_SEL(CLK_SEL_EXT) | CONFIG0(CONFIG0_ACTIVE);
-    //    config1_regval = PRE(PRE_0) | OSR(OSR_256);
-    //    config2_regval = BOOST(BOOST_2) | GAIN(GAIN_1) | AZ_MUX(0) | 1;
-    //    config3_regval =
-    //      CONV_MODE(CONV_MODE_CONT) | DATA_FORMAT(0) | CRC_FORMAT(0) | EN_CRCCOM(0) | EN_OFFCAL(0) | EN_GAINCAL(0);
-//    irq_regval = 0x4;
-//    mux_regval = MUX_SET_VPOS(REF_CH4) | REF_CH5;
-
-
     config0_regval =
       CreateConfig0RegisterValue(false, ClockSelection::CLK_SEL_EXT, CurrentSource::CS_SEL_0, ADC_MODE::Conversion);
 
@@ -72,10 +67,10 @@ MCP3462_driver::Initialize() noexcept
                                                 false,
                                                 false,
                                                 false);
-    irq_regval = CreateIRQRegisterValue(false, false, IRQ_PinMode::IRQ, IRQ_InactivePinMode::LogicHigh);
-    mux_regval = CreateMUXRegisterValue(Reference::CH4, Reference::CH5);
+    irq_regval     = CreateIRQRegisterValue(false, false, IRQ_PinMode::IRQ, IRQ_InactivePinMode::LogicHigh);
+    mux_regval     = CreateMUXRegisterValue(Reference::CH4, Reference::CH5);
 
-    firstbyte  = DEVICE_ADDR | CMD_ADDR(CONFIG0_REG_ADDR) | CMD_INCREMENTAL_WRITE;
+    firstbyte = CreateFirstCommand_IncrementalWrite()
 
     spi_write(SPI, firstbyte, 0, 0);
     spi_read(SPI, &retval1, nullptr);
@@ -207,6 +202,15 @@ MCP3462_driver::CreateMUXRegisterValue(MCP3462_driver::Reference positive_channe
             (static_cast<std::underlying_type_t<Reference>>(positive_channel) << positive_channel_pos)) bitor
            (negative_channel_mask bitand
             (static_cast<std::underlying_type_t<Reference>>(negative_channel) << negative_channel_pos));
+}
+
+MCP3462_driver::SPI_CommandT
+MCP3462_driver::CreateFirstCommand_IncrementalWrite(MCP3462_driver::CommandT command) noexcept
+{
+    auto constexpr CMD_ADDR_POS = 0x2;
+    auto constexpr CMD_ADDR_MSK = 0x3C;
+
+    return deviceAddress bitor (CMD_ADDR_MSK bitand (command << CMD_ADDR_POS)) bitor CMD_INCREMENTAL_WRITE;
 }
 
 // void
