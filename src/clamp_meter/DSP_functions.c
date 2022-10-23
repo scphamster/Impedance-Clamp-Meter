@@ -159,7 +159,6 @@ adc_interrupt_handler(uint32_t id, uint32_t mask)
     cosprod_buff = cos_table[phase_counter] * adc_data;
 
     arm_biquad_cascade_df2T_f32(&biquad1_sin_inst, &sinprod_buff, biquad1_sin_buffer, 1);
-
     arm_biquad_cascade_df2T_f32(&biquad1_cos_inst, &cosprod_buff, biquad1_cos_buffer, 1);
 
     if (biquad1_counter == (BIQUAD1_BUFFSIZE - 1)) {
@@ -433,19 +432,15 @@ do_filter(float32_t *sin_out, float32_t *cos_out)
     }
 
     arm_fir_decimate_f32(&firdec1_sin_inst, biquad1_sin_buffer_ptr, fir1_sin, FIR1_DEC_BLOCKSIZE);
-
     arm_fir_decimate_f32(&firdec1_cos_inst, biquad1_cos_buffer_ptr, fir1_cos, FIR1_DEC_BLOCKSIZE);
 
     arm_biquad_cascade_df2T_f32(&biquad2_sin_inst, fir1_sin, biquad2_sin, BIQUAD2_BUFFSIZE);
-
     arm_biquad_cascade_df2T_f32(&biquad2_cos_inst, fir1_cos, biquad2_cos, BIQUAD2_BUFFSIZE);
 
     arm_fir_decimate_f32(&firdec2_sin_inst, biquad2_sin, fir2_sin, FIR2_DEC_BLOCKSIZE);
-
     arm_fir_decimate_f32(&firdec2_cos_inst, biquad2_cos, fir2_cos, FIR2_DEC_BLOCKSIZE);
 
     arm_biquad_cascade_df2T_f32(&biquad3_sin_inst, fir2_sin, &biquad3_sin, BIQUAD3_BUFFSIZE);
-
     arm_biquad_cascade_df2T_f32(&biquad3_cos_inst, fir2_cos, &biquad3_cos, BIQUAD3_BUFFSIZE);
 
     *sin_out = biquad3_sin;
@@ -603,9 +598,9 @@ calculate_voltage_sensor(float32_t I, float32_t Q, float32_t abs_val, float32_t 
     float32_t sine;
     float32_t cosine;
 
-    clamp_measurements_result.V_ovrl          = abs_val / gain;
-    clamp_measurements_result.V_ovrl_phi_orig = degree;
-    clamp_measurements_result.V_ovrl_phi      = degree - Cal_data.v_sens_phi;
+    clamp_measurements_result.V_ovrl           = abs_val / gain;
+    clamp_measurements_result.V_ovrl_phi_nocal = degree;
+    clamp_measurements_result.V_ovrl_phi       = degree - Cal_data.v_sens_phi;
 
     arm_sin_cos_f32(clamp_measurements_result.V_ovrl_phi, &sine, &cosine);
 

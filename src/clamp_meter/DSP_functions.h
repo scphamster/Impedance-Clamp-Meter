@@ -93,7 +93,7 @@ typedef struct {
     float32_t V_ovrl_Q;
     float32_t V_ovrl;
     float32_t V_ovrl_phi;
-    float32_t V_ovrl_phi_orig;
+    float32_t V_ovrl_phi_nocal;
 
     float32_t V_applied_I;
     float32_t V_applied_Q;

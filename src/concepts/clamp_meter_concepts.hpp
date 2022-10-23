@@ -9,7 +9,6 @@
 #undef printf
 #endif
 
-
 #include <functional>
 #include "compiler.h"
 #include "pin.hpp"
@@ -100,3 +99,10 @@ concept DisplayDrawerC = requires(DisplayDrawerT drawer) {
                              drawer.Print(uint16_t{}, Byte{});
                              drawer.Print(float{}, Byte{}, Byte{});
                          };
+
+template<typename ADCType>
+concept ADC_C = requires(ADCType adc) { 1 + 1; };
+
+// template<template<size_t...> typename Filter, size_t... sizes>
+// concept FilterConcept = requires(Filter<sizes...> filter) { filter.DoFilter(); };
+

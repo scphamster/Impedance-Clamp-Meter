@@ -9,15 +9,15 @@
 #endif
 #include "hclamp_meter.hpp"
 #include "main_task.hpp"
-#include "clamp_sensor.hpp"
+// #include "clamp_sensor.hpp"
 #include "task.h"
 #include "display_drawer.hpp"
 #include "ili9486_driver.hpp"
 #include "signal_conditioning.h"
 
 using Drawer                      = DisplayDrawer<ILI9486Driver>;
-using Clamp                       = ClampMeter<Drawer, ClampSensor>;
-using ClampMeterFreeRTOS          = ClampMeterInTaskHandler<Drawer, ClampSensor>;
+using Clamp                       = ClampMeter<Drawer>;
+using ClampMeterFreeRTOS          = ClampMeterInTaskHandler<Drawer>;
 using KeyboardT                   = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>;
 bool ILI9486Driver::isInitialized = false;
 
@@ -28,7 +28,7 @@ tasks_setup2()
       Clamp{ std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()),
              std::make_unique<KeyboardT>() };
 
-//    measurement_start();
+    //    measurement_start();
     vTaskStartScheduler();
     while (true) { }
 }
@@ -39,7 +39,7 @@ ClampMeterMeasurementsTaskWrapper(void *ClampMeterInstance)
     auto clmp        = static_cast<Clamp *>(ClampMeterInstance);
     auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
 
-while (true) {
+    while (true) {
         //        clmp->MeasurementsTask();
         clamp_meter.MeasurementsTask();
     }
@@ -55,4 +55,13 @@ ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
         //                clmp->DisplayMeasurementsTask();
         clamp_meter.DisplayMeasurementsTask();
     }
+}
+
+extern "C" void
+ClampMeterAnalogTaskWrapper(void *clamp_meter_instance)
+{
+    auto clmp        = static_cast<Clamp *>(clamp_meter_instance);
+    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
+
+    clamp_meter.AnalogTask();
 }

@@ -16,23 +16,19 @@
 #include "semaphore.hpp"
 
 template<KeyboardC Keyboard>
-class MenuModelPageItem;
+class MenuModelPage;
 
 template<KeyboardC Keyboard>
 class MenuModel {
   public:
-    using Item = MenuModelPageItem<Keyboard>;
+    using Item = MenuModelPage<Keyboard>;
 
     enum class KeyGroup {
         Transferable = 0,
         Persistent
     };
 
-    explicit MenuModel(/*std ::unique_ptr<Keyboard> &&new_keyboard, */std::shared_ptr<Mutex> new_mutex)
-      : mutex{ std::move(new_mutex) }
-    {
-//        keyboard->SetButtonEventCallback(1, Keyboard::ButtonEvent::Push, [this](){currentItem->SetName("DUPA");});
-    }
+    MenuModel() = default;
 
     [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return topLevelItem; }
     [[nodiscard]] std::shared_ptr<Item> GetCurrentItem() const noexcept { return currentItem; }
@@ -50,7 +46,7 @@ class MenuModel {
 
 
   private:
-    std::shared_ptr<Mutex>    mutex;
+//    std::shared_ptr<Mutex>    mutex;
     std::shared_ptr<Item>     topLevelItem;
     std::shared_ptr<Item>     currentItem;
 //    std::unique_ptr<Keyboard> keyboard;

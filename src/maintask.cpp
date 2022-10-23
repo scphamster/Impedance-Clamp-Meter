@@ -20,7 +20,7 @@
 #include "menu_ili9486.h"
 #include "hclamp_meter.hpp"
 
-#include "clamp_sensor.hpp"
+//#include "clamp_sensor.hpp"
 #include "FreeRTOS.h"
 
 #include "task.h"

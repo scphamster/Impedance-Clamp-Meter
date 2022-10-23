@@ -70,9 +70,9 @@ class MenuModelPageItemData {
 };
 
 template<KeyboardC Keyboard>
-class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<Keyboard>> {
+class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard>> {
   public:
-    using std::enable_shared_from_this<MenuModelPageItem<Keyboard>>::shared_from_this;
+    using std::enable_shared_from_this<MenuModelPage<Keyboard>>::shared_from_this;
 
     using ChildIndex               = int;
     using EditorCursorPosT         = int;
@@ -90,27 +90,27 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     };
     using EventCallbacks = std::map<Event, EventCallback>;
 
-    MenuModelPageItem(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
+    MenuModelPage(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
       : model{ belongs_to_model }
     { }
 
-    [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetPtr() noexcept { return shared_from_this(); }
+    [[nodiscard]] std::shared_ptr<MenuModelPage> GetPtr() noexcept { return shared_from_this(); }
     [[nodiscard]] DataT                              GetData() const noexcept { return data; }
     [[nodiscard]] bool                               HasChild(MenuModelIndex at_position = 0) const noexcept
     {
         return (childItems.size() > 0) ? true : false;
     }
-    [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetChild(MenuModelIndex at_position) const noexcept
+    [[nodiscard]] std::shared_ptr<MenuModelPage> GetChild(MenuModelIndex at_position) const noexcept
     {
         if (at_position >= childItems.size())
             return *(childItems.end() - 1);
 
         return childItems.at(at_position);
     }
-    [[nodiscard]] std::vector<std::shared_ptr<MenuModelPageItem>> GetChildren() const noexcept { return childItems; }
+    [[nodiscard]] std::vector<std::shared_ptr<MenuModelPage>> GetChildren() const noexcept { return childItems; }
     [[nodiscard]] auto                               GetChildCount() const noexcept { return childItems.size(); }
     [[nodiscard]] MenuModelIndex                     GetPosition() const noexcept { return residesAtIndex; }
-    [[nodiscard]] std::shared_ptr<MenuModelPageItem> GetParent() noexcept
+    [[nodiscard]] std::shared_ptr<MenuModelPage> GetParent() noexcept
     {
         if (not parent)
             return This();
@@ -124,7 +124,7 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     [[nodiscard]] HeaderT                  GetHeader() const noexcept { return pageHeader; }
     [[nodiscard]] bool                     HasHeader() const noexcept { return (pageHeader.empty()) ? false : true; }
     void                                   SetData(DataT new_data) noexcept { data = new_data; }
-    void InsertChild(std::shared_ptr<MenuModelPageItem> child, MenuModelIndex at_idx) noexcept
+    void InsertChild(std::shared_ptr<MenuModelPage> child, MenuModelIndex at_idx) noexcept
     {
         child->SetParent(This());
 
@@ -136,9 +136,9 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
             childItems.at(at_idx) = std::move(child);
         }
     }
-    void InsertChild(std::shared_ptr<MenuModelPageItem> child) noexcept { InsertChild(child, child->GetPosition()); }
+    void InsertChild(std::shared_ptr<MenuModelPage> child) noexcept { InsertChild(child, child->GetPosition()); }
     void SetIndex(MenuModelIndex idx) noexcept { residesAtIndex = idx; }
-    void SetParent(std::shared_ptr<MenuModelPageItem> new_parent) noexcept { parent = new_parent; }
+    void SetParent(std::shared_ptr<MenuModelPage> new_parent) noexcept { parent = new_parent; }
     void SetName(const NameT &new_name) noexcept { name = new_name; }
     void SetModifiability(bool if_editable = true) noexcept { isEditable = if_editable; }
     void SetKeyCallback(ButtonName for_button, SpecialKeyboardCallback &&new_callback) noexcept
@@ -162,13 +162,13 @@ class MenuModelPageItem : public std::enable_shared_from_this<MenuModelPageItem<
     auto This() noexcept { return GetPtr(); }
 
   private:
-    std::shared_ptr<MenuModelPageItem>              parent;
+    std::shared_ptr<MenuModelPage>              parent;
     std::shared_ptr<Model>                          model;
     MenuModelIndex                                  residesAtIndex{ 0 };
     NameT                                           name;
     NameT                                           pageHeader;
     DataT                                           data;
-    std::vector<std::shared_ptr<MenuModelPageItem>> childItems{};
+    std::vector<std::shared_ptr<MenuModelPage>> childItems{};
     bool                                            isEditable{ false };
     SpecialKeyboardCallbacks                        specialKeyCallbacks;
     EventCallbacks                                  eventCallbacks;

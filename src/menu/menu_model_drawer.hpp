@@ -119,7 +119,7 @@ class PageCursor {
 template<KeyboardC Keyboard>
 class PageItemStateStorage {
   public:
-    using Item  = MenuModelPageItem<Keyboard>;
+    using Item  = MenuModelPage<Keyboard>;
     using DataT = UniversalType;
 
     [[nodiscard]] typename Item::NameT GetName() const noexcept { return name; }
@@ -137,18 +137,17 @@ class PageItemStateStorage {
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 class MenuModelDrawer {
   public:
-    using Item        = MenuModelPageItem<Keyboard>;
+    using Item        = MenuModelPage<Keyboard>;
     using NameT       = typename Item::NameT;
     using MenuModelT  = MenuModel<Keyboard>;
     using ColorT      = typename Drawer::ColorT;
     using ButtonName  = typename Keyboard::ButtonName;
     using ButtonEvent = typename Keyboard::ButtonEvent;
 
-    explicit MenuModelDrawer(std::shared_ptr<Mutex>      new_mutex,
+    explicit MenuModelDrawer(
                              std::unique_ptr<Drawer>   &&new_drawer,
                              std::unique_ptr<Keyboard> &&new_keyboard)
-      : mutex{ std::move(new_mutex) }
-      , drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
+      : drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
       , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
     {
         //        keyboard->SetButtonEventCallback(Keyboard::ButtonName::Enter, Keyboard::ButtonEvent::Release, [this]() {
@@ -367,7 +366,7 @@ class MenuModelDrawer {
   private:
     std::vector<PageItemStateStorage<Keyboard>> drawnPageItems;
     std::shared_ptr<MenuModelT>                 model;   // model with data to be drawn
-    std::shared_ptr<Mutex>                      mutex;
+//    std::shared_ptr<Mutex>                      mutex;
     std::unique_ptr<Drawer>                     drawer;
     std::unique_ptr<Keyboard>                   keyboard;
     std::shared_ptr<Item>                       currentPage;
@@ -432,7 +431,7 @@ MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-MenuModelPageItem<Keyboard>
+MenuModelPage<Keyboard>
 MenuModelDrawer<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
 {
     // todo: implement
