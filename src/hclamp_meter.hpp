@@ -38,6 +38,10 @@
 #include "button.hpp"
 #include "keyboard_fast.hpp"
 
+// todo refactor headers below into statics
+#include "external_periph_ctrl.h"
+#include "signal_conditioning.h"
+
 [[noreturn]] void tasks_setup2();
 extern "C" void   ClampMeterMeasurementsTaskWrapper(void *);
 extern "C" void   ClampMeterDisplayMeasurementsTaskWrapper(void *);
@@ -57,13 +61,14 @@ class ClampMeter {
     using SensorPreampT  = SensorPreamp<MCP3462_driver::ValueT>;
 
     enum class Sensor {
-        Voltage = 0,
-        Shunt,
-        Clamp
+        Shunt = 0,
+        Clamp,
+        Voltage
     };
 
     enum Configs {
-        NumberOfSensors = 3
+        NumberOfSensors       = 3,
+        NumberOfSensorPreamps = 2
     };
 
     ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
@@ -71,9 +76,7 @@ class ClampMeter {
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
       , adc{ 0x40, 200 }
-      , sensorPreamps{ SensorPreampT{ 0, 4, 100000, 3000000, 50, 500 },
-                       SensorPreampT{ 0, 4, 100000, 3000000, 50, 500 },
-                       SensorPreampT{ 0, 4, 100000, 3000000, 50, 500 } }
+      , sensorPreamps{ SensorPreampT{ 0, 9, 100000, 3000000, 50, 500 }, SensorPreampT{ 0, 9, 100000, 3000000, 50, 500 } }
       , vOverall{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , vShunt{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , zClamp{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
@@ -279,14 +282,43 @@ class ClampMeter {
                                                          -0.986422598361968994140625f },
               sin_filter4->GetOutputBuffer());
 
+            mybuffer = sin_filter5->GetOutputBuffer();
+
             filter.InsertFilter(std::move(sin_filter1));
             filter.InsertFilter(std::move(sin_filter2));
             filter.InsertFilter(std::move(sin_filter3));
             filter.InsertFilter(std::move(sin_filter4));
             filter.InsertFilter(std::move(sin_filter5));
+
+                filter.SetDataReadyCallback([this]() { *vOverall = (*mybuffer)[0]; });
+        }
+        {
+            // clang-format off
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(0, [this]() {shunt_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1V3);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(1, [this]() {shunt_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(2, [this]() {shunt_sensor_set_gain(1); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(3, [this]() {shunt_sensor_set_gain(2); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(4, [this]() {shunt_sensor_set_gain(3); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(5, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(6, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_2);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(7, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_4);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(8, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_8);});
+            sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(9, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_16);});
+
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(0, [this]() {clamp_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1V3); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(1); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(2); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(4, [this]() {clamp_sensor_set_gain(3); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(6, [this]() {clamp_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_2); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_4); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(8, [this]() {clamp_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_8); });
+            sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_16); });
+            // clang-format on
         }
         StartDisplayMeasurementsTask();
-        StartMeasurementsTask();
+        //        StartMeasurementsTask();
         StartAnalogTask();
     }
 
@@ -310,16 +342,34 @@ class ClampMeter {
                     "display",
                     400,
                     std::remove_volatile_t<void *const>(this),
-                    2,
+                    3,
                     nullptr);
     }
 
     void StartAnalogTask() volatile
     {
-        xTaskCreate(ClampMeterAnalogTaskWrapper, "analog", 200, std::remove_volatile_t<void *const>(this), 4, nullptr);
+        xTaskCreate(ClampMeterAnalogTaskWrapper, "analog", 500, std::remove_volatile_t<void *const>(this), 3, nullptr);
     }
 
   protected:
+    void SetSensor(Sensor new_sensor) noexcept
+    {
+        using Reference = MCP3462_driver::Reference;
+
+        if (new_sensor == Sensor::Voltage) {
+            adc.SetMux(Reference::CH4, Reference::CH5);
+            activeSensor = Sensor::Voltage;
+        }
+        else if (new_sensor == Sensor::Shunt) {
+            adc.SetMux(Reference::CH2, Reference::CH3);
+            activeSensor = Sensor::Shunt;
+        }
+        else if (new_sensor == Sensor::Clamp) {
+            adc.SetMux(Reference::CH0, Reference::CH1);
+            activeSensor = Sensor::Clamp;
+        }
+    }
+
     void DisplayMeasurementsTask()
     {
         drawer.DrawerTask();
@@ -354,20 +404,28 @@ class ClampMeter {
         MCP3462_driver::ValueT adc_value{};
         adc_data_queue = adc.GetDataQueue();
 
-        adc.SetGain(MCP3462_driver::Gain::GAIN_1);
-        adc.SetMux(MCP3462_driver::Reference::AVDD, MCP3462_driver::Reference::AGND);
-
-        adc.EnableClock();
+//        adc.SetGain(MCP3462_driver::Gain::GAIN_64);
+//        adc.SetMux(MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1);
+        SetSensor(Sensor::Clamp);
+        adc.StartMeasurement();
         int counter = 0;
+
         while (true) {
             xQueueReceive(adc_data_queue, &adc_value, portMAX_DELAY);
 
-            counter++;
+            *vShunt = adc_value;
+            if (activeSensor != Sensor::Voltage) {
+                sensorPreamps[static_cast<int>(activeSensor)].CheckAmplitudeAndCorrectGainIfNeeded(adc_value);
+            }
 
-            if (counter % 100 == 0)
-                *vOverall = adc_value;
+            auto sinprod = sin_table[counter] * adc_value;
 
-            //            sensorPreamps[activeSensor].CheckAmplitudeAndCorrectGainIfNeeded(adc_value);
+            filter.Push(sinprod);
+
+            if (counter == (DACC_PACKETLEN - 1))
+                counter = 0;
+            else
+                counter++;
         }
     }
 
@@ -382,10 +440,11 @@ class ClampMeter {
 
     SuperFilter<float, firstBufferSize> filter;
 
-    std::array<SensorPreamp<MCP3462_driver::ValueT>, NumberOfSensors> sensorPreamps;
-    Sensor                                                            activeSensor = Sensor::Voltage;
+    std::array<SensorPreamp<MCP3462_driver::ValueT>, NumberOfSensorPreamps> sensorPreamps;
+    Sensor                                                                  activeSensor = Sensor::Voltage;
     //    filter;
     //    dsp;
+    std::shared_ptr<std::array<float, 1>> mybuffer;
 
     ModelItemDataT vOverall;
     ModelItemDataT vShunt;

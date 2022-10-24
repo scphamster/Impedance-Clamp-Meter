@@ -26,6 +26,11 @@ class MCP3462_driver {
     using ValueT             = int32_t;
     using InterruptCallbackT = void(ValueT);
 
+    enum class MeasurementMode {
+        SingleShot,
+        Continuous
+    };
+
     enum class Command {
     };
 
@@ -177,17 +182,25 @@ class MCP3462_driver {
 
     void Initialize() noexcept;
 
-    void SetGain(Gain new_gain) { gain = new_gain; }
+    void SetGain(Gain new_gain) noexcept;
     void ClockInit() noexcept;
-    void EnableClock(bool if_enable = true) noexcept;
     void SetMux(Reference positive_channel, Reference negative_channel) noexcept;
     void SetDataInterruptCallback(MCP3462_driver::InterruptCallbackT &&new_callback) noexcept;
+    void StartMeasurement() noexcept;
+    void StopMeasurement() noexcept;
+    void SetMeasurementMode(MeasurementMode new_mode) noexcept; //todo implement
+    ValueT SingleShotMeasurement() noexcept; //todo implement
 
     ValueT        Read() noexcept;
+
     BaseType_t    HandleInterrupt() noexcept;
     QueueHandle_t GetDataQueue() const noexcept;
-
   protected:
+
+    void EnableClock(bool if_enable = true) noexcept;
+    void EnableInterrupt(bool if_enable = true) noexcept;
+
+
     CommandT        CreateConfig0RegisterValue(bool           if_full_shutdown,
                                                ClockSelection clock,
                                                CurrentSource  current_source,
@@ -206,6 +219,7 @@ class MCP3462_driver {
                                            IRQ_InactivePinMode inactive_irq_pin_mode) noexcept;
     static CommandT CreateMUXRegisterValue(Reference positive_channel, Reference negative_channel) noexcept;
     SPI_CommandT    CreateFirstCommand_IncrementalWrite(CommandT command) noexcept;
+    SPI_CommandT    CreateFirstCommand_StaticRead(CommandT command) noexcept;
     void            InterruptInit() noexcept;
 
   private:

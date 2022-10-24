@@ -33,7 +33,7 @@ class AbstractFilter {
         outputReadyCallback = std::move(new_callback);
     }
 
-  private:
+  protected:
     OutputReadyCallbackT outputReadyCallback;
 };
 
@@ -75,8 +75,9 @@ class FirDecimatingFilter : public AbstractFilter {
     void DoFilter() noexcept override
     {
         arm_fir_decimate_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), blockSize);
+        AbstractFilter::outputReadyCallback();
     }
-    void InputBufferIsReadyCallback() noexcept override { ; }
+    void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
 
     [[nodiscard]] OutputBufferT GetOutputBuffer() noexcept { return outputBuffer; }
 
@@ -120,9 +121,10 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     void DoFilter() noexcept override
     {
         arm_biquad_cascade_df2T_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), filterBlockSize);
+        AbstractFilter::outputReadyCallback();
     }
 
-    void InputBufferIsReadyCallback() noexcept override { ; }
+    void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
 
     [[nodiscard]] OutputBufferT GetOutputBuffer() noexcept { return outputBuffer; }
 
@@ -137,11 +139,16 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
 template<typename ValueT, size_t firstBufferSize>
 class SuperFilter {
   public:
-    using FirstBufferT = std::shared_ptr<std::array<ValueT, firstBufferSize>>;
+    using FirstBufferT      = std::shared_ptr<std::array<ValueT, firstBufferSize>>;
+    using DataReadyCallback = std::function<void()>;
+
+    SuperFilter()
+      : firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
+    { }
 
     void Push(ValueT new_value) noexcept
     {
-        firstBuffer[bufferIteratorPosition++] = new_value;
+        (*firstBuffer)[bufferIteratorPosition++] = new_value;
         if (bufferIteratorPosition == firstBufferSize) {
             filters.at(0)->DoFilter();
             bufferIteratorPosition = 0;
@@ -165,21 +172,29 @@ class SuperFilter {
     {
         filters.push_back(std::forward<decltype(filter)>(filter));
 
-        if (filters.size() > 2) {
+        if (filters.size() >= 2) {
             auto one_before_back = filters.end() - 2;
-            (*one_before_back)->SetOutputDataReadyCallback([this, position = filters.size() - 1]() {
-                this->filters.at(position)->InputBufferIsReadyCallback();
+            (*one_before_back)->SetOutputDataReadyCallback([this, one_ahead = filters.size() - 1]() {
+                this->filters.at(one_ahead)->InputBufferIsReadyCallback();
             });
         }
+
+        filters.back()->SetOutputDataReadyCallback([this]() { LastFilterDataReadyCallback(); });
+    }
+
+    void SetDataReadyCallback(DataReadyCallback &&new_data_ready_callback) noexcept
+    {
+        dataReadyCallback = std::move(new_data_ready_callback);
     }
 
     FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
 
   protected:
-    void LastFilterDataReadyCallback();
+    void LastFilterDataReadyCallback() { dataReadyCallback(); }
 
   private:
     FirstBufferT                                 firstBuffer;
     std::vector<std::unique_ptr<AbstractFilter>> filters;
     size_t                                       bufferIteratorPosition = 0;
+    DataReadyCallback                            dataReadyCallback;
 };

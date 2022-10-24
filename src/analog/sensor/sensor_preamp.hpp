@@ -29,8 +29,10 @@ class SensorPreamp {
       , minGain(new_min_gain)
       , upperAmplitudeAGCLimit(higher_amplitude_agc_limit)
       , lowerAmplitudeAGCLimit(lower_amplitude_agc_limit)
+      , numberOfSamplesAGCTriggerHIGH{ agc_samples_number_trigger_HIGH }
+      , numberOfSamplesAGCTriggerLOW{ agc_samples_number_trigger_LOW }
     {
-        if (upperAmplitudeAGCLimit != 0 and lowerAmplitudeAGCLimit != 0)
+        if (upperAmplitudeAGCLimit != lowerAmplitudeAGCLimit)
             AGC_enabled = true;
         else
             AGC_enabled = false;
@@ -41,19 +43,21 @@ class SensorPreamp {
         if (new_gain > maxGain)
             new_gain = maxGain;
 
-        if (gainChangeFunctors.contains(new_gain))
+        if (gainChangeFunctors.contains(new_gain)) {
             gainChangeFunctors.at(new_gain)();
+            gain = new_gain;
+        }
     }
     void IncreaseGain() noexcept
     {
-        if (gainChangeFunctors.contains(gain + 1)) {
+        if (gainChangeFunctors.contains(gain + 1) && (gain + 1) <= maxGain) {
             gainChangeFunctors.at(gain + 1)();
             gain++;
         }
     }
     void DecreaseGain() noexcept
     {
-        if (gainChangeFunctors.contains(gain - 1)) {
+        if (gainChangeFunctors.contains(gain - 1) && (gain - 1) >= minGain) {
             gainChangeFunctors.at(gain - 1)();
             gain--;
         }
@@ -79,10 +83,25 @@ class SensorPreamp {
             if (amplitude_TooHighCounter >= numberOfSamplesAGCTriggerHIGH)
                 DecreaseGain();
         }
+
+        check_counter++;
+
+        if (check_counter > numberOfSamplesAGCTriggerHIGH && check_counter > numberOfSamplesAGCTriggerLOW) {
+            amplitude_TooHighCounter = 0;
+            amplitudeTooLowCounter   = 0;
+            check_counter            = 0;
+        }
     }
     void SetUpperAmplitudeAGCLimit(ValueType new_upper_limit) noexcept { upperAmplitudeAGCLimit = new_upper_limit; }
     void SetLowerAmplitudeAGCLimit(ValueType new_lower_limit) noexcept { lowerAmplitudeAGCLimit = new_lower_limit; }
     void EnableAGC(bool if_enable) noexcept { AGC_enabled = if_enable; }
+    void SetGainChangeFunctor(GainLevelT for_gain_level, GainChangeFunctor &&new_functor)
+    {
+        if (for_gain_level > maxGain)
+            return;
+
+        gainChangeFunctors[for_gain_level] = std::move(new_functor);
+    }
 
   private:
     GainLevelT maxGain = 4;
@@ -97,6 +116,7 @@ class SensorPreamp {
     size_t amplitude_TooHighCounter{};
     size_t numberOfSamplesAGCTriggerLOW{};
     size_t numberOfSamplesAGCTriggerHIGH{};
+    size_t check_counter{};
 
     std::map<GainLevelT, GainChangeFunctor> gainChangeFunctors;
 };

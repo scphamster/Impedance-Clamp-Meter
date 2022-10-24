@@ -255,9 +255,11 @@ measurement_start(void)
     NVIC_ClearPendingIRQ(PIOA_IRQn);
 
     dacc_enable_interrupt(DACC, DACC_INTERRUPT_MASK);
-    pio_enable_interrupt(PIOA, adc_int_pin);
-    MCP3462_enable_clock();
-    delay_ms(100);
+    // todo test
+    //    pio_enable_interrupt(PIOA, adc_int_pin);
+    //    MCP3462_enable_clock();
+    //    delay_ms(100);
+
     output_enable();
     Analog.generator_is_active = true;
 }
@@ -268,11 +270,12 @@ measurement_stop(void)
     const uint32_t adc_int_pin = (1 << ADC_INTERRUPT_PIN);
     output_disable();
     hi_voltage_disable();
-    MCP3462_disable_clock();
+    //todo test
+//    MCP3462_disable_clock();
     dacc_disable_interrupt(DACC, DACC_INTERRUPT_MASK);
     pdc_disable_transfer(g_dacc_pdc_base, PERIPH_PTCR_TXTDIS);
     dacc_disable_trigger(DACC);
-    pio_disable_interrupt(PIOA, adc_int_pin);
+//    pio_disable_interrupt(PIOA, adc_int_pin);
     Analog.generator_is_active = false;
 }
 

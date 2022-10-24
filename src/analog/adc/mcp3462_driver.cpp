@@ -67,6 +67,8 @@ MCP3462_driver::Initialize() noexcept   // todo: make configurable
     uint16_t retval1        = 0;
     uint16_t retval2        = 0;
 
+    ClockInit();
+
     config0_regval =
       CreateConfig0RegisterValue(false, ClockSelection::CLK_SEL_EXT, CurrentSource::CS_SEL_0, ADC_MODE::Conversion);
 
@@ -92,7 +94,6 @@ MCP3462_driver::Initialize() noexcept   // todo: make configurable
     spi_write(SPI, mux_regval, 0, 0);
     spi_set_lastxfer(SPI);
 
-    ClockInit();
     InterruptInit();
 }
 
@@ -227,6 +228,15 @@ MCP3462_driver::CreateFirstCommand_IncrementalWrite(MCP3462_driver::CommandT com
     return deviceAddress bitor (CMD_ADDR_MSK bitand (command << CMD_ADDR_POS)) bitor CMD_INCREMENTAL_WRITE;
 }
 
+MCP3462_driver::SPI_CommandT
+MCP3462_driver::CreateFirstCommand_StaticRead(MCP3462_driver::CommandT command) noexcept
+{
+    auto constexpr CMD_ADDR_POS = 0x2;
+    auto constexpr CMD_ADDR_MSK = 0x3C;
+
+    return deviceAddress bitor (CMD_ADDR_MSK bitand (command << CMD_ADDR_POS)) bitor CMD_STATIC_READ;
+}
+
 MCP3462_driver::MCP3462_driver(MCP3462_driver::AddressT device_address /* = 0x40*/, size_t queue_size /*= 200*/)
   : deviceAddress{ device_address }
   , data_queue{ xQueueCreate(queue_size, StreamBufferSinglePacketSize) }
@@ -262,22 +272,23 @@ MCP3462_driver::InterruptInit() noexcept
 MCP3462_driver::ValueT
 MCP3462_driver::Read() noexcept
 {
-    uint32_t timeout_counter = SPI_TIMEOUT;
-    uint8_t  firstbyte       = 0;
-    uint16_t readout         = 0;
-    int32_t  retval          = 0;
+    auto constexpr spi_timeout_retval = 12345;
+    uint32_t timeout_counter          = SPI_TIMEOUT;
+    uint8_t  firstbyte                = 0;
+    uint16_t readout                  = 0;
+    int32_t  retval                   = 0;
 
     uint16_t data0 = 0;
     uint16_t data1 = 0;
     uint16_t data2 = 0;
 
-    firstbyte = CreateFirstCommand_IncrementalWrite(static_cast<CommandT>(Register::ADC_Data));
+    firstbyte = CreateFirstCommand_StaticRead(static_cast<CommandT>(Register::ADC_Data));
 
     while ((!spi_is_tx_ready(SPI)) && (timeout_counter--))
         ;
 
     if (!timeout_counter)
-        return 0;
+        return spi_timeout_retval;
 
     spi_set_bits_per_transfer(SPI, 0, SPI_CSR_BITS_8_BIT);
     spi_configure_cs_behavior(SPI, 0, SPI_CS_KEEP_LOW);
@@ -309,7 +320,10 @@ MCP3462_driver::HandleInterrupt() noexcept
 {
     BaseType_t higher_prio_task_woken;
 
+    // todo test
     auto adc_value = Read();
+    //    auto adc_value = 153;
+    // end test
 
     xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken);
 
@@ -332,7 +346,7 @@ MCP3462_driver::SetMux(MCP3462_driver::Reference positive_channel, MCP3462_drive
 {
     uint32_t timeout_counter = SPI_TIMEOUT;
 
-    //todo: why this is here?
+    // todo: why this is here?
     if ((positive_channel > Reference::CH5) || (negative_channel > Reference::CH5))
         return;
 
@@ -350,5 +364,48 @@ MCP3462_driver::SetMux(MCP3462_driver::Reference positive_channel, MCP3462_drive
 
     spi_write(SPI, (first_word << 8) | value_word, 0, 0);
     spi_set_lastxfer(SPI);
+}
+void
+MCP3462_driver::EnableInterrupt(bool if_enable) noexcept
+{
+    const uint32_t int_pin = (1 << adc_interrupt_pin);
+    NVIC_ClearPendingIRQ(PIOA_IRQn);
+    pio_enable_interrupt(PIOA, int_pin);
+}
+void
+MCP3462_driver::StartMeasurement() noexcept
+{
+    EnableInterrupt();
+    EnableClock();
+}
 
+void
+MCP3462_driver::StopMeasurement() noexcept
+{
+    EnableInterrupt(false);
+    EnableClock(false);
+}
+void
+MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
+{
+    uint32_t timeout_counter = SPI_TIMEOUT;
+    uint16_t firstbyte;
+    uint16_t config2_byte;
+    uint16_t retval;
+    auto constexpr config2_reg_addr = 0x3;
+
+    firstbyte                       = CreateFirstCommand_IncrementalWrite(config2_reg_addr);
+    config2_byte                    = BOOST(Boost::BOOST_2) | GAIN(gain) | AZ_MUX(0) | 1;
+
+    while ((!spi_is_tx_ready(SPI)) && (timeout_counter--))
+        ;
+
+    if (!timeout_counter)
+        return;
+
+    spi_configure_cs_behavior(SPI, 0, SPI_CS_RISE_FORCED);
+    spi_set_bits_per_transfer(SPI, 0, SPI_CSR_BITS_16_BIT);
+
+    spi_write(SPI, (firstbyte << 8) | config2_byte, 0, 0);
+    spi_set_lastxfer(SPI);
 }
