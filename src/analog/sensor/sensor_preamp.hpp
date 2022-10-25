@@ -16,8 +16,9 @@
 template<typename ValueType>
 class SensorPreamp {
   public:
-    using GainLevelT        = int;
-    using GainChangeFunctor = std::function<void()>;
+    using GainLevelT           = int;
+    using GainChangeFunctor    = std::function<void()>;
+    using InititalizingFunctor = std::function<void()>;
 
     SensorPreamp(GainLevelT new_min_gain,
                  GainLevelT new_max_gain,
@@ -29,13 +30,23 @@ class SensorPreamp {
       , minGain(new_min_gain)
       , upperAmplitudeAGCLimit(higher_amplitude_agc_limit)
       , lowerAmplitudeAGCLimit(lower_amplitude_agc_limit)
-      , numberOfSamplesToTriggerGainDecrease{ agc_samples_number_trigger_HIGH }
       , numberOfSamplesToTriggerGainIncrease{ agc_samples_number_trigger_LOW }
+      , numberOfSamplesToTriggerGainDecrease{ agc_samples_number_trigger_HIGH }
     {
         if (upperAmplitudeAGCLimit != lowerAmplitudeAGCLimit)
             AGC_enabled = true;
         else
             AGC_enabled = false;
+    }
+
+    void SetIninitializingFunctor(InititalizingFunctor &&new_initializer) noexcept
+    {
+        initializer = std::move(new_initializer);
+    }
+    void InvokeInitializer() noexcept
+    {
+        if (initializer)
+            initializer();
     }
 
     void SetGain(SensorPreamp::GainLevelT new_gain) noexcept
@@ -136,5 +147,6 @@ class SensorPreamp {
     size_t numberOfSamplesToTriggerGainDecrease{};
     size_t sampleCounter{};
 
+    InititalizingFunctor                    initializer;
     std::map<GainLevelT, GainChangeFunctor> gainChangeFunctors;
 };

@@ -55,18 +55,18 @@
 extern "C" {
 #endif
 
-//lastchange: extern added, static cleared
+// lastchange: extern added, static cleared
 extern volatile float32_t g_costable_f[DACC_PACKETLEN];
 extern volatile float32_t g_sintable_f[DACC_PACKETLEN];
 
-extern pdc_packet_t g_dacc_packet;
-extern pdc_packet_t g_dacc_next_packet;
-extern Pdc         *g_dacc_pdc_base;
-extern volatile uint16_t     g_sintable[DACC_PACKETLEN];
-extern bool decimator_databuff_is_ready;
-extern bool fir2_dataready_flag;
-extern uint32_t test_counter_dacc;
-extern uint32_t test_counter_adc;
+extern pdc_packet_t      g_dacc_packet;
+extern pdc_packet_t      g_dacc_next_packet;
+extern Pdc              *g_dacc_pdc_base;
+extern volatile uint16_t g_sintable[DACC_PACKETLEN];
+extern bool              decimator_databuff_is_ready;
+extern bool              fir2_dataready_flag;
+extern uint32_t          test_counter_dacc;
+extern uint32_t          test_counter_adc;
 
 typedef struct {
     bool new_data_is_ready;
@@ -128,50 +128,50 @@ void      reset_filters(void);
 float32_t find_angle(float32_t sine, float32_t cosine, float32_t absval);
 
 static volatile float32_t sin_table[] = { 0,
-                                 0.28173256f,
-                                 0.54064083f,
-                                 0.75574958f,
-                                 0.90963197f,
-                                 0.98982143f,
-                                 0.98982143f,
-                                 0.90963197f,
-                                 0.75574958f,
-                                 0.54064083f,
-                                 0.28173256f,
-                                 1.2246469e-16f,
-                                 -0.28173256f,
-                                 -0.54064083f,
-                                 -0.75574958f,
-                                 -0.90963197f,
-                                 -0.98982143f,
-                                 -0.98982143f,
-                                 -0.90963197f,
-                                 -0.75574958f,
-                                 -0.54064083f,
-                                 -0.28173256f };
+                                          0.28173256f,
+                                          0.54064083f,
+                                          0.75574958f,
+                                          0.90963197f,
+                                          0.98982143f,
+                                          0.98982143f,
+                                          0.90963197f,
+                                          0.75574958f,
+                                          0.54064083f,
+                                          0.28173256f,
+                                          1.2246469e-16f,
+                                          -0.28173256f,
+                                          -0.54064083f,
+                                          -0.75574958f,
+                                          -0.90963197f,
+                                          -0.98982143f,
+                                          -0.98982143f,
+                                          -0.90963197f,
+                                          -0.75574958f,
+                                          -0.54064083f,
+                                          -0.28173256f };
 
 static volatile float32_t cos_table[] = { 1,
-                                 0.95949298f,
-                                 0.84125352f,
-                                 0.65486073f,
-                                 0.41541502f,
-                                 0.14231484f,
-                                 -0.14231484f,
-                                 -0.41541502f,
-                                 -0.65486073f,
-                                 -0.84125352f,
-                                 -0.95949298f,
-                                 -1,
-                                 -0.95949298f,
-                                 -0.84125352f,
-                                 -0.65486073f,
-                                 -0.41541502f,
-                                 -0.14231484f,
-                                 0.14231484f,
-                                 0.41541502f,
-                                 0.65486073f,
-                                 0.84125352f,
-                                 0.95949298f };
+                                          0.95949298f,
+                                          0.84125352f,
+                                          0.65486073f,
+                                          0.41541502f,
+                                          0.14231484f,
+                                          -0.14231484f,
+                                          -0.41541502f,
+                                          -0.65486073f,
+                                          -0.84125352f,
+                                          -0.95949298f,
+                                          -1,
+                                          -0.95949298f,
+                                          -0.84125352f,
+                                          -0.65486073f,
+                                          -0.41541502f,
+                                          -0.14231484f,
+                                          0.14231484f,
+                                          0.41541502f,
+                                          0.65486073f,
+                                          0.84125352f,
+                                          0.95949298f };
 
 #ifdef __cplusplus
 }

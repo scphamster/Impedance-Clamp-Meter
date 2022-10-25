@@ -1,0 +1,10 @@
+//
+// Created by scpha on 25/10/2022.
+//
+
+#ifndef CLAMPMETER_CLAMP_SENSOR_CALCULATOR_HPP
+#define CLAMPMETER_CLAMP_SENSOR_CALCULATOR_HPP
+
+class ClampSensorCalculator { };
+
+#endif   // CLAMPMETER_CLAMP_SENSOR_CALCULATOR_HPP

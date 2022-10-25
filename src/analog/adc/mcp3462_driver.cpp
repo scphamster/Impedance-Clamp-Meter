@@ -325,7 +325,7 @@ MCP3462_driver::HandleInterrupt() noexcept
     //    auto adc_value = 153;
     // end test
 
-    xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken);
+    if (xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken) == errQUEUE_FULL) {while(true);};
 
     return higher_prio_task_woken;
 }

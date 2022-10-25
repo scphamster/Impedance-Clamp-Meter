@@ -90,6 +90,9 @@ MCP23016_driver::MCP23016_driver(MCP23016_driver::PinStateChangeCallback &&callb
           Pin_MCP23016{ 15, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low } }
   , pinStateChangeCallback{ std::forward<PinStateChangeCallback>(callback) }
 {
+    //workaround to unlock mcp23016:
+    auto dummy = GetPinsState();
+
     StartTask();
 
     if (not MCP23016_driver::isInitialized) {

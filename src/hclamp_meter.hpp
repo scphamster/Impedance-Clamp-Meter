@@ -29,7 +29,9 @@
 #include "queue.h"
 
 #include "filter.hpp"
-
+#include "HVPowerSupply.hpp"
+#include "OutputRelay.hpp"
+#include "output_generator.hpp"
 // test
 #include "signal_conditioning.h"
 #include "system_init.h"
@@ -83,6 +85,8 @@ class ClampMeter {
       , zClamp{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , sensorMag{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
       , sensorPhi{ std::make_shared<MenuModelPageItemData>(static_cast<float>(0)) }
+      , powerSupply{ PIOD, ID_PIOD, 31 }
+      , outputRelay{ PIOA, ID_PIOA, 21 }
     {
         InitializeMenu();
         InitializeFilters();
@@ -103,7 +107,6 @@ class ClampMeter {
                     3,
                     nullptr);
     }
-
     void StartDisplayMeasurementsTask() volatile
     {
         xTaskCreate(ClampMeterDisplayMeasurementsTaskWrapper,
@@ -113,7 +116,6 @@ class ClampMeter {
                     3,
                     nullptr);
     }
-
     void StartAnalogTask() volatile
     {
         xTaskCreate(ClampMeterAnalogTaskWrapper, "analog", 500, std::remove_volatile_t<void *const>(this), 3, nullptr);
@@ -123,7 +125,7 @@ class ClampMeter {
     void DisplayMeasurementsTask() noexcept
     {
         drawer.DrawerTask();
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
     void MeasurementsTask() noexcept
     {
@@ -159,6 +161,13 @@ class ClampMeter {
         int counter = 0;
 
         while (true) {
+//            auto current_msg_count =static_cast<float>(uxQueueMessagesWaiting(adc_data_queue));
+//            auto maxval = (*zClamp).GetValue();
+//
+//            if (static_cast<BaseType_t>(std::get<float>(maxval)) < current_msg_count) {
+//                *zClamp = current_msg_count;
+//            }
+
             xQueueReceive(adc_data_queue, &adc_value, portMAX_DELAY);
 
             *vShunt = adc_value;
@@ -166,8 +175,7 @@ class ClampMeter {
                 sensorPreamps[static_cast<int>(activeSensor)].CheckAmplitudeAndCorrectGainIfNeeded(adc_value);
             }
 
-            auto sinprod = sin_table[counter] * adc_value;
-
+            auto sinprod = sin_table[counter] * 1;
             filter.Push(sinprod);
 
             if (counter == (DACC_PACKETLEN - 1))
@@ -218,8 +226,20 @@ class ClampMeter {
         measurements_page->InsertChild(vout_info);
         measurements_page->InsertChild(iout_info);
         measurements_page->InsertChild(zout_info);
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, []() { measurement_start(); });
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, []() { measurement_stop(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() {
+          generator.StartGenerating();
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          powerSupply.Activate();
+          vTaskDelay(pdMS_TO_TICKS(1000));
+            outputRelay.Activate();
+            /*measurement_star1t();*/
+        });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() {
+            outputRelay.Deactivate();
+            generator.StopGenerating();
+            powerSupply.Deactivate();
+            vTaskDelay(pdMS_TO_TICKS(200));
+        });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, []() {
             if (Analog.generator_is_active) {
                 switch (Analog.selected_sensor) {
@@ -404,7 +424,25 @@ class ClampMeter {
     }
     void InitializeSensorPreamps() noexcept
     {
+        // todo: move to preamp initializers
+        pio_set_input(PIOA,
+                      SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN,
+                      0);
+
+        pio_set_input(PIOD,
+                      CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN,
+                      0);
+
+        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
+
+        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
+
+        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
+        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
+
         // clang-format off
+    sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetIninitializingFunctor([](){});
+    sensorPreamps.at(static_cast<int>(Sensor::Shunt)).InvokeInitializer();
     sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(0, [this]() {shunt_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1V3);});
     sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(1, [this]() {shunt_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
     sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(2, [this]() {shunt_sensor_set_gain(1); adc.SetGain(MCP3462_driver::Gain::GAIN_1);});
@@ -416,6 +454,8 @@ class ClampMeter {
     sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(8, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_8);});
     sensorPreamps.at(static_cast<int>(Sensor::Shunt)).SetGainChangeFunctor(9, [this]() {shunt_sensor_set_gain(4); adc.SetGain(MCP3462_driver::Gain::GAIN_16);});
 
+    sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetIninitializingFunctor([](){});
+    sensorPreamps.at(static_cast<int>(Sensor::Clamp)).InvokeInitializer();
     sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(0, [this]() {clamp_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1V3); });
     sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
     sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(1); adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
@@ -457,6 +497,10 @@ class ClampMeter {
     PageDataT zClamp;
     PageDataT sensorMag;
     PageDataT sensorPhi;
+
+    HVPowerSupply   powerSupply;
+    OutputRelay     outputRelay;
+    OutputGenerator generator;
 };
 
 template<typename Drawer>

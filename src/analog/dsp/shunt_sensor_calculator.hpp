@@ -1,0 +1,10 @@
+//
+// Created by scpha on 25/10/2022.
+//
+
+#ifndef CLAMPMETER_SHUNT_SENSOR_CALCULATOR_HPP
+#define CLAMPMETER_SHUNT_SENSOR_CALCULATOR_HPP
+
+class ShuntSensorCalculator { };
+
+#endif   // CLAMPMETER_SHUNT_SENSOR_CALCULATOR_HPP

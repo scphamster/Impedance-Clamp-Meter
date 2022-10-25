@@ -58,10 +58,10 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/main_task/main_task.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.hpp
-#    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
-#    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
-#    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
-#    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
+    #    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
+    #    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
+    #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
+    #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
     ${SOURCES_DIRECTORY}/keyboard/pin.hpp
     ${SOURCES_DIRECTORY}/timer/timer.cpp
     ${SOURCES_DIRECTORY}/timer/timer.hpp
@@ -71,8 +71,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
-#    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
-#    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
+    #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
+    #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
     ${SOURCES_DIRECTORY}/menu/menu.hpp
@@ -85,8 +85,27 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/analog/adc/mcp3462_driver.hpp
     ${SOURCES_DIRECTORY}/analog/dsp/filter.hpp
     ${SOURCES_DIRECTORY}/analog/dsp/filter.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/sensor.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/sensor.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/clamp_meter_calculator.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/clamp_meter_calculator.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/shunt_sensor_calculator.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/shunt_sensor_calculator.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/voltage_sensor_calculator.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/clamp_sensor_calculator.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/voltage_sensor_calculator.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/clamp_sensor_calculator.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.hpp
+    ${SOURCES_DIRECTORY}/peripherals/abstract_peripheral.hpp
+    ${SOURCES_DIRECTORY}/peripherals/abstract_peripheral.cpp
+    ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.hpp
+    ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.cpp
+    ${SOURCES_DIRECTORY}/peripherals/OutputRelay.cpp
+    ${SOURCES_DIRECTORY}/peripherals/OutputRelay.hpp
+    ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
+    ${SOURCES_DIRECTORY}/analog/generator/output_generator.cpp
+
     )
 
 set(C_SOURCES
@@ -112,7 +131,9 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/utilities
     ${SOURCES_DIRECTORY}/analog/adc
     ${SOURCES_DIRECTORY}/analog/dsp
+    ${SOURCES_DIRECTORY}/analog/generator
     ${SOURCES_DIRECTORY}/analog/sensor
+    ${SOURCES_DIRECTORY}/peripherals
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

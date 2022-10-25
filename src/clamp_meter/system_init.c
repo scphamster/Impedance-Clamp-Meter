@@ -268,7 +268,7 @@ system_init(void)
 //    system_tick_init();
     keyboard_encoder_init();
 
-    dacc_init();
+//    dacc_init();
     spi_init();
     twi_init();
     twiPdc_init();
