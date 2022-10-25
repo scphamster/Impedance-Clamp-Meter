@@ -29,8 +29,8 @@ class SensorPreamp {
       , minGain(new_min_gain)
       , upperAmplitudeAGCLimit(higher_amplitude_agc_limit)
       , lowerAmplitudeAGCLimit(lower_amplitude_agc_limit)
-      , numberOfSamplesAGCTriggerHIGH{ agc_samples_number_trigger_HIGH }
-      , numberOfSamplesAGCTriggerLOW{ agc_samples_number_trigger_LOW }
+      , numberOfSamplesToTriggerGainDecrease{ agc_samples_number_trigger_HIGH }
+      , numberOfSamplesToTriggerGainIncrease{ agc_samples_number_trigger_LOW }
     {
         if (upperAmplitudeAGCLimit != lowerAmplitudeAGCLimit)
             AGC_enabled = true;
@@ -52,6 +52,7 @@ class SensorPreamp {
     {
         if (gainChangeFunctors.contains(gain + 1) && (gain + 1) <= maxGain) {
             gainChangeFunctors.at(gain + 1)();
+            ResetCounters();
             gain++;
         }
     }
@@ -60,36 +61,43 @@ class SensorPreamp {
         if (gainChangeFunctors.contains(gain - 1) && (gain - 1) >= minGain) {
             gainChangeFunctors.at(gain - 1)();
             gain--;
+            ResetCounters();
         }
     }
     void CheckAmplitudeAndCorrectGainIfNeeded(ValueType amplitude) noexcept
     {
+        if (not AGC_enabled)
+            return;
+
+        if (compareByAbsoluteValue and (amplitude < 0))
+            amplitude = -amplitude;
+
         if (amplitude < lowerAmplitudeAGCLimit) {
             if (gain == maxGain)
                 return;
 
             amplitudeTooLowCounter++;
 
-            if (amplitudeTooLowCounter >= numberOfSamplesAGCTriggerLOW) {
+            if (amplitudeTooLowCounter >= numberOfSamplesToTriggerGainIncrease) {
                 IncreaseGain();
+                amplitudeTooLowCounter = 0;
             }
         }
         else if (amplitude > upperAmplitudeAGCLimit) {
             if (gain == minGain)
                 return;
 
-            amplitude_TooHighCounter++;
+            amplitudeTooHighCounter++;
 
-            if (amplitude_TooHighCounter >= numberOfSamplesAGCTriggerHIGH)
+            if (amplitudeTooHighCounter >= numberOfSamplesToTriggerGainDecrease)
                 DecreaseGain();
         }
 
-        check_counter++;
+        sampleCounter++;
 
-        if (check_counter > numberOfSamplesAGCTriggerHIGH && check_counter > numberOfSamplesAGCTriggerLOW) {
-            amplitude_TooHighCounter = 0;
-            amplitudeTooLowCounter   = 0;
-            check_counter            = 0;
+        if (sampleCounter > numberOfSamplesToTriggerGainDecrease &&
+            sampleCounter > numberOfSamplesToTriggerGainIncrease) {
+            ResetCounters();
         }
     }
     void SetUpperAmplitudeAGCLimit(ValueType new_upper_limit) noexcept { upperAmplitudeAGCLimit = new_upper_limit; }
@@ -103,20 +111,30 @@ class SensorPreamp {
         gainChangeFunctors[for_gain_level] = std::move(new_functor);
     }
 
+  protected:
+    void ResetCounters() noexcept
+    {
+        amplitudeTooLowCounter  = 0;
+        amplitudeTooHighCounter = 0;
+        sampleCounter           = 0;
+    }
+
   private:
-    GainLevelT maxGain = 4;
+    bool AGC_enabled            = false;
+    bool compareByAbsoluteValue = true;
+
+    GainLevelT maxGain = 0;
     GainLevelT minGain = 0;
     GainLevelT gain    = minGain;
 
-    bool      AGC_enabled = false;
     ValueType upperAmplitudeAGCLimit{};
     ValueType lowerAmplitudeAGCLimit{};
 
     size_t amplitudeTooLowCounter{};
-    size_t amplitude_TooHighCounter{};
-    size_t numberOfSamplesAGCTriggerLOW{};
-    size_t numberOfSamplesAGCTriggerHIGH{};
-    size_t check_counter{};
+    size_t amplitudeTooHighCounter{};
+    size_t numberOfSamplesToTriggerGainIncrease{};
+    size_t numberOfSamplesToTriggerGainDecrease{};
+    size_t sampleCounter{};
 
     std::map<GainLevelT, GainChangeFunctor> gainChangeFunctors;
 };
