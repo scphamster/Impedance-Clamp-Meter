@@ -52,13 +52,14 @@ class ClampMeterInTaskHandler;
 
 auto constexpr firstBufferSize = 100;
 
-template<typename Drawer, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
+template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class ClampMeter {
   public:
-    using Page           = MenuModelPage<Keyboard>;
-    using Model          = MenuModel<Keyboard>;
-    using ModelItemDataT = std::shared_ptr<MenuModelPageItemData>;
-    using SensorPreampT  = SensorPreamp<MCP3462_driver::ValueT>;
+    using Page          = MenuModelPage<Keyboard>;
+    using Menu          = MenuModel<Keyboard>;
+    using PageDataT     = std::shared_ptr<MenuModelPageItemData>;
+    using SensorPreampT = SensorPreamp<MCP3462_driver::ValueT>;
+    using Drawer        = std::unique_ptr<DrawerT>;
 
     enum class Sensor {
         Shunt = 0,
@@ -71,8 +72,8 @@ class ClampMeter {
         NumberOfSensorPreamps = 2
     };
 
-    ClampMeter(std::unique_ptr<Drawer> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
-      : model{ std::make_shared<Model>() }
+    ClampMeter(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
+      : model{ std::make_shared<Menu>() }
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
       , adc{ 0x40, 200 }
@@ -119,30 +120,11 @@ class ClampMeter {
     }
 
   protected:
-    void SetSensor(Sensor new_sensor) noexcept
-    {
-        using Reference = MCP3462_driver::Reference;
-
-        if (new_sensor == Sensor::Voltage) {
-            adc.SetMux(Reference::CH4, Reference::CH5);
-            activeSensor = Sensor::Voltage;
-        }
-        else if (new_sensor == Sensor::Shunt) {
-            adc.SetMux(Reference::CH2, Reference::CH3);
-            activeSensor = Sensor::Shunt;
-        }
-        else if (new_sensor == Sensor::Clamp) {
-            adc.SetMux(Reference::CH0, Reference::CH1);
-            activeSensor = Sensor::Clamp;
-        }
-    }
-
     void DisplayMeasurementsTask() noexcept
     {
         drawer.DrawerTask();
         vTaskDelay(pdMS_TO_TICKS(200));
     }
-
     void MeasurementsTask() noexcept
     {
         if (Analog.generator_is_active) {
@@ -165,7 +147,6 @@ class ClampMeter {
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-
     [[noreturn]] void AnalogTask() noexcept
     {
         MCP3462_driver::ValueT adc_value{};
@@ -193,6 +174,24 @@ class ClampMeter {
                 counter = 0;
             else
                 counter++;
+        }
+    }
+
+    void SetSensor(Sensor new_sensor) noexcept
+    {
+        using Reference = MCP3462_driver::Reference;
+
+        if (new_sensor == Sensor::Voltage) {
+            adc.SetMux(Reference::CH4, Reference::CH5);
+            activeSensor = Sensor::Voltage;
+        }
+        else if (new_sensor == Sensor::Shunt) {
+            adc.SetMux(Reference::CH2, Reference::CH3);
+            activeSensor = Sensor::Shunt;
+        }
+        else if (new_sensor == Sensor::Clamp) {
+            adc.SetMux(Reference::CH0, Reference::CH1);
+            activeSensor = Sensor::Clamp;
         }
     }
 
@@ -437,10 +436,10 @@ class ClampMeter {
     }
 
   private:
-    friend class ClampMeterInTaskHandler<Drawer>;
+    friend class ClampMeterInTaskHandler<DrawerT>;
 
     std::shared_ptr<MenuModel<Keyboard>> model;
-    MenuModelDrawer<Drawer, Keyboard>    drawer;
+    MenuModelDrawer<DrawerT, Keyboard>   drawer;
 
     MCP3462_driver adc;
     QueueHandle_t  adc_data_queue = nullptr;
@@ -453,11 +452,11 @@ class ClampMeter {
     //    dsp;
     std::shared_ptr<std::array<float, 1>> mybuffer;
 
-    ModelItemDataT vOverall;
-    ModelItemDataT vShunt;
-    ModelItemDataT zClamp;
-    ModelItemDataT sensorMag;
-    ModelItemDataT sensorPhi;
+    PageDataT vOverall;
+    PageDataT vShunt;
+    PageDataT zClamp;
+    PageDataT sensorMag;
+    PageDataT sensorPhi;
 };
 
 template<typename Drawer>

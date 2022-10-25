@@ -388,14 +388,15 @@ MCP3462_driver::StopMeasurement() noexcept
 void
 MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
 {
-    uint32_t timeout_counter = SPI_TIMEOUT;
-    uint16_t firstbyte;
-    uint16_t config2_byte;
-    uint16_t retval;
+    size_t   timeout_counter = SPI_TIMEOUT;
+    CommandT initWord;
+    CommandT config2Word;
+    CommandT retval;
+
     auto constexpr config2_reg_addr = 0x3;
 
-    firstbyte                       = CreateFirstCommand_IncrementalWrite(config2_reg_addr);
-    config2_byte                    = BOOST(Boost::BOOST_2) | GAIN(gain) | AZ_MUX(0) | 1;
+    initWord    = CreateFirstCommand_IncrementalWrite(config2_reg_addr);
+    config2Word = CreateConfig2RegisterValue(Boost::BOOST_2, new_gain, AutoZeroingMuxMode::Disabled);
 
     while ((!spi_is_tx_ready(SPI)) && (timeout_counter--))
         ;
@@ -406,6 +407,6 @@ MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
     spi_configure_cs_behavior(SPI, 0, SPI_CS_RISE_FORCED);
     spi_set_bits_per_transfer(SPI, 0, SPI_CSR_BITS_16_BIT);
 
-    spi_write(SPI, (firstbyte << 8) | config2_byte, 0, 0);
+    spi_write(SPI, (initWord << 8) | config2Word, 0, 0);
     spi_set_lastxfer(SPI);
 }
