@@ -24,20 +24,20 @@
 
 using MenuModelIndex = size_t;
 
-class MenuModelPageItemData {
+class UniversalSafeType {
   public:
     using IntegerType = int;
     using FloatType   = float;
     using StringType  = std::string;
     using ValueType   = UniversalType;
 
-    MenuModelPageItemData() = default;
+    UniversalSafeType() = default;
 
-    MenuModelPageItemData(ValueType new_value)
+    UniversalSafeType(ValueType new_value)
       : value{ std::move(new_value) }
     { }
 
-    MenuModelPageItemData &operator=(const auto &new_value)
+    UniversalSafeType &operator=(const auto &new_value)
     {
         value = new_value;
         return *this;
@@ -83,7 +83,7 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     using ButtonName               = typename Keyboard::ButtonName;
     using SpecialKeyboardCallback  = std::function<void()>;
     using SpecialKeyboardCallbacks = std::map<ButtonName, SpecialKeyboardCallback>;
-    using DataT                    = std::shared_ptr<MenuModelPageItemData>;
+    using DataT                    = std::shared_ptr<UniversalSafeType>;
     using EventCallback            = std::function<void()>;
     enum class Event {
         Entrance

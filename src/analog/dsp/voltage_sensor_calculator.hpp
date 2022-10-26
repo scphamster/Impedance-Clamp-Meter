@@ -16,7 +16,7 @@ class VoltageSensorCalculator {
   public:
     using ValueType = float;
 
-    void Calculate(ValueType )
+    void Calculate(ValueType value);
   protected:
     static float FindAngle(float sine, float cosine, float absval) noexcept
     {

@@ -103,6 +103,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.hpp
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442.hpp
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442.cpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.cpp
 
@@ -134,6 +136,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/analog/generator
     ${SOURCES_DIRECTORY}/analog/sensor
     ${SOURCES_DIRECTORY}/peripherals
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

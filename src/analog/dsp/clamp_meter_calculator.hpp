@@ -21,5 +21,5 @@ class ClampMeterCalculator {
   private:
     VoltageSensorCalculator voltageSensorCalculator;
     ShuntSensorCalculator   shuntSensorCalculator;
-    ClampSensorCalculator   clampSensorCalculator;
+    ClampMeterAnalogImplementation clampSensorCalculator;
 };
