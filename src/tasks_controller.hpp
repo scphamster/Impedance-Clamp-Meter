@@ -32,7 +32,7 @@
 #include "HVPowerSupply.hpp"
 #include "OutputRelay.hpp"
 #include "output_generator.hpp"
-#include "clamp_sensor_calculator.hpp"
+#include "clamp_meter_driver.hpp"
 
 // test
 #include "signal_conditioning.h"
@@ -52,17 +52,17 @@ extern "C" void   ClampMeterDisplayMeasurementsTaskWrapper(void *);
 extern "C" void   ClampMeterAnalogTaskWrapper(void *);
 
 template<typename Drawer>
-class ClampMeterInTaskHandler;
+class TasksController;
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
-class ClampMeter {
+class TasksControllerImplementation {
   public:
     using Page      = MenuModelPage<Keyboard>;
     using Menu      = MenuModel<Keyboard>;
     using PageDataT = std::shared_ptr<UniversalSafeType>;
     using Drawer    = std::unique_ptr<DrawerT>;
 
-    ClampMeter(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
+    TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : model{ std::make_shared<Menu>() }
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
@@ -80,9 +80,9 @@ class ClampMeter {
         InitializeTasks();
     }
 
-    ClampMeter(ClampMeter &&other)          = default;
-    ClampMeter &operator=(ClampMeter &&rhs) = default;
-    ~ClampMeter()                           = default;
+    TasksControllerImplementation(TasksControllerImplementation &&other)          = default;
+    TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs) = default;
+    ~TasksControllerImplementation()                                              = default;
 
     void StartMeasurementsTask() volatile
     {
@@ -269,9 +269,9 @@ class ClampMeter {
     }
 
   private:
-    friend class ClampMeterInTaskHandler<DrawerT>;
+    friend class TasksController<DrawerT>;
 
-    ClampMeterAnalogImplementation       clampMeter;
+    ClampMeterDriver                     clampMeter;
     std::shared_ptr<MenuModel<Keyboard>> model;
     MenuModelDrawer<DrawerT, Keyboard>   drawer;
 
@@ -285,9 +285,9 @@ class ClampMeter {
 };
 
 template<typename Drawer>
-class ClampMeterInTaskHandler {
+class TasksController {
   public:
-    ClampMeterInTaskHandler(ClampMeter<Drawer> &instance)
+    TasksController(TasksControllerImplementation<Drawer> &instance)
       : true_instance{ instance }
     { }
 
@@ -297,5 +297,5 @@ class ClampMeterInTaskHandler {
 
   protected:
   private:
-    ClampMeter<Drawer> &true_instance;
+    TasksControllerImplementation<Drawer> &true_instance;
 };

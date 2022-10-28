@@ -40,14 +40,14 @@
  * main_blinky() creates one queue, and two tasks.  It then starts the
  * scheduler.
  *
- * The Queue Send Task:
+ * The Queue Send MainTask:
  * The queue send task is implemented by the prvQueueSendTask() function in
  * this file.  prvQueueSendTask() sits in a loop that causes it to repeatedly
  * block for 200 milliseconds, before sending the value 100 to the queue that
  * was created within main_blinky().  Once the value is sent, the task loops
  * back around to block for another 200 milliseconds.
  *
- * The Queue Receive Task:
+ * The Queue Receive MainTask:
  * The queue receive task is implemented by the prvQueueReceiveTask() function
  * in this file.  prvQueueReceiveTask() sits in a loop where it repeatedly
  * blocks on attempts to read data from the queue that was created within

@@ -25,6 +25,7 @@ class MCP3462_driver {
     using AddressT           = Byte;
     using ValueT             = int32_t;
     using InterruptCallbackT = void(ValueT);
+    using QueueT             = QueueHandle_t;
 
     enum class MeasurementMode {
         SingleShot,
@@ -172,9 +173,9 @@ class MCP3462_driver {
     };
 
     enum Configs {
-        StreamBufferSinglePacketSize = sizeof(ValueT),
-        StreamBufferPacketsLen       = 5,
-        StreamBufferLen              = StreamBufferSinglePacketSize * StreamBufferPacketsLen
+        QueueMsgSize           = sizeof(ValueT),
+        StreamBufferPacketsLen = 5,
+        StreamBufferLen        = QueueMsgSize * StreamBufferPacketsLen
     };
 
     explicit MCP3462_driver(AddressT device_address /*= 0x40*/, size_t queue_size /*= 200*/);
@@ -188,18 +189,20 @@ class MCP3462_driver {
     void SetDataInterruptCallback(MCP3462_driver::InterruptCallbackT &&new_callback) noexcept;
     void StartMeasurement() noexcept;
     void StopMeasurement() noexcept;
-    void SetMeasurementMode(MeasurementMode new_mode) noexcept; //todo implement
-    ValueT SingleShotMeasurement() noexcept; //todo implement
+    void SetMeasurementMode(MeasurementMode new_mode) noexcept;   // todo implement
+    void SetOutputQueue(QueueT new_output_queue) noexcept;
+    void DeleteQueue() noexcept;
 
-    ValueT        Read() noexcept;
+    ValueT     SingleShotMeasurement() noexcept;   // todo implement
+    ValueT     Read() noexcept;
+    BaseType_t HandleInterrupt() noexcept;
+    QueueT     GetDataQueue() const noexcept;
+    QueueT     CreateNewOutputQueue() noexcept;
+    QueueT     CreateNewOutputQueue(size_t new_queue_size) noexcept;
 
-    BaseType_t    HandleInterrupt() noexcept;
-    QueueHandle_t GetDataQueue() const noexcept;
   protected:
-
     void EnableClock(bool if_enable = true) noexcept;
     void EnableInterrupt(bool if_enable = true) noexcept;
-
 
     CommandT        CreateConfig0RegisterValue(bool           if_full_shutdown,
                                                ClockSelection clock,
@@ -223,10 +226,12 @@ class MCP3462_driver {
     void            InterruptInit() noexcept;
 
   private:
-    Gain          gain;
-    Byte          deviceAddress{};
-    bool          clockIsEnabled = false;
-    QueueHandle_t data_queue     = nullptr;
+    Byte   deviceAddress{};
+    Gain   gain;
+    size_t queueSize;
+    QueueT data_queue = nullptr;
+
+    bool clockIsEnabled = false;
 
     std::function<InterruptCallbackT> interruptCallback;
     auto constexpr static interruptPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;

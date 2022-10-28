@@ -92,7 +92,7 @@ typedef struct tskTaskControlBlock * TaskHandle_t;
  */
 typedef BaseType_t (* TaskHookFunction_t)( void * );
 
-/* Task states returned by eTaskGetState. */
+/* MainTask states returned by eTaskGetState. */
 typedef enum
 {
     eRunning = 0, /* A task is querying the state of itself, so must be running. */
@@ -193,7 +193,7 @@ typedef enum
  * task. h
  *
  * Macro to mark the start of a critical code region.  Preemptive context
- * switches cannot occur when in a critical region.
+ * attachedSwitches cannot occur when in a critical region.
  *
  * NOTE: This may alter the stack (depending on the portable implementation)
  * so must be used with care!
@@ -208,7 +208,7 @@ typedef enum
  * task. h
  *
  * Macro to mark the end of a critical code region.  Preemptive context
- * switches cannot occur when in a critical region.
+ * attachedSwitches cannot occur when in a critical region.
  *
  * NOTE: This may alter the stack (depending on the portable implementation)
  * so must be used with care!
@@ -313,12 +313,12 @@ typedef enum
  *
  * Example usage:
  * @code{c}
- * // Task to be created.
+ * // MainTask to be created.
  * void vTaskCode( void * pvParameters )
  * {
  *   for( ;; )
  *   {
- *       // Task code goes here.
+ *       // MainTask code goes here.
  *   }
  * }
  *
@@ -434,7 +434,7 @@ typedef enum
  *
  *      for( ;; )
  *      {
- *          // Task code goes here.
+ *          // MainTask code goes here.
  *      }
  *  }
  *
@@ -1283,7 +1283,7 @@ void vTaskStartScheduler( void ) PRIVILEGED_FUNCTION;
  * {
  *   for( ;; )
  *   {
- *       // Task code goes here.
+ *       // MainTask code goes here.
  *
  *       // At some point we want to end the real time kernel processing
  *       // so call ...
@@ -1316,7 +1316,7 @@ void vTaskEndScheduler( void ) PRIVILEGED_FUNCTION;
  * void vTaskSuspendAll( void );
  * @endcode
  *
- * Suspends the scheduler without disabling interrupts.  Context switches will
+ * Suspends the scheduler without disabling interrupts.  Context attachedSwitches will
  * not occur while the scheduler is suspended.
  *
  * After calling vTaskSuspendAll () the calling task will continue to execute
@@ -1333,7 +1333,7 @@ void vTaskEndScheduler( void ) PRIVILEGED_FUNCTION;
  * {
  *   for( ;; )
  *   {
- *       // Task code goes here.
+ *       // MainTask code goes here.
  *
  *       // ...
  *
@@ -1384,7 +1384,7 @@ void vTaskSuspendAll( void ) PRIVILEGED_FUNCTION;
  * {
  *   for( ;; )
  *   {
- *       // Task code goes here.
+ *       // MainTask code goes here.
  *
  *       // ...
  *
@@ -1665,7 +1665,7 @@ configSTACK_DEPTH_TYPE uxTaskGetStackHighWaterMark2( TaskHandle_t xTask ) PRIVIL
  * void vApplicationGetIdleTaskMemory( StaticTask_t ** ppxIdleTaskTCBBuffer, StackType_t ** ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
  * @endcode
  *
- * This function is used to provide a statically allocated block of memory to FreeRTOS to hold the Idle Task TCB.  This function is required when
+ * This function is used to provide a statically allocated block of memory to FreeRTOS to hold the Idle MainTask TCB.  This function is required when
  * configSUPPORT_STATIC_ALLOCATION is set.  For more information see this URI: https://www.FreeRTOS.org/a00110.html#configSUPPORT_STATIC_ALLOCATION
  *
  * @param ppxIdleTaskTCBBuffer A handle to a statically allocated TCB buffer
@@ -1973,7 +1973,7 @@ configRUN_TIME_COUNTER_TYPE ulTaskGetIdleRunTimePercent( void ) PRIVILEGED_FUNCT
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *
@@ -2120,7 +2120,7 @@ BaseType_t xTaskGenericNotify( TaskHandle_t xTaskToNotify,
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *
@@ -2274,7 +2274,7 @@ BaseType_t xTaskGenericNotifyFromISR( TaskHandle_t xTaskToNotify,
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *
@@ -2387,7 +2387,7 @@ BaseType_t xTaskGenericNotifyWait( UBaseType_t uxIndexToWaitOn,
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *
@@ -2464,7 +2464,7 @@ BaseType_t xTaskGenericNotifyWait( UBaseType_t uxIndexToWaitOn,
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *
@@ -2552,7 +2552,7 @@ void vTaskGenericNotifyGiveFromISR( TaskHandle_t xTaskToNotify,
  * Prior to FreeRTOS V10.4.0 there was only one notification value per task.
  *
  * Events can be sent to a task using an intermediary object.  Examples of such
- * objects are queues, semaphores, mutexes and event groups.  Task notifications
+ * objects are queues, semaphores, mutexes and event groups.  MainTask notifications
  * are a method of sending an event directly to a task without the need for such
  * an intermediary object.
  *

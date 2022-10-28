@@ -405,7 +405,7 @@
 
 #ifndef traceBLOCKING_ON_QUEUE_RECEIVE
 
-/* Task is about to block because it cannot read from a
+/* MainTask is about to block because it cannot read from a
  * queue/mutex/semaphore.  pxQueue is a pointer to the queue/mutex/semaphore
  * upon which the read was attempted.  pxCurrentTCB points to the TCB of the
  * task that attempted the read. */
@@ -414,7 +414,7 @@
 
 #ifndef traceBLOCKING_ON_QUEUE_PEEK
 
-/* Task is about to block because it cannot read from a
+/* MainTask is about to block because it cannot read from a
  * queue/mutex/semaphore.  pxQueue is a pointer to the queue/mutex/semaphore
  * upon which the read was attempted.  pxCurrentTCB points to the TCB of the
  * task that attempted the read. */
@@ -423,7 +423,7 @@
 
 #ifndef traceBLOCKING_ON_QUEUE_SEND
 
-/* Task is about to block because it cannot write to a
+/* MainTask is about to block because it cannot write to a
  * queue/mutex/semaphore.  pxQueue is a pointer to the queue/mutex/semaphore
  * upon which the write was attempted.  pxCurrentTCB points to the TCB of the
  * task that attempted the write. */
@@ -1168,7 +1168,7 @@ typedef struct xSTATIC_LIST
 /*
  * In line with software engineering best practice, especially when supplying a
  * library that is likely to change in future versions, FreeRTOS implements a
- * strict data hiding policy.  This means the Task structure used internally by
+ * strict data hiding policy.  This means the MainTask structure used internally by
  * FreeRTOS is not accessible to application code.  However, if the application
  * writer wants to statically allocate the memory required to create a task then
  * the size of the task object needs to be known.  The StaticTask_t structure

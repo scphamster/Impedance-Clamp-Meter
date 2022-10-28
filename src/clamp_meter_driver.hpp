@@ -13,6 +13,7 @@
 #include <functional>
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "pio.h"
 
 #include "mcp3462_driver.hpp"
@@ -23,35 +24,41 @@
 #include "filter.hpp"
 #include "external_periph_ctrl.h"
 #include "signal_conditioning.h"
+#include "sensor.hpp"
 
-extern "C" void ClampSensorTaskWrapper(void *param);
+#include "DG442.hpp"
+#include "analog_switch.hpp"
 
-class ClampMeterAnalogImplementation {
+extern "C" void ClampMeterDriverMainTask(void *param);
+
+class ClampMeterDriver {
   public:
     using ValueT                        = float;
     using DataType                      = std::pair<ValueT, ValueT>;
     using SensorDataInsertionCallback   = std::function<void()>;
     using CalculationCompletionCallback = std::function<void()>;
     using AdcDriverT                    = MCP3462_driver;
+    using AdcValueT                     = AdcDriverT::ValueT;
     using SensorPreampT                 = SensorPreamp<AdcDriverT::ValueT>;
-    enum Configs {
-        NumberOfSensors       = 3,
-        NumberOfSensorPreamps = 2
-    };
+    using QueueT                        = QueueHandle_t;
 
+    enum Configs {
+        NumberOfSensors            = 3,
+        NumberOfSensorPreamps      = 2,
+        QueueReceiveFromADCTimeout = portMAX_DELAY
+    };
     enum class Sensor {
         Shunt = 0,
         Clamp,
         Voltage
     };
 
-    ClampMeterAnalogImplementation()
+    ClampMeterDriver()
       : adc{ 0x40, 200 }
       , sensorPreamps{ SensorPreampT{ 0, 9, 100000, 3000000, 50, 500 }, SensorPreampT{ 0, 9, 100000, 3000000, 50, 500 } }
-      , powerSupply{ PIOD, ID_PIOD, 31 }
-      , outputRelay{ PIOA, ID_PIOA, 21 }
+
     {
-        xTaskCreate(ClampSensorTaskWrapper, "clamp calculator", 500, this, 4, nullptr);
+        xTaskCreate(ClampMeterDriverMainTask, "clamp calculator", 500, this, 4, nullptr);
     }
 
     void SetCalculationCompletionCallback(CalculationCompletionCallback &&new_callback) noexcept
@@ -70,36 +77,46 @@ class ClampMeterAnalogImplementation {
         //        insertionCallbacks.at(activeSensor)();
     }
     ValueT GetClampResistance() noexcept { return 1; }   // todo: implement
+    ValueT GetLastValue() const noexcept { return valueFromLastQueue; }
 
-    [[noreturn]] void Task()
+    [[noreturn]] void MainTask()
     {
+        auto adc_queue          = adc.GetDataQueue();
+        auto new_value_from_adc = AdcValueT{};
+
         while (true) {
-            AdcDriverT::ValueT adc_value{};
-            adc_data_queue = adc.GetDataQueue();
-            SetSensor(Sensor::Clamp);
-            adc.StartMeasurement();
-            int counter = 0;
+            xQueueReceive(adc_queue, &new_value_from_adc, QueueReceiveFromADCTimeout);
 
-            while (true) {
-                xQueueReceive(adc_data_queue, &adc_value, portMAX_DELAY);
 
-                //                *vShunt = adc_value;
-                if (activeSensor != Sensor::Voltage) {
-                    sensorPreamps[static_cast<int>(activeSensor)].CheckAmplitudeAndCorrectGainIfNeeded(adc_value);
-                }
 
-                //                auto sinprod = sin_table[counter] * 1;
-                //                filter.Push(sinprod);
-                //
-                //                if (counter == (DACC_PACKETLEN - 1))
-                //                    counter = 0;
-                //                else
-                //                    counter++;
-            }
         }
     }
 
+    [[noreturn]] void ShuntSensorTask()
+    {
+        ValueT new_value;
+
+        while (true) {
+            xQueueReceive(dataFromFilterQueue, &new_value, portMAX_DELAY);
+            valueFromLastQueue = new_value;
+        }
+    }
+
+    void SwitchSensor(Sensor new_sensor) noexcept { adc.SetOutputQueue(sensors.at(new_sensor).GetInputQueue()); }
+
   protected:
+    class PeripheralsController {
+      public:
+        PeripheralsController()
+          : powerSupply{ PIOD, ID_PIOD, 31 }
+          , outputRelay{ PIOA, ID_PIOA, 21 }
+        { }
+
+      private:
+        friend class ClampMeterDriver;
+        HVPowerSupply powerSupply;
+        OutputRelay   outputRelay;
+    };
     void InitializeFilters() noexcept
     {
         auto constexpr fir1_dec_blocksize = 100;
@@ -205,7 +222,6 @@ class ClampMeterAnalogImplementation {
 
         //        filter.SetDataReadyCallback([this]() { *vOverall = (*mybuffer)[0]; });
     }
-
     void InitializeSensorPreamps() noexcept
     {
         // todo: move to preamp initializers
@@ -252,7 +268,6 @@ class ClampMeterAnalogImplementation {
     sensorPreamps.at(static_cast<int>(Sensor::Clamp)).SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16); });
         // clang-format on
     }
-
     void SetSensor(Sensor new_sensor) noexcept
     {
         using Reference = AdcDriverT::Reference;
@@ -271,20 +286,30 @@ class ClampMeterAnalogImplementation {
         }
     }
 
+    [[nodiscard]] std::pair<ValueT, ValueT> FindSinCosProduct(AdcValueT new_adc_value) noexcept {
+
+    }
+
+
   private:
     auto constexpr static firstBufferSize = 100;
+    auto constexpr static lastBufferSize  = 1;
 
-    // peripherals
-    HVPowerSupply                                                       powerSupply;
-    OutputRelay                                                         outputRelay;
+    PeripheralsController                                               peripherals;
     OutputGenerator                                                     generator;
-    Sensor                                                              activeSensor;
     AdcDriverT                                                          adc;   // todo: make type independent
     std::array<SensorPreamp<AdcDriverT::ValueT>, NumberOfSensorPreamps> sensorPreamps;
+    SuperFilter<float, firstBufferSize, lastBufferSize>                 filter;
 
-    SuperFilter<float, firstBufferSize> filter;
-    QueueHandle_t                       adc_data_queue = nullptr;
+    Sensor activeSensor;
+
+    std::array<SensorController, NumberOfSensors> sensors;
+
+    QueueT dataFromFilterQueue = nullptr;
 
     // callbacks
     CalculationCompletionCallback calcCompletedCallback;
+
+    // testvalue
+    ValueT valueFromLastQueue = 0;
 };

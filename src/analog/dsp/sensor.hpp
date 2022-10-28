@@ -11,9 +11,20 @@
 
 #include <array>
 #include <functional>
+#include <memory>
 
-class Sensor {
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
+#include "amplifier_controller.hpp"
+
+class SensorData {
+  public:
     using ValueT = float;
+    using QueueT = QueueHandle_t;
+
+    void SetNewValue(ValueT value) { }
 
     void SetRawValue_I(ValueT new_value_i) noexcept { rawValue_I = new_value_i; }
     void SetRawValue_Q(ValueT new_value_q) noexcept { rawValue_Q = new_value_q; }
@@ -25,6 +36,11 @@ class Sensor {
     void SetTrueDegree(ValueT new_true_degree) noexcept { trueDegree = new_true_degree; }
 
   private:
+    friend class SensorController;
+
+    QueueT inputQueue;
+    QueueT outputQueue;
+
     ValueT rawValue_I{};
     ValueT rawValue_Q{};
     ValueT rawAbsoluteValue{};
@@ -34,8 +50,30 @@ class Sensor {
     ValueT trueValue_Q{};
     ValueT trueAbsoluteValue{};
     ValueT trueDegree{};
-    //Amplifier amplifier;
+};
 
-    //    std::array<ValueT, GainSteps> gainValues;
-    //    int gainStep;
+class SensorController {
+  public:
+    using ValueT = float;
+    using QueueT = QueueHandle_t;
+
+    [[noreturn]] void MainTask()
+    {
+        ValueT newValue;
+
+        while (true) {
+            xQueueReceive(data.inputQueue, &newValue, portMAX_DELAY);
+            amplifierController.ForwardAmplitudeValueToAGCIfEnabled(newValue);
+        }
+    }
+
+    void SetInputQueue(QueueT new_queue) noexcept { data.inputQueue = new_queue; }
+    void SetOutputQueue(QueueT new_queue) noexcept { data.outputQueue = new_queue; }
+
+    [[nodiscard]] QueueT GetInputQueue() const noexcept { return data.inputQueue; }
+    [[nodiscard]] QueueT GetOutputQueue() const noexcept { return data.outputQueue; }
+
+  private:
+    SensorData          data;
+    AmplifierController amplifierController;
 };

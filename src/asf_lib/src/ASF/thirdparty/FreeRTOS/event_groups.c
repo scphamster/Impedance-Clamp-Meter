@@ -697,7 +697,7 @@ static BaseType_t prvTestWaitCondition( const EventBits_t uxCurrentEventBits,
 
     if( xWaitForAllBits == pdFALSE )
     {
-        /* Task only has to wait for one bit within uxBitsToWaitFor to be
+        /* MainTask only has to wait for one bit within uxBitsToWaitFor to be
          * set.  Is one already set? */
         if( ( uxCurrentEventBits & uxBitsToWaitFor ) != ( EventBits_t ) 0 )
         {
@@ -710,7 +710,7 @@ static BaseType_t prvTestWaitCondition( const EventBits_t uxCurrentEventBits,
     }
     else
     {
-        /* Task has to wait for all the bits in uxBitsToWaitFor to be set.
+        /* MainTask has to wait for all the bits in uxBitsToWaitFor to be set.
          * Are they set already? */
         if( ( uxCurrentEventBits & uxBitsToWaitFor ) == uxBitsToWaitFor )
         {

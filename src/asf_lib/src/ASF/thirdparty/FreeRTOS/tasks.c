@@ -248,7 +248,7 @@
 #endif
 
 /*
- * Task control block.  A task control block (TCB) is allocated for each task,
+ * MainTask control block.  A task control block (TCB) is allocated for each task,
  * and stores task state information, including a pointer to the task's context
  * (the task's run time environment, including register values)
  */
@@ -386,7 +386,7 @@ PRIVILEGED_DATA static TaskHandle_t xIdleTaskHandle = NULL;                     
  * to determine the number of priority lists to read back from the remote target. */
 const volatile UBaseType_t uxTopUsedPriority = configMAX_PRIORITIES - 1U;
 
-/* Context switches are held pending while the scheduler is suspended.  Also,
+/* Context attachedSwitches are held pending while the scheduler is suspended.  Also,
  * interrupts must not manipulate the xStateListItem of a TCB, or any of the
  * lists the xStateListItem can be referenced from, if the scheduler is suspended.
  * If an interrupt needs to unblock a task while the scheduler is suspended then it
@@ -2471,7 +2471,7 @@ char * pcTaskGetName( TaskHandle_t xTaskToQuery ) /*lint !e971 Unqualified char 
         UBaseType_t uxQueue = configMAX_PRIORITIES;
         TCB_t * pxTCB;
 
-        /* Task names will be truncated to configMAX_TASK_NAME_LEN - 1 bytes. */
+        /* MainTask names will be truncated to configMAX_TASK_NAME_LEN - 1 bytes. */
         configASSERT( strlen( pcNameToQuery ) < configMAX_TASK_NAME_LEN );
 
         vTaskSuspendAll();

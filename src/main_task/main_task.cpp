@@ -7,7 +7,7 @@
 #ifdef printf
 #undef printf
 #endif
-#include "hclamp_meter.hpp"
+#include "tasks_controller.hpp"
 #include "main_task.hpp"
 // #include "clamp_sensor.hpp"
 #include "task.h"
@@ -16,8 +16,8 @@
 #include "signal_conditioning.h"
 
 using Drawer                      = DisplayDrawer<ILI9486Driver>;
-using Clamp                       = ClampMeter<Drawer>;
-using ClampMeterFreeRTOS          = ClampMeterInTaskHandler<Drawer>;
+using Clamp                       = TasksControllerImplementation<Drawer>;
+using ClampMeterFreeRTOS          = TasksController<Drawer>;
 using KeyboardT                   = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>;
 bool ILI9486Driver::isInitialized = false;
 

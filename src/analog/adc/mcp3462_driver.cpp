@@ -57,6 +57,8 @@ MCP3462_driver::ClockInit() noexcept
 void
 MCP3462_driver::Initialize() noexcept   // todo: make configurable
 {
+    driver = this;
+
     uint16_t config0_regval = 0;
     uint16_t config1_regval = 0;
     uint16_t config2_regval = 0;
@@ -239,18 +241,18 @@ MCP3462_driver::CreateFirstCommand_StaticRead(MCP3462_driver::CommandT command) 
 
 MCP3462_driver::MCP3462_driver(MCP3462_driver::AddressT device_address /* = 0x40*/, size_t queue_size /*= 200*/)
   : deviceAddress{ device_address }
-  , data_queue{ xQueueCreate(queue_size, StreamBufferSinglePacketSize) }
+  , queueSize{ queue_size }
+  , data_queue{ xQueueCreate(queue_size, QueueMsgSize) }
 {
     if (data_queue == nullptr)
         std::terminate();   // todo: make exception handling
 
-    driver = this;
     Initialize();
 }
 
 MCP3462_driver::~MCP3462_driver()
 {
-    vQueueDelete(data_queue);
+    DeleteQueue();
 }
 
 void
@@ -325,7 +327,10 @@ MCP3462_driver::HandleInterrupt() noexcept
     //    auto adc_value = 153;
     // end test
 
-    if (xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken) == errQUEUE_FULL) {while(true);};
+    if (xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken) == errQUEUE_FULL) {
+        while (true)
+            ;
+    };
 
     return higher_prio_task_woken;
 }
@@ -378,7 +383,6 @@ MCP3462_driver::StartMeasurement() noexcept
     EnableInterrupt();
     EnableClock();
 }
-
 void
 MCP3462_driver::StopMeasurement() noexcept
 {
@@ -409,4 +413,30 @@ MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
 
     spi_write(SPI, (initWord << 8) | config2Word, 0, 0);
     spi_set_lastxfer(SPI);
+}
+void
+MCP3462_driver::SetOutputQueue(MCP3462_driver::QueueT new_output_queue) noexcept
+{
+    DeleteQueue();
+    data_queue = new_output_queue;
+}
+void
+MCP3462_driver::DeleteQueue() noexcept
+{
+    if (data_queue != nullptr) {
+        vQueueDelete(data_queue);
+    }
+}
+
+MCP3462_driver::QueueT
+MCP3462_driver::CreateNewOutputQueue(size_t new_queue_size) noexcept
+{
+    queueSize = new_queue_size;
+    return xQueueCreate(new_queue_size, QueueMsgSize);
+}
+
+MCP3462_driver::QueueT
+MCP3462_driver::CreateNewOutputQueue() noexcept
+{
+    CreateNewOutputQueue(queueSize);
 }

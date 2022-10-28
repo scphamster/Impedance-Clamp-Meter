@@ -136,15 +136,41 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     OutputBufferT                        outputBuffer;
 };
 
-template<typename ValueT, size_t firstBufferSize>
+extern "C" void SuperFilterTask(void *param);
+
+template<typename ValueT, size_t firstBufferSize, size_t lastBufferSize>
 class SuperFilter {
   public:
     using FirstBufferT      = std::shared_ptr<std::array<ValueT, firstBufferSize>>;
+    using LastBufferT       = std::shared_ptr<std::array<ValueT, lastBufferSize>>;
     using DataReadyCallback = std::function<void()>;
+    using QueueT            = QueueHandle_t;
 
-    SuperFilter()
-      : firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
-    { }
+    enum Configs {
+        QueueMsgSize          = sizeof(ValueT),
+        QueueSendTimeoutValue = 0,
+        StackDepth            = 400,
+        TaskPriority          = 4
+    };
+
+    SuperFilter(size_t input_queue_size, size_t output_queue_size)
+      : inputQueue{ xQueueCreate(input_queue_size, QueueMsgSize) }
+      , outputQueue{ xQueueCreate(output_queue_size, QueueMsgSize) }
+      , firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
+      , lastBuffer{ std::make_shared<std::array<ValueT, lastBufferSize>>() }
+    {
+        xTaskCreate(SuperFilterTask, "superFilter", StackDepth, this, TaskPriority, nullptr);
+    }
+
+    [[noreturn]] void InputQueueTask()
+    {
+        while (true) {
+            auto new_input_value = ValueT{};
+
+            xQueueReceive(inputQueue, &new_input_value, portMAX_DELAY);
+            Push(new_input_value);
+        }
+    }
 
     void Push(ValueT new_value) noexcept
     {
@@ -154,7 +180,6 @@ class SuperFilter {
             bufferIteratorPosition = 0;
         }
     }
-
     template<template<size_t...> class FilterType, size_t... sizes, typename... Args>
     void EmplaceFilter(Args &&...args)
     {
@@ -167,7 +192,6 @@ class SuperFilter {
             //              new FilterType<sizes...>(std::forward<Args>(args)..., )));
         }
     }
-
     void InsertFilter(std::unique_ptr<AbstractFilter> &&filter) noexcept
     {
         filters.push_back(std::forward<decltype(filter)>(filter));
@@ -182,19 +206,26 @@ class SuperFilter {
         filters.back()->SetOutputDataReadyCallback([this]() { LastFilterDataReadyCallback(); });
     }
 
-    void SetDataReadyCallback(DataReadyCallback &&new_data_ready_callback) noexcept
-    {
-        dataReadyCallback = std::move(new_data_ready_callback);
-    }
-
-    FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
+    [[nodiscard]] FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
+    [[nodiscard]] LastBufferT  GetLastBuffer() noexcept { return lastBuffer; }
+    [[nodiscard]] QueueT       GetInputQueue() const noexcept { return inputQueue; }
+    [[nodiscard]] QueueT       GetOutputQueue() const noexcept { return outputQueue; }
 
   protected:
-    void LastFilterDataReadyCallback() { dataReadyCallback(); }
+    void LastFilterDataReadyCallback()
+    {
+        auto new_output_value = (*lastBuffer)[0];
+        xQueueSend(outputQueue, &new_output_value, QueueSendTimeoutValue);
+    }
 
   private:
-    FirstBufferT                                 firstBuffer;
+    QueueT inputQueue  = nullptr;
+    QueueT outputQueue = nullptr;
+
+    FirstBufferT firstBuffer;
+    LastBufferT  lastBuffer;
+
     std::vector<std::unique_ptr<AbstractFilter>> filters;
-    size_t                                       bufferIteratorPosition = 0;
-    DataReadyCallback                            dataReadyCallback;
+
+    size_t bufferIteratorPosition = 0;
 };

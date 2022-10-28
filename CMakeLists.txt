@@ -44,10 +44,14 @@ set(MY_LINK_FLAGS "${LINKER_VERBOSE_CMD} --specs=nosys.specs -mfloat-abi=softfp 
 message(DEBUG "link flags: ${MY_LINK_FLAGS}")
 
 set(CXX_SOURCES
+    ${SOURCES_DIRECTORY}/compiler_compatibility_workaround.hpp
     ${SOURCES_DIRECTORY}/main.cpp
     ${SOURCES_DIRECTORY}/maintask.cpp
     ${SOURCES_DIRECTORY}/maintask.hpp
-    ${SOURCES_DIRECTORY}/hclamp_meter.hpp
+    ${SOURCES_DIRECTORY}/tasks_controller.hpp
+    ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
+    ${SOURCES_DIRECTORY}/clamp_meter_driver.cpp
+
     ${SOURCES_DIRECTORY}/mutex/semaphore.hpp
     ${SOURCES_DIRECTORY}/mutex/semaphore.cpp
     ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.cpp
@@ -62,10 +66,11 @@ set(CXX_SOURCES
     #    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
     #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
     #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
-    ${SOURCES_DIRECTORY}/keyboard/pin.hpp
     ${SOURCES_DIRECTORY}/timer/timer.cpp
     ${SOURCES_DIRECTORY}/timer/timer.hpp
     ${SOURCES_DIRECTORY}/concepts/clamp_meter_concepts.hpp
+
+    ${SOURCES_DIRECTORY}/keyboard/pin.hpp
     ${SOURCES_DIRECTORY}/keyboard_fast/keyboard_fast.hpp
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.hpp
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
@@ -73,6 +78,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
     #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
     #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
+
     ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
     ${SOURCES_DIRECTORY}/menu/menu.hpp
@@ -80,33 +86,32 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
+
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
+
     ${SOURCES_DIRECTORY}/analog/adc/mcp3462_driver.cpp
     ${SOURCES_DIRECTORY}/analog/adc/mcp3462_driver.hpp
     ${SOURCES_DIRECTORY}/analog/dsp/filter.hpp
     ${SOURCES_DIRECTORY}/analog/dsp/filter.cpp
     ${SOURCES_DIRECTORY}/analog/dsp/sensor.cpp
     ${SOURCES_DIRECTORY}/analog/dsp/sensor.hpp
-    ${SOURCES_DIRECTORY}/analog/dsp/clamp_meter_calculator.hpp
-    ${SOURCES_DIRECTORY}/analog/dsp/clamp_meter_calculator.cpp
-    ${SOURCES_DIRECTORY}/analog/dsp/shunt_sensor_calculator.hpp
-    ${SOURCES_DIRECTORY}/analog/dsp/shunt_sensor_calculator.cpp
-    ${SOURCES_DIRECTORY}/analog/dsp/voltage_sensor_calculator.hpp
-    ${SOURCES_DIRECTORY}/analog/dsp/clamp_sensor_calculator.hpp
-    ${SOURCES_DIRECTORY}/analog/dsp/voltage_sensor_calculator.cpp
-    ${SOURCES_DIRECTORY}/analog/dsp/clamp_sensor_calculator.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.hpp
+    ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
+    ${SOURCES_DIRECTORY}/analog/generator/output_generator.cpp
+
     ${SOURCES_DIRECTORY}/peripherals/abstract_peripheral.hpp
     ${SOURCES_DIRECTORY}/peripherals/abstract_peripheral.cpp
     ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.hpp
     ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.hpp
-    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442.hpp
-    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442.cpp
-    ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
-    ${SOURCES_DIRECTORY}/analog/generator/output_generator.cpp
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442/DG442.hpp
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442/DG442.cpp
+    ${SOURCES_DIRECTORY}/peripherals/analog_switch/analog_switch.hpp
+    ${SOURCES_DIRECTORY}/peripherals/gain_control/amplifier_controller.hpp
+    ${SOURCES_DIRECTORY}/peripherals/gain_control/automatic_gain_controller.hpp
+    ${SOURCES_DIRECTORY}/peripherals/gain_control/gain_controller.hpp
 
     )
 
@@ -135,8 +140,13 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/analog/dsp
     ${SOURCES_DIRECTORY}/analog/generator
     ${SOURCES_DIRECTORY}/analog/sensor
+
     ${SOURCES_DIRECTORY}/peripherals
-    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442
+    ${SOURCES_DIRECTORY}/peripherals/analog_switch
+    ${SOURCES_DIRECTORY}/peripherals/gain_control
+
+
     )
 
 set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}")

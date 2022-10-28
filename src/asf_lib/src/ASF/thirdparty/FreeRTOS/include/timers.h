@@ -763,7 +763,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void ) PRIVILEGED_FUNCTION;
  *                                     ( 5000 / portTICK_PERIOD_MS), // The timer period in ticks.
  *                                     pdFALSE,                    // The timer is a one-shot timer.
  *                                     0,                          // The id is not used by the callback so can take any value.
- *                                     vBacklightTimerCallback     // The callback function that switches the LCD back-light off.
+ *                                     vBacklightTimerCallback     // The callback function that attachedSwitches the LCD back-light off.
  *                                   );
  *
  *     if( xBacklightTimer == NULL )
@@ -1334,7 +1334,7 @@ BaseType_t xTimerGenericCommand( TimerHandle_t xTimer,
  * void vApplicationGetTimerTaskMemory( StaticTask_t ** ppxTimerTaskTCBBuffer, StackType_t ** ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )
  * @endcode
  *
- * This function is used to provide a statically allocated block of memory to FreeRTOS to hold the Timer Task TCB.  This function is required when
+ * This function is used to provide a statically allocated block of memory to FreeRTOS to hold the Timer MainTask TCB.  This function is required when
  * configSUPPORT_STATIC_ALLOCATION is set.  For more information see this URI: https://www.FreeRTOS.org/a00110.html#configSUPPORT_STATIC_ALLOCATION
  *
  * @param ppxTimerTaskTCBBuffer   A handle to a statically allocated TCB buffer
