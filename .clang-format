@@ -43,7 +43,7 @@ BraceWrapping:
   SplitEmptyNamespace: false
   
 BreakStringLiterals: true
-ColumnLimit: 122
+ColumnLimit: 132
 
 IndentCaseBlocks: false
 IndentCaseLabels: false

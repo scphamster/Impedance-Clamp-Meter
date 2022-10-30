@@ -31,14 +31,11 @@
 #include "iq_calculator.hpp"
 #include "task.hpp"
 #include "project_configs.hpp"
+#include "freertos_handlers.h"
 
 #include "DG442.hpp"
 #include "analog_switch.hpp"
 #include "dsp_resources.hpp"
-
-extern "C" void ClampMeterDriverShuntSensorTask(void *param);
-extern "C" void ClampMeterDriverClampSensorTask(void *param);
-extern "C" void ClampMeterDriverVoltageSensorTask(void *param);
 
 class ClampMeterDriver {
   public:
@@ -65,7 +62,12 @@ class ClampMeterDriver {
     };
 
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> new_test_value)
-      : /*voltageTask{ [this]() { this->VoltageSensorTask(); },
+      : testValue{ new_test_value }
+      , adc{ ProjectConfigs::ADCAddress,
+             ProjectConfigs::ADCStreamBufferCapacity,
+             ProjectConfigs::ADCStreamBufferTriggeringSize }
+      , filter{ ProjectConfigs::GetQueueSize(ProjectConfigs::QueueSize::FromAdc) }
+      , voltageTask{ [this]() { this->VoltageSensorTask(); },
                      ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                      ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                      "voltage sensor" }
@@ -77,22 +79,23 @@ class ClampMeterDriver {
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                    "clamp sensor" }
-      , */
-
-      testValue{ new_test_value }
-      , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::GetQueueSize(ProjectConfigs::QueueSize::FromAdc) }
-      , filter{ ProjectConfigs::GetQueueSize(ProjectConfigs::QueueSize::FromAdc) }
+    /*, testSenderTask([this]() { this->TestSenderTask(); }, 400, 3, "test sender")*/
     {
-        //        InitializeFilters();
+        InitializeFilters();
         InitializeSensors();
-        //        InitializeTasks();
-        // test
+
+        //        testSenderTask.Suspend();         // test
     }
 
     void StartMeasurements() noexcept
     {
-        SwitchSensor(Sensor::Voltage);
+        // test
+        //        SwitchSensor(Sensor::Voltage);
+        //        testSenderTask.Resume();
+        //        return;
 
+        SwitchSensor(Sensor::Voltage);
+        filter.Resume();
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
@@ -103,10 +106,14 @@ class ClampMeterDriver {
     }
     void StopMeasurements() noexcept
     {
+        // test
+        //        testSenderTask.Suspend();
+        //        return;
         peripherals.outputRelay.Deactivate();
         generator.StopGenerating();
         peripherals.powerSupply.Deactivate();
         adc.StopMeasurement();
+        filter.Suspend();
     }
 
     [[noreturn]] void ShuntSensorTask()
@@ -144,12 +151,6 @@ class ClampMeterDriver {
     }
 
   protected:
-    void SwitchSensor(Sensor new_sensor) noexcept
-    {
-        sensors.at(activeSensor).Disable();
-        activeSensor = new_sensor;
-        sensors.at(activeSensor).Enable();
-    }
     class PeripheralsController {
       public:
         PeripheralsController()
@@ -162,6 +163,43 @@ class ClampMeterDriver {
         HVPowerSupply powerSupply;
         OutputRelay   outputRelay;
     };
+
+    [[noreturn]] void TestSenderTask() noexcept
+    {
+        auto   some_value = float{};
+        size_t counter    = 0;
+        while (true) {
+//            some_value = sinus_table.at(counter);
+//
+//            auto send_result = xQueueSend(sensors.at(Sensor::Voltage).GetInputQueue(), &some_value, 0);
+//            if (send_result == errQUEUE_FULL)
+//                QueueFullHook(xTaskGetCurrentTaskHandle(), "sender");
+//
+//            counter++;
+//
+//            if (counter == 22)
+//                counter = 0;
+
+            //            vTaskDelay(pdMS_TO_TICKS(1));
+        }
+    }
+    void SwitchSensor(Sensor new_sensor) noexcept
+    {
+        sensors.at(activeSensor).Disable();
+        activeSensor = new_sensor;
+        sensors.at(activeSensor).Enable();
+    }
+    void StandardSensorOnEnableCallback() noexcept
+    {
+        using UnderType = std::underlying_type_t<Sensor>;
+
+        adc.SetOutputStreamBuffer(sensors.at(activeSensor).GetInputStreamBuffer());
+        adc.SetMux(adcChannelsMuxSettings.at(static_cast<UnderType>(activeSensor)).first,
+                   adcChannelsMuxSettings.at(static_cast<UnderType>(activeSensor)).second);
+        filter.SetOutputQueue(sensors.at(activeSensor).GetFromFilterQueueI());
+        sensors.at(activeSensor).SetMinGain();
+    }
+    void StandardSensorOnDisableCallback() noexcept { sensors.at(activeSensor).SetMinGain(); }
     void InitializeFilters() noexcept
     {
         auto constexpr fir1_dec_blocksize = 100;
@@ -264,204 +302,179 @@ class ClampMeterDriver {
         filter.InsertFilter(std::move(sin_filter4));
         filter.InsertFilter(std::move(sin_filter5));
     }
+    void InitializeIO() noexcept
+    {
+        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, 0);
+
+        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
+
+        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
+
+        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
+
+        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
+        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
+    }
     void InitializeSensors() noexcept
     {
         using AGC          = AutomaticGainController<GainController, float>;
         using GainT        = GainController::GainLevelT;
         auto iq_controller = std::make_shared<SynchronousIQCalculator<float>>(sinus_table.size());
 
-        {
-            pio_set_input(PIOA,
-                          SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN |
-                            CLAMP_SENSOR_GAIN_D_PIN,
-                          0);
-
-            pio_set_input(PIOD,
-                          CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN,
-                          0);
-
-            pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
-
-            pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
-
-            pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
-            pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
-        }
-
-        //        {
-        //            auto v_gain_controller = std::make_shared<GainController>(1, 1);
-        //            v_gain_controller->SetGainChangeFunctor(1, [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
-        //            auto v_amplifier_controller = std::make_unique<AmplifierController>(std::move(v_gain_controller));
-        //
-        //            voltageSensor = std::make_shared<SensorController>(testValue,
-        //                                                               std::move(v_amplifier_controller),
-        //                                                               iq_controller,
-        //                                                               adc.CreateNewOutputQueue(),
-        //                                                               filter.GetInputQueue());
-        //        }
+        InitializeIO();
 
         {
             auto v_gain_controller = std::make_shared<GainController>(1, 1);
             v_gain_controller->SetGainChangeFunctor(1, [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
             auto v_amplifier_controller = std::make_unique<AmplifierController>(std::move(v_gain_controller));
-            auto [it, really_emplaced]  = sensors.emplace(std::piecewise_construct,
-                                                         std::forward_as_tuple(Sensor::Voltage),
-                                                         std::forward_as_tuple(testValue,
-                                                                               std::move(v_amplifier_controller),
-                                                                               iq_controller,
-                                                                               adc.CreateNewOutputQueue(),
-                                                                               filter.GetInputQueue()));
+            auto [_unused_, emplaced]   = sensors.emplace(std::piecewise_construct,
+                                                        std::forward_as_tuple(Sensor::Voltage),
+                                                        std::forward_as_tuple(std::move(v_amplifier_controller),
+                                                                              iq_controller,
+                                                                              adc.CreateNewStreamBuffer(),
+                                                                              filter.GetInputQueue()));
 
-            configASSERT(really_emplaced);
+            configASSERT(emplaced);
 
-            sensors.at(Sensor::Voltage).SetOnEnableCallback([this]() {
-                adc.SetOutputQueue(sensors.at(Sensor::Voltage).GetInputQueue());
-                adc.SetMux(MCP3462_driver::Reference::CH4, MCP3462_driver::Reference::CH5);
-                filter.SetOutputQueue(sensors.at(Sensor::Voltage).GetFromFilterQueueI());
-                sensors.at(Sensor::Voltage).SetMinGain();
+            sensors.at(Sensor::Voltage).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
+        }
+
+        {
+            auto sh_gain_controller = std::make_shared<GainController>(1, 10);
+            sh_gain_controller->SetGainChangeFunctor(1, [this]() {
+                shunt_sensor_set_gain(0);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1V3);
             });
-        } /*
+            sh_gain_controller->SetGainChangeFunctor(2, [this]() {
+                shunt_sensor_set_gain(0);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            sh_gain_controller->SetGainChangeFunctor(3, [this]() {
+                shunt_sensor_set_gain(1);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            sh_gain_controller->SetGainChangeFunctor(4, [this]() {
+                shunt_sensor_set_gain(2);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            sh_gain_controller->SetGainChangeFunctor(5, [this]() {
+                shunt_sensor_set_gain(3);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            sh_gain_controller->SetGainChangeFunctor(6, [this]() {
+                shunt_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            sh_gain_controller->SetGainChangeFunctor(7, [this]() {
+                shunt_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_2);
+            });
+            sh_gain_controller->SetGainChangeFunctor(8, [this]() {
+                shunt_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_4);
+            });
+            sh_gain_controller->SetGainChangeFunctor(9, [this]() {
+                shunt_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_8);
+            });
+            sh_gain_controller->SetGainChangeFunctor(10, [this]() {
+                shunt_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_16);
+            });
 
-         {
-             auto sh_gain_controller = std::make_shared<GainController>(1, 10);
+            auto sh_agc                  = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
+            auto sh_amplifier_controller = std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
+            sensors.emplace(std::piecewise_construct,
+                            std::forward_as_tuple(Sensor::Shunt),
+                            std::forward_as_tuple(std::move(sh_amplifier_controller),
+                                                  iq_controller,
+                                                  adc.CreateNewStreamBuffer(),
+                                                  filter.GetInputQueue()));
+            sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
+            sensors.at(Sensor::Shunt).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
+        }
 
-             sh_gain_controller->SetGainChangeFunctor(1, [this]() {
-                 shunt_sensor_set_gain(0);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1V3);
-             });
-             sh_gain_controller->SetGainChangeFunctor(2, [this]() {
-                 shunt_sensor_set_gain(0);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1);
-             });
-             sh_gain_controller->SetGainChangeFunctor(3, [this]() {
-                 shunt_sensor_set_gain(1);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1);
-             });
-             sh_gain_controller->SetGainChangeFunctor(4, [this]() {
-                 shunt_sensor_set_gain(2);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1);
-             });
-             sh_gain_controller->SetGainChangeFunctor(5, [this]() {
-                 shunt_sensor_set_gain(3);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1);
-             });
-             sh_gain_controller->SetGainChangeFunctor(6, [this]() {
-                 shunt_sensor_set_gain(4);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_1);
-             });
-             sh_gain_controller->SetGainChangeFunctor(7, [this]() {
-                 shunt_sensor_set_gain(4);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_2);
-             });
-             sh_gain_controller->SetGainChangeFunctor(8, [this]() {
-                 shunt_sensor_set_gain(4);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_4);
-             });
-             sh_gain_controller->SetGainChangeFunctor(9, [this]() {
-                 shunt_sensor_set_gain(4);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_8);
-             });
-             sh_gain_controller->SetGainChangeFunctor(10, [this]() {
-                 shunt_sensor_set_gain(4);
-                 adc.SetGain(AdcDriverT::Gain::GAIN_16);
-             });
+        {
+            auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
+            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {
+                clamp_sensor_set_gain(0);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1V3);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {
+                clamp_sensor_set_gain(0);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {
+                clamp_sensor_set_gain(1);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {
+                clamp_sensor_set_gain(2);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {
+                clamp_sensor_set_gain(3);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {
+                clamp_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_1);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {
+                clamp_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_2);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {
+                clamp_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_4);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {
+                clamp_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_8);
+            });
+            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {
+                clamp_sensor_set_gain(4);
+                adc.SetGain(AdcDriverT::Gain::GAIN_16);
+            });
 
-             auto sh_agc = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
-             auto sh_amplifier_controller =
-               std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
-             sensors.emplace(Sensor::Shunt,
-                             SensorController{ std::move(sh_amplifier_controller),
-                                               iq_controller,
-                                               adc.CreateNewOutputQueue(),
-                                               filter.GetInputQueue() });
-             sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() {
-                 adc.SetOutputQueue(sensors.at(Sensor::Shunt).GetInputQueue());
-                 adc.SetMux(MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3);
-                 filter.SetOutputQueue(sensors.at(Sensor::Shunt).GetFromFilterQueueI());
-             });
-
-             sensors.at(Sensor::Shunt).SetOnDisableCallback([this]() { sensors.at(Sensor::Shunt).SetMinGain(); });
-         }
-
-         {
-             // clang-format off
-                     auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
-                     clamp_gain_controller->SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0);
-                     adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}); clamp_gain_controller->SetGainChangeFunctor(2, [this]()
-                     {clamp_sensor_set_gain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);});
-                     clamp_gain_controller->SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(1);
-                     adc.SetGain(AdcDriverT::Gain::GAIN_1);}); clamp_gain_controller->SetGainChangeFunctor(4, [this]()
-                     {clamp_sensor_set_gain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);});
-                     clamp_gain_controller->SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(3);
-                     adc.SetGain(AdcDriverT::Gain::GAIN_1);}); clamp_gain_controller->SetGainChangeFunctor(6, [this]()
-                     {clamp_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);});
-                     clamp_gain_controller->SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4);
-                     adc.SetGain(AdcDriverT::Gain::GAIN_2);}); clamp_gain_controller->SetGainChangeFunctor(8, [this]()
-                     {clamp_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);});
-                     clamp_gain_controller->SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4);
-                     adc.SetGain(AdcDriverT::Gain::GAIN_8);}); clamp_gain_controller->SetGainChangeFunctor(10,
-                     [this](){clamp_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);});
-             // clang-format on
-
-             auto clamp_agc = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
-             auto clamp_amplifier_controller =
-               std::make_unique<AmplifierController>(clamp_gain_controller, std::move(clamp_agc), true);
-             sensors.emplace(Sensor::Clamp,
-                             SensorController{ std::move(clamp_amplifier_controller),
-                                               iq_controller,
-                                               adc.CreateNewOutputQueue(),
-                                               filter.GetInputQueue() });
-             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() {
-                 adc.SetOutputQueue(sensors.at(Sensor::Clamp).GetInputQueue());
-                 adc.SetMux(MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3);
-                 filter.SetOutputQueue(sensors.at(Sensor::Clamp).GetFromFilterQueueI());
-             });
-
-             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { sensors.at(Sensor::Clamp).SetMinGain(); });
-         }*/
-    }
-    // todo test
-
-    void InitializeTasks()
-    {
-        xTaskCreate(ClampMeterDriverVoltageSensorTask,
-                    "voltage",
-                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                    this,
-                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                    nullptr);
-
-        xTaskCreate(ClampMeterDriverClampSensorTask,
-                    "clamp",
-                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                    this,
-                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                    nullptr);
-
-        xTaskCreate(ClampMeterDriverShuntSensorTask,
-                    "shunt",
-                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                    this,
-                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                    nullptr);
+            auto clamp_agc = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
+            auto clamp_amplifier_controller =
+              std::make_unique<AmplifierController>(clamp_gain_controller, std::move(clamp_agc), true);
+            sensors.emplace(std::piecewise_construct,
+                            std::forward_as_tuple(Sensor::Clamp),
+                            std::forward_as_tuple(std::move(clamp_amplifier_controller),
+                                                  iq_controller,
+                                                  adc.CreateNewStreamBuffer(),
+                                                  filter.GetInputQueue()));
+            sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
+            sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
+        }
     }
 
   private:
-    std::shared_ptr<UniversalSafeType> testValue;
     auto constexpr static firstBufferSize = 100;
+    auto constexpr static lastBufferSize  = 1;
 
-    auto constexpr static lastBufferSize = 1;
     // todo test
+    std::shared_ptr<UniversalSafeType> testValue;
 
-    //    Task clampTask;
-    //    Task voltageTask;
-    //    Task shuntTask;
+    PeripheralsController peripherals;
 
-    PeripheralsController                               peripherals;
     OutputGenerator                                     generator;
     AdcDriverT                                          adc;   // todo: make type independent
     SuperFilter<float, firstBufferSize, lastBufferSize> filter;
     std::map<Sensor, SensorController>                  sensors;
     std::shared_ptr<SensorController>                   voltageSensor;
     Sensor                                              activeSensor;
+
+    Task voltageTask;
+    Task shuntTask;
+    Task clampTask;
+
+    std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
+        std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },
+        std::pair{ MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1 },
+        std::pair{ MCP3462_driver::Reference::CH4, MCP3462_driver::Reference::CH5 }
+    };
+    //    Task testSenderTask;
 };

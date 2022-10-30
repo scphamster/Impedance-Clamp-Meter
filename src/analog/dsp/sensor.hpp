@@ -13,19 +13,20 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-
+#include "stream_buffer.h"
 #include "semphr.h"
+
 #include "amplifier_controller.hpp"
 #include "iq_calculator.hpp"
 #include "semaphore.hpp"
 #include "task.hpp"
 #include "project_configs.hpp"
-
-extern "C" void InputTaskWrapper(void *sensor_instance);
+#include "queue.hpp"
 
 class SensorData {
   public:
@@ -61,54 +62,47 @@ class SensorController {
   public:
     using InputValueT          = int32_t;
     using ValueT               = float;
-    using OwnedQueue           = QueueHandle_t;
-    using ListenedQueue        = OwnedQueue;
+    using QueueOwned           = QueueHandle_t;
+    using QueueBorrowed        = QueueOwned;
     using ActivationCallback   = std::function<void()>;
     using DeactivationCallback = ActivationCallback;
     using SemaphoreT           = SemaphoreHandle_t;
     using IQCalculator         = SynchronousIQCalculator<ValueT>;   // todo make configurable
     using Lock                 = std::lock_guard<Mutex>;
     using GainT                = GainController::GainLevelT;
-
+    using InputStreamBufferr   = StreamBuffer<InputValueT>;
     enum Configs {
         QueueSendTimeout    = 0,
-        QueueReceiveTimeout = QueueSendTimeout
+        QueueReceiveTimeout = portMAX_DELAY
     };
 
-    explicit SensorController(std::shared_ptr<UniversalSafeType>     testvalue,
-                              std::unique_ptr<AmplifierController> &&new_amplifier_controller,
+    explicit SensorController(std::unique_ptr<AmplifierController> &&new_amplifier_controller,
                               std::shared_ptr<IQCalculator>          new_iq_calculator,
-                              OwnedQueue                             new_input_queue,
-                              ListenedQueue                          new_to_filter_queue)
-      : /*inputTask{ [this]() { this->InputTask(); },
+                              std::shared_ptr<InputStreamBufferr>    new_input_sb,
+                              QueueBorrowed                          new_to_filter_queue)
+      : inputTask{ [this]() { this->InputTaskMsgBuffer(); },
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorInput),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorInput),
                    "s_input" }
-      ,*/
-      simpleSender([this]() { this->SimpleSenderTask(); }, 300, 4, "sender")
-      , simpleReceiver([this]() { this->SimpleReceiverTask(); }, 300, 4, "receiver")
-      , testValue{ testvalue }
-//      , fromFilterTask{ [this]() { this->FromFilterDataHandlerTask(); },
-//                        ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorFromFilter),
-//                        ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorFromFilter),
-//                        "fromFilter" }
-      , inputQueue{ new_input_queue }
+      , fromFilterTask{ [this]() { this->FromFilterDataHandlerTask(); },
+                        ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorFromFilter),
+                        ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorFromFilter),
+                        "fromFilter" }
+      , inputSB{ std::move(new_input_sb) }
       , toFilterQueueI{ std::move(new_to_filter_queue) }
       , fromFilterQueueI{ xQueueCreate(fromFilterQueueLen, sizeof(ValueT)) }
       , dataReadySemaphore{ xSemaphoreCreateBinary() }
       , amplifierController{ std::forward<decltype(new_amplifier_controller)>(new_amplifier_controller) }
       , iqCalculator{ std::move(new_iq_calculator) }
     {
-        // test
-        //         InitializeTasks();
-        InitializeSimpleTestTasks();
+        SuspendTasks();
     }
 
-    SensorController() = delete;
-    SensorController(SensorController const &) = delete;
+    SensorController()                                    = delete;
+    SensorController(SensorController const &)            = delete;
     SensorController &operator=(SensorController const &) = delete;
 
-    void SetQueues(OwnedQueue to_filter_I /*, OwnedQueue to_filter_Q*/) noexcept
+    void SetQueues(QueueOwned to_filter_I /*, OwnedQueue to_filter_Q*/) noexcept
     {
         if (toFilterQueueI == nullptr /*or to_filter_Q == nullptr*/)
             std::terminate();
@@ -119,12 +113,20 @@ class SensorController {
     }
     void Enable() noexcept
     {
-        activationCallback();
+        ResumeTasks();
+
+        if (activationCallback)
+            activationCallback();
+
         isActivated = true;
     }
     void Disable() noexcept
     {
-        deactivationCallback();
+        SuspendTasks();
+
+        if (deactivationCallback)
+            deactivationCallback();
+
         isActivated = false;
     }
     void SetOnEnableCallback(ActivationCallback &&new_callback) noexcept
@@ -138,28 +140,37 @@ class SensorController {
     void SetGain(GainT new_gain) noexcept { amplifierController->SetGain(new_gain); }
     void SetMinGain() noexcept { amplifierController->SetMinGain(); }
     void SetMaxGain() noexcept { amplifierController->SetMaxGain(); }
-
-    [[nodiscard]] OwnedQueue GetInputQueue() const noexcept { return inputQueue; }
-    [[nodiscard]] OwnedQueue GetOutputQueue() const noexcept { return toFilterQueueI; }
-    [[nodiscard]] OwnedQueue GetFromFilterQueueI() const noexcept { return fromFilterQueueI; }
-    [[nodiscard]] SemaphoreT GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] ValueT     GetValue() const noexcept { return data.trueValue_I; }
-    [[nodiscard]] bool       IsActivated() const noexcept { return isActivated; }
-
-    [[noreturn]] void InputTask()
+    void SuspendTasks() noexcept
     {
-        auto new_value = ValueT{};
+        inputTask.Suspend();
+        fromFilterTask.Suspend();
+    }
+    void ResumeTasks() noexcept
+    {
+        inputTask.Resume();
+        fromFilterTask.Resume();
+    }
 
-        while (true) {
-            xQueueReceive(inputQueue, &new_value, portMAX_DELAY);
-            amplifierController->ForwardAmplitudeValueToAGCIfEnabled(new_value);
+    [[nodiscard]] decltype(auto) GetInputStreamBuffer() const noexcept { return inputSB; }
+    [[nodiscard]] QueueOwned     GetOutputQueue() const noexcept { return toFilterQueueI; }
+    [[nodiscard]] QueueOwned     GetFromFilterQueueI() const noexcept { return fromFilterQueueI; }
+    [[nodiscard]] SemaphoreT     GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
+    [[nodiscard]] ValueT         GetValue() const noexcept { return data.trueValue_I; }
+    [[nodiscard]] bool           IsActivated() const noexcept { return isActivated; }
 
-            auto [I, Q /*,todo: Degree*/] = iqCalculator->CalculateIQ(new_value);
-            data.rawAbsoluteValue         = new_value;
-            // todo insert all values to data struct
-            Lock{ queuesMutex };
-            xQueueSend(toFilterQueueI, &I, QueueSendTimeout);
-            //            xQueueSend(toFilterQueueQ, &Q, QueueSendTimeout); //todo for test
+  protected:
+    [[noreturn]] void InputTaskMsgBuffer() noexcept
+    {
+        constexpr auto                                 filterFirstBufferSize = 100;
+        std::array<InputValueT, filterFirstBufferSize> inputBuffer{};
+
+        while (1) {
+            inputBuffer = inputSB->Receive<filterFirstBufferSize>(QueueReceiveTimeout);
+
+            for (auto const &value : inputBuffer) {
+                auto [I, Q /*,todo: Degree*/] = iqCalculator->CalculateIQ(value);
+                xQueueSend(toFilterQueueI, &I, QueueSendTimeout);
+            }
         }
     }
     [[noreturn]] void FromFilterDataHandlerTask()
@@ -175,75 +186,27 @@ class SensorController {
         }
     }
 
-  protected:
-    void InitializeTasks() noexcept
-    {
-        xTaskCreate(InputTaskWrapper,
-                    "input",
-                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorInput),
-                    this,
-                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorInput),
-                    nullptr);
-    }
-
-    void InitializeSimpleTestTasks() noexcept
-    {
-        auto constexpr testlen = 50;
-
-        testQueue = xQueueCreate(testlen, sizeof(int));
-        configASSERT(testQueue != nullptr);
-    }
-    [[noreturn]] void SimpleSenderTask() noexcept
-    {
-        auto input_value = float{};
-
-        while (1) {
-            xQueueSend(testQueue, &input_value, 0);
-
-            input_value += 0.7;
-
-            vTaskDelay(pdMS_TO_TICKS(200));
-        }
-    }
-    [[noreturn]] void SimpleReceiverTask() noexcept
-    {
-        auto output_value = float{};
-
-        while (1) {
-            xQueueReceive(testQueue, &output_value, portMAX_DELAY);
-
-            *testValue = output_value;
-        }
-    }
-
   private:
     auto constexpr static fromFilterQueueLen = 20;
 
-    //test
-    //    Task inputTask;
-    //    Task fromFilterTask;
-
-    OwnedQueue testQueue = nullptr;
-    Task       simpleSender;
-    Task       simpleReceiver;
-    std::shared_ptr<UniversalSafeType> testValue;
-
-    //end test
-
     SensorData data;
 
-    OwnedQueue    inputQueue;
-    ListenedQueue toFilterQueueI;
-    ListenedQueue toFilterQueueQ;
-    OwnedQueue    fromFilterQueueI;
-    OwnedQueue    fromFilterQueueQ;
-    SemaphoreT    dataReadySemaphore;
+    Task inputTask;
+    Task fromFilterTask;
+
+    std::shared_ptr<InputStreamBufferr> inputSB;
+    QueueBorrowed                       toFilterQueueI;
+    QueueBorrowed                       toFilterQueueQ;
+    QueueOwned                          fromFilterQueueI;
+    QueueOwned                          fromFilterQueueQ;
+    SemaphoreT                          dataReadySemaphore;
 
     Mutex queuesMutex;
 
     std::unique_ptr<AmplifierController> amplifierController;
     std::shared_ptr<IQCalculator>        iqCalculator;
-    ActivationCallback                   activationCallback;
-    DeactivationCallback                 deactivationCallback;
-    bool                                 isActivated = false;
+
+    ActivationCallback   activationCallback;
+    DeactivationCallback deactivationCallback;
+    bool                 isActivated = false;
 };

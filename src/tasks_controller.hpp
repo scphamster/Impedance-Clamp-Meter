@@ -83,7 +83,7 @@ class TasksControllerImplementation {
     {
         while (1) {
             drawer.DrawerTask();
-            vTaskDelay(pdMS_TO_TICKS(50));
+            vTaskDelay(pdMS_TO_TICKS(200));
         }
     }
 
