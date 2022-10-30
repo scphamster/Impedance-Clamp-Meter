@@ -14,6 +14,8 @@
 #include "spi.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "freertos_handlers.h"
+#include "project_configs.hpp"
 
 #include "mcp3462_driver.hpp"
 
@@ -328,8 +330,7 @@ MCP3462_driver::HandleInterrupt() noexcept
     // end test
 
     if (xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken) == errQUEUE_FULL) {
-        while (true)
-            ;
+        QueueFullHook(xTaskGetCurrentTaskHandle(), "adc interrupt handler");
     };
 
     return higher_prio_task_woken;
@@ -438,5 +439,5 @@ MCP3462_driver::CreateNewOutputQueue(size_t new_queue_size) noexcept
 MCP3462_driver::QueueT
 MCP3462_driver::CreateNewOutputQueue() noexcept
 {
-    CreateNewOutputQueue(queueSize);
+    return CreateNewOutputQueue(queueSize);
 }

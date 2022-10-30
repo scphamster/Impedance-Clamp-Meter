@@ -60,9 +60,19 @@ vApplicationStackOverflowHook(TaskHandle_t pxTask, char *pcTaskName)
 /*-----------------------------------------------------------*/
 
 void
-vApplicationTickHook(void)
+QueueFullHook(TaskHandle_t task, char *task_name)
 {
+    (void)task;
+    (void)task_name;
+
+    taskDISABLE_INTERRUPTS();
+    for (;;)
+        ;
 }
+
+void
+vApplicationTickHook(void)
+{ }
 /*-----------------------------------------------------------*/
 
 #ifdef __cplusplus

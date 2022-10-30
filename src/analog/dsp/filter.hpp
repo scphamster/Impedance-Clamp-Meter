@@ -14,10 +14,13 @@
 #include <arm_math.h>
 #include <vector>
 #include <functional>
+#include <mutex>
 #include "FreeRTOS.h"
 #include "queue.h"
 
 #include "clamp_meter_concepts.hpp"
+#include "semaphore.hpp"
+#include "project_configs.hpp"
 
 class AbstractFilter {
   public:
@@ -138,6 +141,7 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
 
 extern "C" void SuperFilterTask(void *param);
 
+// todo: try to use stereofilter (superfilterpolychannel)
 template<typename ValueT, size_t firstBufferSize, size_t lastBufferSize>
 class SuperFilter {
   public:
@@ -145,21 +149,20 @@ class SuperFilter {
     using LastBufferT       = std::shared_ptr<std::array<ValueT, lastBufferSize>>;
     using DataReadyCallback = std::function<void()>;
     using QueueT            = QueueHandle_t;
+    using OwnedQueue        = QueueHandle_t;
+    using BorrowedQueue     = OwnedQueue;
+    using Lock              = std::lock_guard<Mutex>;
 
     enum Configs {
         QueueMsgSize          = sizeof(ValueT),
         QueueSendTimeoutValue = 0,
-        StackDepth            = 400,
-        TaskPriority          = 4
     };
 
-    SuperFilter(size_t input_queue_size, size_t output_queue_size)
+    SuperFilter(size_t input_queue_size)
       : inputQueue{ xQueueCreate(input_queue_size, QueueMsgSize) }
-      , outputQueue{ xQueueCreate(output_queue_size, QueueMsgSize) }
       , firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
-      , lastBuffer{ std::make_shared<std::array<ValueT, lastBufferSize>>() }
     {
-        xTaskCreate(SuperFilterTask, "superFilter", StackDepth, this, TaskPriority, nullptr);
+        CreateTask();
     }
 
     [[noreturn]] void InputQueueTask()
@@ -205,22 +208,44 @@ class SuperFilter {
 
         filters.back()->SetOutputDataReadyCallback([this]() { LastFilterDataReadyCallback(); });
     }
+    void SetOutputQueue(BorrowedQueue new_output_queue) noexcept
+    {
+        Lock{ outputQueueMutex };
+        outputQueue = new_output_queue;
+    }
+    void SetLastBuffer(LastBufferT new_last_buffer) noexcept { lastBuffer = std::move(new_last_buffer); }
 
     [[nodiscard]] FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
     [[nodiscard]] LastBufferT  GetLastBuffer() noexcept { return lastBuffer; }
     [[nodiscard]] QueueT       GetInputQueue() const noexcept { return inputQueue; }
-    [[nodiscard]] QueueT       GetOutputQueue() const noexcept { return outputQueue; }
+    [[nodiscard]] QueueT       GetOutputQueue() noexcept
+    {
+        Lock{ outputQueueMutex };
+        return outputQueue;
+    }
 
   protected:
+    void CreateTask() noexcept
+    {
+        auto task_creation_result = xTaskCreate(SuperFilterTask,
+                                                "superFilter",
+                                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Filter),
+                                                this,
+                                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Filter),
+                                                nullptr);
+
+        configASSERT(task_creation_result == pdPASS);
+    }
     void LastFilterDataReadyCallback()
     {
         auto new_output_value = (*lastBuffer)[0];
+        Lock{ outputQueueMutex };
         xQueueSend(outputQueue, &new_output_value, QueueSendTimeoutValue);
     }
 
   private:
-    QueueT inputQueue  = nullptr;
-    QueueT outputQueue = nullptr;
+    OwnedQueue    inputQueue  = nullptr;
+    BorrowedQueue outputQueue = nullptr;
 
     FirstBufferT firstBuffer;
     LastBufferT  lastBuffer;
@@ -228,4 +253,5 @@ class SuperFilter {
     std::vector<std::unique_ptr<AbstractFilter>> filters;
 
     size_t bufferIteratorPosition = 0;
+    Mutex  outputQueueMutex;
 };

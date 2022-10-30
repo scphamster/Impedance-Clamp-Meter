@@ -46,8 +46,7 @@ message(DEBUG "link flags: ${MY_LINK_FLAGS}")
 set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/compiler_compatibility_workaround.hpp
     ${SOURCES_DIRECTORY}/main.cpp
-    ${SOURCES_DIRECTORY}/maintask.cpp
-    ${SOURCES_DIRECTORY}/maintask.hpp
+    ${SOURCES_DIRECTORY}/project_configs.hpp
     ${SOURCES_DIRECTORY}/tasks_controller.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_driver.cpp
@@ -95,6 +94,9 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/analog/dsp/filter.cpp
     ${SOURCES_DIRECTORY}/analog/dsp/sensor.cpp
     ${SOURCES_DIRECTORY}/analog/dsp/sensor.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/dsp_resources.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/dsp_resources.cpp
+    ${SOURCES_DIRECTORY}/analog/dsp/iq_calculator.hpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.hpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
@@ -113,12 +115,16 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/peripherals/gain_control/automatic_gain_controller.hpp
     ${SOURCES_DIRECTORY}/peripherals/gain_control/gain_controller.hpp
 
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task/task.cpp
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task/task.hpp
+
     )
 
 set(C_SOURCES
     src/main_blinky.c
     src/main_blinky.h
     src/freertos_handlers.c
+    src/freertos_handlers.h
     src/exception_handlers.c
     src/main_task/cmaintask.c
     src/main_task/cmaintask.h
@@ -146,6 +152,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/peripherals/analog_switch
     ${SOURCES_DIRECTORY}/peripherals/gain_control
 
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task
 
     )
 

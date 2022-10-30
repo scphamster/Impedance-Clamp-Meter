@@ -36,6 +36,8 @@ class GainController {
 
         gainChangeFunctors[for_gain_level] = std::move(new_functor);
     }
+    [[nodiscard]] GainLevelT GetMaxGain() const noexcept { return maxGain; }
+    [[nodiscard]] GainLevelT GetMinGain() const noexcept { return minGain; }
 
   private:
     GainLevelT maxGain = 0;

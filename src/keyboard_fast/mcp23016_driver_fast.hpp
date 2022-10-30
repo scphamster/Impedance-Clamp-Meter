@@ -70,8 +70,6 @@ class MCP23016_driver {
   protected:
   private:
     static bool isInitialized;
-    auto constexpr static rtosTaskPriority          = 4;   // todo: make configurable
-    auto constexpr static hardwareInterruptPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY;
 
     std::array<Pin_MCP23016, NumberOfPins> pins;
     PinStateChangeCallback        pinStateChangeCallback;

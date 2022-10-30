@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <array>
 #include "pdc.h"
+#include "dsp_resources.hpp"
+
 
 class OutputGenerator {
   public:
@@ -52,25 +54,3 @@ class OutputGenerator {
     auto constexpr static dacc_interrupt_mask             = 0X04;
 };
 
-static std::array<float, 22> sinus_table = { 0,
-                                             0.28173256f,
-                                             0.54064083f,
-                                             0.75574958f,
-                                             0.90963197f,
-                                             0.98982143f,
-                                             0.98982143f,
-                                             0.90963197f,
-                                             0.75574958f,
-                                             0.54064083f,
-                                             0.28173256f,
-                                             1.2246469e-16f,
-                                             -0.28173256f,
-                                             -0.54064083f,
-                                             -0.75574958f,
-                                             -0.90963197f,
-                                             -0.98982143f,
-                                             -0.98982143f,
-                                             -0.90963197f,
-                                             -0.75574958f,
-                                             -0.54064083f,
-                                             -0.28173256f };

@@ -33,6 +33,7 @@
 #include "OutputRelay.hpp"
 #include "output_generator.hpp"
 #include "clamp_meter_driver.hpp"
+#include "task.hpp"
 
 // test
 #include "signal_conditioning.h"
@@ -47,12 +48,6 @@
 #include "signal_conditioning.h"
 
 [[noreturn]] void tasks_setup2();
-extern "C" void   ClampMeterMeasurementsTaskWrapper(void *);
-extern "C" void   ClampMeterDisplayMeasurementsTaskWrapper(void *);
-extern "C" void   ClampMeterAnalogTaskWrapper(void *);
-
-template<typename Drawer>
-class TasksController;
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class TasksControllerImplementation {
@@ -63,7 +58,12 @@ class TasksControllerImplementation {
     using Drawer    = std::unique_ptr<DrawerT>;
 
     TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
-      : model{ std::make_shared<Menu>() }
+      : drawerTask{ [this]() { this->DisplayTask(); },
+                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
+                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
+                    "display" }
+      , clampMeter{ vOverall }
+      , model{ std::make_shared<Menu>() }
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used),
                 std::forward<decltype(new_keyboard)>(new_keyboard) }
       , vOverall{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
@@ -73,69 +73,19 @@ class TasksControllerImplementation {
       , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
     {
         InitializeMenu();
-        //        InitializeFilters();
-        //        InitializeSensorPreamps();
-
-        InitializeClampMeter();
-        InitializeTasks();
     }
-
     TasksControllerImplementation(TasksControllerImplementation &&other)          = default;
     TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs) = default;
     ~TasksControllerImplementation()                                              = default;
 
-    void StartMeasurementsTask() volatile
-    {
-        xTaskCreate(ClampMeterMeasurementsTaskWrapper,
-                    "measure",
-                    300,
-                    std::remove_volatile_t<void *const>(this),
-                    3,
-                    nullptr);
-    }
-    void StartDisplayMeasurementsTask() volatile
-    {
-        xTaskCreate(ClampMeterDisplayMeasurementsTaskWrapper,
-                    "display",
-                    400,
-                    std::remove_volatile_t<void *const>(this),
-                    3,
-                    nullptr);
-    }
-    void StartAnalogTask() volatile
-    {
-        xTaskCreate(ClampMeterAnalogTaskWrapper, "analog", 500, std::remove_volatile_t<void *const>(this), 3, nullptr);
-    }
-
   protected:
-    void DisplayMeasurementsTask() noexcept
+    [[noreturn]] void DisplayTask() noexcept
     {
-        drawer.DrawerTask();
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-    void MeasurementsTask() noexcept
-    {
-        if (Analog.generator_is_active) {
-            dsp_integrating_filter();
-
-            if (clamp_measurements_result.new_data_is_ready) {
-                clamp_measurements_result.new_data_is_ready = false;
-                *vOverall                                   = clamp_measurements_result.V_ovrl;
-                *vShunt                                     = clamp_measurements_result.V_shunt;
-                *zClamp                                     = clamp_measurements_result.Z_clamp;
-            }
-
-            if ((Calibrator.is_calibrating) && (Calibrator.new_data_is_ready)) {
-                //                calibration_display_measured_data();
-                *sensorMag                   = Calibrator.sensor_mag;
-                *sensorPhi                   = Calibrator.sensor_phi;
-                Calibrator.new_data_is_ready = false;
-            }
+        while (1) {
+            drawer.DrawerTask();
+            vTaskDelay(pdMS_TO_TICKS(50));
         }
-
-        vTaskDelay(pdMS_TO_TICKS(10));
     }
-    [[noreturn]] void AnalogTask() noexcept { }
 
     void InitializeMenu() noexcept
     {
@@ -160,20 +110,8 @@ class TasksControllerImplementation {
         measurements_page->InsertChild(vout_info);
         measurements_page->InsertChild(iout_info);
         measurements_page->InsertChild(zout_info);
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() {
-            //            generator.StartGenerating();
-            //            vTaskDelay(pdMS_TO_TICKS(1000));
-            //            powerSupply.Activate();
-            //            vTaskDelay(pdMS_TO_TICKS(1000));
-            //            outputRelay.Activate();
-            /*measurement_star1t();*/
-        });
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() {
-            //            outputRelay.Deactivate();
-            //            generator.StopGenerating();
-            //            powerSupply.Deactivate();
-            //            vTaskDelay(pdMS_TO_TICKS(200));
-        });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartMeasurements(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.StopMeasurements(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, []() {
             //            if (Analog.generator_is_active) {
             //                switch (Analog.selected_sensor) {
@@ -251,30 +189,8 @@ class TasksControllerImplementation {
         model->SetTopLevelItem(main_page);
         drawer.SetModel(model);
     }
-    void InitializeClampMeter() noexcept
-    {   // todo: implement
-        clampMeter.SetCalculationCompletionCallback([this]() { *zClamp = clampMeter.GetClampResistance(); });
-    }
-    void InitializeTasks() noexcept
-    {
-        StartDisplayMeasurementsTask();
-        //        StartMeasurementsTask();
-        StartAnalogTask();
-    }
-
-    void ConnectPeripherals()
-    {
-        // connect(adc, clampMeter);
-        // peripherals.at("adc").setDataArrivalCallback([this](new_value){clampMeter.InsertValue(new_adc_value);});
-    }
 
   private:
-    friend class TasksController<DrawerT>;
-
-    ClampMeterDriver                     clampMeter;
-    std::shared_ptr<MenuModel<Keyboard>> model;
-    MenuModelDrawer<DrawerT, Keyboard>   drawer;
-
     // todo: to be deleted from here
     std::shared_ptr<std::array<float, 1>> mybuffer;
     PageDataT                             vOverall;
@@ -282,20 +198,10 @@ class TasksControllerImplementation {
     PageDataT                             zClamp;
     PageDataT                             sensorMag;
     PageDataT                             sensorPhi;
-};
 
-template<typename Drawer>
-class TasksController {
-  public:
-    TasksController(TasksControllerImplementation<Drawer> &instance)
-      : true_instance{ instance }
-    { }
+    Task drawerTask;
+    ClampMeterDriver                     clampMeter;
+    std::shared_ptr<MenuModel<Keyboard>> model;
 
-    void DisplayMeasurementsTask() { true_instance.DisplayMeasurementsTask(); }
-    void MeasurementsTask() { true_instance.MeasurementsTask(); }
-    void AnalogTask() { true_instance.AnalogTask(); }
-
-  protected:
-  private:
-    TasksControllerImplementation<Drawer> &true_instance;
+    MenuModelDrawer<DrawerT, Keyboard>   drawer;
 };

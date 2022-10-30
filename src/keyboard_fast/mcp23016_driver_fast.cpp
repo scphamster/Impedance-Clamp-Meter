@@ -42,6 +42,8 @@
 #define assert(empty) ((void)0)
 #endif
 
+#include "project_configs.hpp"
+
 static StreamBufferHandle_t SB_pins_status                 = nullptr;
 bool                        MCP23016_driver::isInitialized = false;
 
@@ -90,7 +92,7 @@ MCP23016_driver::MCP23016_driver(MCP23016_driver::PinStateChangeCallback &&callb
           Pin_MCP23016{ 15, Pin_MCP23016::PinMode::Input, Pin_MCP23016::PinState::Low } }
   , pinStateChangeCallback{ std::forward<PinStateChangeCallback>(callback) }
 {
-    //workaround to unlock mcp23016:
+    // workaround to unlock mcp23016:
     auto dummy = GetPinsState();
 
     StartTask();
@@ -131,30 +133,10 @@ MCP23016_driver::Initialize() const noexcept
                     PIO_IT_FALL_EDGE,
                     MCP23016_driver_IRQHandler);
 
-    pio_handler_set_priority(MCP23016_INT_PORT, MCP23016_IRQ_ID, hardwareInterruptPriority);
+    pio_handler_set_priority(MCP23016_INT_PORT,
+                             MCP23016_IRQ_ID,
+                             ProjectConfigs::GetInterruptPriority(ProjectConfigs::Interrupts::Keyboard));
     pio_enable_interrupt(MCP23016_INT_PORT, (1 << MCP23016_INT_PIN));
-
-    //    pio_set_input(_MCP23016_INT_PORT, (1 << _MCP23016_INT_PIN), PIO_PULLUP);
-
-    //    Byte data1[] = { static_cast<Byte>(Register::IODIR0), 0xff };
-    //    twiPdc_write(data1, 2, _MCP23016_TWI_ADDR);
-    //    Byte data2[] = { static_cast<Byte>(Register::IODIR1), 0xff };
-    //    twiPdc_write(data2, 2, _MCP23016_TWI_ADDR);
-    //    Byte data3[] = { static_cast<Byte>(Register::IPOL0), 0xff };
-    //    twiPdc_write(data3, 2, _MCP23016_TWI_ADDR);
-    //    Byte data4[] = { static_cast<Byte>(Register::IPOL1), 0xff };
-    //    twiPdc_write(data4, 2, _MCP23016_TWI_ADDR);
-    //    Byte data5[] = { static_cast<Byte>(Register::IOCON0), 0x01 };
-    //    twiPdc_write(data5, 2, _MCP23016_TWI_ADDR);
-
-    //    pio_handler_set(_MCP23016_INT_PORT,
-    //                    _MCP23016_INT_PORT_ID,
-    //                    (1 << _MCP23016_INT_PIN),
-    //                    PIO_IT_FALL_EDGE,
-    //                    MCP23016_driver_IRQHandler);
-    //
-    //    pio_handler_set_priority(_MCP23016_INT_PORT, _MCP23016_IRQ_ID, _MCP23016_INTERRUPT_PRIO);
-    //    pio_enable_interrupt(_MCP23016_INT_PORT, (1 << _MCP23016_INT_PIN));
 
     MCP23016_driver::isInitialized = true;
 }
@@ -209,17 +191,18 @@ MCP23016_driver::StartTask() noexcept
 
     SB_pins_status = xStreamBufferCreate(buffer_size, triggering_number_of_bytes);
 
-    // todo: make better exception catcher
     if (SB_pins_status == nullptr) {
         while (1) { }
     }
+    // todo: make better exception catcher
+    auto task_creation_result = xTaskCreate(MCP23016_DriverTask,
+                                            "mcp23016 keyboard",
+                                            ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::MCP23016),
+                                            static_cast<void *const>(this),
+                                            ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::MCP23016),
+                                            nullptr);
 
-    xTaskCreate(MCP23016_DriverTask,
-                "mcp23016 keyboard",
-                configMINIMAL_STACK_SIZE,
-                static_cast<void *const>(this),
-                rtosTaskPriority,
-                nullptr);
+    configASSERT(task_creation_result == pdPASS);
 }
 void
 MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin_MCP23016 &)> &&pin_change_callback)

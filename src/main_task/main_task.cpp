@@ -17,7 +17,6 @@
 
 using Drawer                      = DisplayDrawer<ILI9486Driver>;
 using Clamp                       = TasksControllerImplementation<Drawer>;
-using ClampMeterFreeRTOS          = TasksController<Drawer>;
 using KeyboardT                   = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>;
 bool ILI9486Driver::isInitialized = false;
 
@@ -31,37 +30,4 @@ tasks_setup2()
     //    measurement_start();
     vTaskStartScheduler();
     while (true) { }
-}
-
-extern "C" void
-ClampMeterMeasurementsTaskWrapper(void *ClampMeterInstance)
-{
-    auto clmp        = static_cast<Clamp *>(ClampMeterInstance);
-    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
-
-    while (true) {
-        //        clmp->MeasurementsTask();
-        clamp_meter.MeasurementsTask();
-    }
-}
-
-extern "C" void
-ClampMeterDisplayMeasurementsTaskWrapper(void *ClampMeterInstance)
-{
-    auto clmp        = static_cast<Clamp *>(ClampMeterInstance);
-    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
-
-    while (true) {
-        //                clmp->DisplayMeasurementsTask();
-        clamp_meter.DisplayMeasurementsTask();
-    }
-}
-
-extern "C" void
-ClampMeterAnalogTaskWrapper(void *clamp_meter_instance)
-{
-    auto clmp        = static_cast<Clamp *>(clamp_meter_instance);
-    auto clamp_meter = ClampMeterFreeRTOS{ *clmp };
-
-    clamp_meter.AnalogTask();
 }

@@ -228,8 +228,8 @@ class MCP3462_driver {
   private:
     Byte   deviceAddress{};
     Gain   gain;
-    size_t queueSize;
     QueueT data_queue = nullptr;
+    size_t queueSize;
 
     bool clockIsEnabled = false;
 

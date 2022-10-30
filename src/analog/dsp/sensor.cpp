@@ -1,5 +1,7 @@
-//
-// Created by scpha on 25/10/2022.
-//
-
 #include "sensor.hpp"
+
+extern "C" void
+InputTaskWrapper(void *sensor_instance)
+{
+    static_cast<SensorController *>(sensor_instance)->InputTask();
+}
