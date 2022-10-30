@@ -14,6 +14,8 @@
 #include "spi.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "message_buffer.h"
+
 #include "freertos_handlers.h"
 #include "project_configs.hpp"
 
@@ -34,7 +36,7 @@ static MCP3462_driver *driver = nullptr;
 extern "C" void
 mcp3462_interrupt_handler(uint32_t, uint32_t)
 {
-    portYIELD_FROM_ISR(driver->HandleInterrupt());
+    portYIELD_FROM_ISR(driver->HandleInterruptStreamBuffer());
 }
 
 void
@@ -73,8 +75,7 @@ MCP3462_driver::Initialize() noexcept   // todo: make configurable
 
     ClockInit();
 
-    config0_regval =
-      CreateConfig0RegisterValue(false, ClockSelection::CLK_SEL_EXT, CurrentSource::CS_SEL_0, ADC_MODE::Conversion);
+    config0_regval = CreateConfig0RegisterValue(false, ClockSelection::CLK_SEL_EXT, CurrentSource::CS_SEL_0, ADC_MODE::Conversion);
 
     config1_regval = CreateConfig1RegisterValue(Prescaler::PRE_0, OSR::OSR_256);
     config2_regval = CreateConfig2RegisterValue(Boost::BOOST_2, Gain::GAIN_1, AutoZeroingMuxMode::Disabled);
@@ -123,8 +124,7 @@ MCP3462_driver::CreateConfig0RegisterValue(bool                           if_ful
            (CONFIG0_MSK bitand (static_cast<Byte>(if_full_shutdown) << CONFIG0_POS));
 }
 Byte
-MCP3462_driver::CreateConfig1RegisterValue(MCP3462_driver::Prescaler prescaler,
-                                           MCP3462_driver::OSR       oversampling_ratio) noexcept
+MCP3462_driver::CreateConfig1RegisterValue(MCP3462_driver::Prescaler prescaler, MCP3462_driver::OSR oversampling_ratio) noexcept
 {
     auto constexpr PRE_POS = 0x6;
     auto constexpr PRE_MSK = 0xC0;
@@ -202,10 +202,8 @@ MCP3462_driver::CreateIRQRegisterValue(bool                enable_conversion_sta
             (static_cast<Byte>(enable_conversion_start_interrupt) << conversion_start_int_pos)) bitor
            (fast_cmd_mask bitand (static_cast<Byte>(enable_fast_command) << fast_cmd_pos)) bitor
            (irq_inactive_pin_config_mask bitand
-            (static_cast<std::underlying_type_t<IRQ_InactivePinMode>>(inactive_irq_pin_mode)
-             << irq_inactive_pin_config_pos)) bitor
-           (irq_pin_mode_mask bitand (static_cast<std::underlying_type_t<IRQ_PinMode>>(irq_pin_mode))
-                                       << irq_pin_mode_pos);
+            (static_cast<std::underlying_type_t<IRQ_InactivePinMode>>(inactive_irq_pin_mode) << irq_inactive_pin_config_pos)) bitor
+           (irq_pin_mode_mask bitand (static_cast<std::underlying_type_t<IRQ_PinMode>>(irq_pin_mode)) << irq_pin_mode_pos);
 }
 
 Byte
@@ -239,22 +237,6 @@ MCP3462_driver::CreateFirstCommand_StaticRead(MCP3462_driver::CommandT command) 
     auto constexpr CMD_ADDR_MSK = 0x3C;
 
     return deviceAddress bitor (CMD_ADDR_MSK bitand (command << CMD_ADDR_POS)) bitor CMD_STATIC_READ;
-}
-
-MCP3462_driver::MCP3462_driver(MCP3462_driver::AddressT device_address /* = 0x40*/, size_t queue_size /*= 200*/)
-  : deviceAddress{ device_address }
-  , queueSize{ queue_size }
-  , data_queue{ xQueueCreate(queue_size, QueueMsgSize) }
-{
-    if (data_queue == nullptr)
-        std::terminate();   // todo: make exception handling
-
-    Initialize();
-}
-
-MCP3462_driver::~MCP3462_driver()
-{
-    DeleteQueue();
 }
 
 void
@@ -319,34 +301,11 @@ MCP3462_driver::Read() noexcept
     return retval;
 }
 
-BaseType_t
-MCP3462_driver::HandleInterrupt() noexcept
-{
-    BaseType_t higher_prio_task_woken;
-
-    // todo test
-    auto adc_value = Read();
-    //    auto adc_value = 153;
-    // end test
-
-    if (xQueueSendFromISR(data_queue, &adc_value, &higher_prio_task_woken) == errQUEUE_FULL) {
-        QueueFullHook(xTaskGetCurrentTaskHandle(), "adc interrupt handler");
-    };
-
-    return higher_prio_task_woken;
-}
-
 void
 MCP3462_driver::SetDataInterruptCallback(MCP3462_driver::InterruptCallbackT &&new_callback) noexcept
 {
     interruptCallback = std::move(new_callback);
 }
-QueueHandle_t
-MCP3462_driver::GetDataQueue() const noexcept
-{
-    return data_queue;
-}
-
 void
 MCP3462_driver::SetMux(MCP3462_driver::Reference positive_channel, MCP3462_driver::Reference negative_channel) noexcept
 {
@@ -378,12 +337,7 @@ MCP3462_driver::EnableInterrupt(bool if_enable) noexcept
     NVIC_ClearPendingIRQ(PIOA_IRQn);
     pio_enable_interrupt(PIOA, int_pin);
 }
-void
-MCP3462_driver::StartMeasurement() noexcept
-{
-    EnableInterrupt();
-    EnableClock();
-}
+
 void
 MCP3462_driver::StopMeasurement() noexcept
 {
@@ -414,30 +368,4 @@ MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
 
     spi_write(SPI, (initWord << 8) | config2Word, 0, 0);
     spi_set_lastxfer(SPI);
-}
-void
-MCP3462_driver::SetOutputQueue(MCP3462_driver::QueueT new_output_queue) noexcept
-{
-    DeleteQueue();
-    data_queue = new_output_queue;
-}
-void
-MCP3462_driver::DeleteQueue() noexcept
-{
-    if (data_queue != nullptr) {
-        vQueueDelete(data_queue);
-    }
-}
-
-MCP3462_driver::QueueT
-MCP3462_driver::CreateNewOutputQueue(size_t new_queue_size) noexcept
-{
-    queueSize = new_queue_size;
-    return xQueueCreate(new_queue_size, QueueMsgSize);
-}
-
-MCP3462_driver::QueueT
-MCP3462_driver::CreateNewOutputQueue() noexcept
-{
-    return CreateNewOutputQueue(queueSize);
 }

@@ -14,11 +14,11 @@ enum class TaskStackSize {
 };
 enum class TaskPriority {
     Main              = 3,
-    Display           = 1,
+    Display           = 3,
     ClampDriverSensor = 3,
     SensorInput       = 3,
     SensorFromFilter  = 3,
-    Filter            = 3,
+    Filter            = 4,
     MCP23016          = 2
 };
 
@@ -37,8 +37,10 @@ enum class Interrupts {
 };
 
 enum {
-    ADCOutputQueueSize = 200,
-    ADCAddress         = 0x40
+    SuperFilterFirstBufferSize = 100,
+    ADCAddress         = 0x40,
+    ADCStreamBufferCapacity = 200,
+    ADCStreamBufferTriggeringSize = SuperFilterFirstBufferSize
 };
 
 enum class Tasks {

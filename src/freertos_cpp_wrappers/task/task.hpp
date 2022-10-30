@@ -17,7 +17,7 @@ class Task {
       : task{ std::move(new_functor) }
       , name{ std::move(new_name) }
     {
-        auto task_creation_result = xTaskCreate(TaskCppTaskWrapper, name.c_str(), stacksize, this, priority, &handle);
+        auto task_creation_result = xTaskCreate(TaskCppTaskWrapper, name.c_str(), stacksize, this, priority, &taskHandle);
         configASSERT(task_creation_result == pdPASS);
     }
 
@@ -32,17 +32,33 @@ class Task {
         task();
 
         // should not get here
-        TaskLoopBreachHook(handle, name);
+        TaskLoopBreachHook(taskHandle, name);
+    }
+
+    void Suspend() noexcept
+    {
+        if (not task)
+            TaskFunctorIsNullHook();
+
+        vTaskSuspend(taskHandle);
+    }
+
+    void Resume() noexcept
+    {
+        if (not task)
+            TaskFunctorIsNullHook();
+
+        vTaskResume(taskHandle);
     }
 
     ~Task() noexcept
     {
-        if (handle != nullptr)
-            vTaskDelete(handle);
+        if (taskHandle != nullptr)
+            vTaskDelete(taskHandle);
     }
 
   private:
-    TaskHandle_t handle;
+    TaskHandle_t taskHandle;
     TaskFunctor  task;
     std::string  name;
 };

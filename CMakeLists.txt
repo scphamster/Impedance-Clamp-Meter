@@ -29,7 +29,7 @@ else ()
     set(C_CXX_CONDITIONAL_COMPILE_FLAGS ${C_CXX_COMPILER_OPTIONS_RELEASE})
 endif ()
 
-set(C_CXX_COMPILE_FLAGS "-Werror=return-type -Wno-volatile -Wno-unused-variable${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
+set(C_CXX_COMPILE_FLAGS "-Werror=return-type -Wreturn-local-addr -Wno-volatile -Wno-unused-variable${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} -mthumb -D__${MCU_TYPE}__  -DBOARD=USER_BOARD -DARM_MATH_CM4=true -Dprintf=iprintf -ffast-math --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu17")
 set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -D__FPU_PRESENT -DARM_MATH_CM4=true -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=gnu++20")
 
@@ -118,6 +118,9 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task/task.cpp
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task/task.hpp
 
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue/queue.hpp
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue/queue.cpp
+
     )
 
 set(C_SOURCES
@@ -153,6 +156,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/peripherals/gain_control
 
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue
 
     )
 

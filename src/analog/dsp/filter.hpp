@@ -21,6 +21,7 @@
 #include "clamp_meter_concepts.hpp"
 #include "semaphore.hpp"
 #include "project_configs.hpp"
+#include "task.hpp"
 
 class AbstractFilter {
   public:
@@ -139,8 +140,6 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     OutputBufferT                        outputBuffer;
 };
 
-extern "C" void SuperFilterTask(void *param);
-
 // todo: try to use stereofilter (superfilterpolychannel)
 template<typename ValueT, size_t firstBufferSize, size_t lastBufferSize>
 class SuperFilter {
@@ -156,21 +155,26 @@ class SuperFilter {
     enum Configs {
         QueueMsgSize          = sizeof(ValueT),
         QueueSendTimeoutValue = 0,
+        QueueReceiveTimeout   = portMAX_DELAY
     };
 
     SuperFilter(size_t input_queue_size)
       : inputQueue{ xQueueCreate(input_queue_size, QueueMsgSize) }
       , firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
+      , filterTask([this]() { this->InputQueueTask(); },
+                   ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Filter),
+                   ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Filter),
+                   "filter input task")
     {
-        CreateTask();
+        filterTask.Suspend();
     }
 
     [[noreturn]] void InputQueueTask()
     {
-        while (true) {
-            auto new_input_value = ValueT{};
+        auto new_input_value = ValueT{};
 
-            xQueueReceive(inputQueue, &new_input_value, portMAX_DELAY);
+        while (true) {
+            xQueueReceive(inputQueue, &new_input_value, QueueReceiveTimeout);
             Push(new_input_value);
         }
     }
@@ -187,8 +191,7 @@ class SuperFilter {
     void EmplaceFilter(Args &&...args)
     {
         if (filters.empty()) {
-            filters.push_back(
-              std::unique_ptr<AbstractFilter>(new FilterType<sizes...>(std::forward<Args>(args)..., firstBuffer)));
+            filters.push_back(std::unique_ptr<AbstractFilter>(new FilterType<sizes...>(std::forward<Args>(args)..., firstBuffer)));
         }
         else {
             //            filters.push_back(std::unique_ptr<AbstractFilter>(
@@ -214,6 +217,8 @@ class SuperFilter {
         outputQueue = new_output_queue;
     }
     void SetLastBuffer(LastBufferT new_last_buffer) noexcept { lastBuffer = std::move(new_last_buffer); }
+    void Resume() noexcept { filterTask.Resume(); }
+    void Suspend() noexcept { filterTask.Suspend(); }
 
     [[nodiscard]] FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
     [[nodiscard]] LastBufferT  GetLastBuffer() noexcept { return lastBuffer; }
@@ -225,17 +230,6 @@ class SuperFilter {
     }
 
   protected:
-    void CreateTask() noexcept
-    {
-        auto task_creation_result = xTaskCreate(SuperFilterTask,
-                                                "superFilter",
-                                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Filter),
-                                                this,
-                                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Filter),
-                                                nullptr);
-
-        configASSERT(task_creation_result == pdPASS);
-    }
     void LastFilterDataReadyCallback()
     {
         auto new_output_value = (*lastBuffer)[0];
@@ -254,4 +248,6 @@ class SuperFilter {
 
     size_t bufferIteratorPosition = 0;
     Mutex  outputQueueMutex;
+
+    Task filterTask;
 };

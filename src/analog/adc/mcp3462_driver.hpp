@@ -14,18 +14,22 @@
 #include "compiler.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "stream_buffer.h"
 
 #include "clamp_meter_concepts.hpp"
+#include "queue.hpp"
 
 // todo: try to make data transfer more c++ish, to make class not SINGLETONE
 class MCP3462_driver {
   public:
-    using SPI_CommandT       = uint16_t;
-    using CommandT           = Byte;
-    using AddressT           = Byte;
-    using ValueT             = int32_t;
-    using InterruptCallbackT = void(ValueT);
-    using QueueT             = QueueHandle_t;
+    using SPI_CommandT         = uint16_t;
+    using CommandT             = Byte;
+    using AddressT             = Byte;
+    using ValueT               = int32_t;
+    using InterruptCallbackT   = void(ValueT);
+    using QueueT               = QueueHandle_t;
+    using StreamBufferBorrowed = StreamBuffer<ValueT>;
+    using OutputStreamBuffer   = StreamBuffer<ValueT>;
 
     enum class MeasurementMode {
         SingleShot,
@@ -178,8 +182,13 @@ class MCP3462_driver {
         StreamBufferLen        = QueueMsgSize * StreamBufferPacketsLen
     };
 
-    explicit MCP3462_driver(AddressT device_address /*= 0x40*/, size_t queue_size /*= 200*/);
-    ~MCP3462_driver();
+    explicit MCP3462_driver(AddressT device_address /*= 0x40*/, size_t stream_buffer_capacity, size_t stream_buffer_triggering_size)
+      : deviceAddress{ device_address }
+      , streamBufferCapacity{ stream_buffer_capacity }
+      , streamBufferTriggeringSize{ stream_buffer_triggering_size }
+    {
+        Initialize();
+    }
 
     void Initialize() noexcept;
 
@@ -187,18 +196,25 @@ class MCP3462_driver {
     void ClockInit() noexcept;
     void SetMux(Reference positive_channel, Reference negative_channel) noexcept;
     void SetDataInterruptCallback(MCP3462_driver::InterruptCallbackT &&new_callback) noexcept;
-    void StartMeasurement() noexcept;
+    void StartMeasurement() noexcept
+    {
+        if (not outputSB)
+            std::terminate();
+
+        EnableInterrupt();
+        EnableClock();
+    }
     void StopMeasurement() noexcept;
     void SetMeasurementMode(MeasurementMode new_mode) noexcept;   // todo implement
-    void SetOutputQueue(QueueT new_output_queue) noexcept;
-    void DeleteQueue() noexcept;
+    void SetOutputStreamBuffer(std::shared_ptr<OutputStreamBuffer> new_sb) noexcept { outputSB = new_sb; }
 
-    ValueT     SingleShotMeasurement() noexcept;   // todo implement
-    ValueT     Read() noexcept;
-    BaseType_t HandleInterrupt() noexcept;
-    QueueT     GetDataQueue() const noexcept;
-    QueueT     CreateNewOutputQueue() noexcept;
-    QueueT     CreateNewOutputQueue(size_t new_queue_size) noexcept;
+    ValueT         SingleShotMeasurement() noexcept;   // todo implement
+    ValueT         Read() noexcept;
+    BaseType_t     HandleInterruptStreamBuffer() noexcept { return outputSB->SendFromISR(Read()); }
+    decltype(auto) CreateNewStreamBuffer() noexcept
+    {
+        return std::make_shared<OutputStreamBuffer>(streamBufferCapacity, streamBufferTriggeringSize);
+    }
 
   protected:
     void EnableClock(bool if_enable = true) noexcept;
@@ -226,10 +242,12 @@ class MCP3462_driver {
     void            InterruptInit() noexcept;
 
   private:
-    Byte   deviceAddress{};
-    Gain   gain;
-    QueueT data_queue = nullptr;
-    size_t queueSize;
+    Byte                                deviceAddress{};
+    Gain                                gain;
+    std::shared_ptr<OutputStreamBuffer> outputSB;
+
+    size_t streamBufferCapacity;
+    size_t streamBufferTriggeringSize;
 
     bool clockIsEnabled = false;
 
