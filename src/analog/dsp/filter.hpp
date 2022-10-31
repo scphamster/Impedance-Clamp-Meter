@@ -11,12 +11,14 @@
 
 #include <cstdio>
 #include <memory>
-#include <arm_math.h>
+#include <utility>
 #include <vector>
+#include <algorithm>
 #include <functional>
 #include <mutex>
 #include "FreeRTOS.h"
 #include "queue.h"
+#include <arm_math.h>
 
 #include "clamp_meter_concepts.hpp"
 #include "semaphore.hpp"
@@ -26,91 +28,150 @@
 
 class AbstractFilter {
   public:
+    using ValueT               = float;   // todo: make class template
+    using CoefficientT         = ValueT;
+    using CoefficientsPack     = std::vector<CoefficientT>;
     using OutputReadyCallbackT = std::function<void()>;
+    using BufferT              = std::vector<ValueT>;
+    using InputBufferT         = std::shared_ptr<BufferT>;
+    using OutputBufferT        = std::shared_ptr<BufferT>;
+    using StateBuff            = std::vector<ValueT>;
 
-    virtual void Initialize() noexcept = 0;
-    virtual void DoFilter() noexcept   = 0;
-    virtual ~AbstractFilter()          = 0;
+    virtual void DoFilter() noexcept = 0;
+    virtual ~AbstractFilter()        = 0;
 
     virtual void InputBufferIsReadyCallback() = 0;
-    virtual void SetOutputDataReadyCallback(OutputReadyCallbackT &&new_callback) noexcept
-    {
-        outputReadyCallback = std::move(new_callback);
-    }
+    void SetOutputDataReadyCallback(OutputReadyCallbackT &&new_callback) noexcept { outputReadyCallback = std::move(new_callback); }
+    virtual void PushData(ValueT new_data) = 0;
+
+    virtual void SetOutputBuffer(OutputBufferT new_output_buffer) noexcept = 0;
+    virtual void SetInputBuffer(InputBufferT new_input_buffer) noexcept    = 0;
+
+    [[nodiscard]] OutputBufferT GetOutputBuffer() const noexcept { return outputBuffer; }
+    [[nodiscard]] InputBufferT  GetInputBuffer() const noexcept { return inputBuffer; }
+    //    [[nodiscard]] virtual size_t        GetInputBufferTriggeringSize() const noexcept             = 0;
+    //    [[nodiscard]] virtual size_t        GetOutputBufferSingleOperationSizeGrowth() const noexcept = 0;
+    [[nodiscard]] virtual OutputBufferT CreateAndSetNewOutputBuffer() noexcept = 0;
+    [[nodiscard]] virtual InputBufferT  CreateAndSetNewInputBuffer() noexcept  = 0;
 
   protected:
-    OutputReadyCallbackT outputReadyCallback;
+    CoefficientsPack              coefficients;
+    InputBufferT                  inputBuffer;
+    OutputBufferT                 outputBuffer;
+    StateBuff                     stateBuffer{};
+    OutputReadyCallbackT          outputReadyCallback;
+    std::vector<ValueT>::iterator manualInsertionIterator{};
 };
 
-template<size_t blockSize, size_t numberOfCoefficients, size_t decimatingFactor>
 class FirDecimatingFilter : public AbstractFilter {
   public:
-    using ValueT              = float;
-    using CoefficientT        = float;
-    using CoefficientsT       = std::array<CoefficientT, numberOfCoefficients>;
-    using StateBuffT          = std::array<ValueT, blockSize + numberOfCoefficients - 1>;
-    using InputBufferT        = std::shared_ptr<std::array<ValueT, blockSize>>;
-    using OutputBufferSubType = std::array<ValueT, blockSize / decimatingFactor>;
-    using OutputBufferT       = std::shared_ptr<std::array<ValueT, blockSize / decimatingFactor>>;
+    using AbstractFilter::ValueT;
+    using AbstractFilter::BufferT;
+    using AbstractFilter::InputBufferT;
+    using AbstractFilter::OutputBufferT;
+    using AbstractFilter::CoefficientT;
+    using AbstractFilter::CoefficientsPack;
+
+    //    using StateBuffT          = std::array<ValueT, blockSize + numberOfCoefficients - 1>;
 
     FirDecimatingFilter() = delete;
-    FirDecimatingFilter(CoefficientsT &&new_coefficients, InputBufferT new_input_buffer)
-      : coefficients{ std::move(new_coefficients) }
-      , inputBuffer{ new_input_buffer }
-      , outputBuffer{ std::make_shared<OutputBufferSubType>() }
+    FirDecimatingFilter(CoefficientsPack &&new_coefficients, size_t decimating_factor, size_t block_size)
+      : decimatingFactor{ decimating_factor }
+      , blockSize{ block_size }
     {
-        Initialize();
+        coefficients = std::move(new_coefficients);
+
+        configASSERT(block_size % decimating_factor == 0);
+
+        inputBuffer             = std::make_shared<BufferT>(block_size);
+        manualInsertionIterator = inputBuffer->begin();
+        outputBuffer            = std::make_shared<BufferT>(blockSize / decimatingFactor);
+        stateBuffer.resize(block_size + coefficients.size() - 1);
+
+        arm_fir_decimate_init_f32(&filter_instance,
+                                  coefficients.size(),
+                                  decimating_factor,
+                                  coefficients.data(),
+                                  stateBuffer.data(),
+                                  block_size);
     }
+
     FirDecimatingFilter(const FirDecimatingFilter &)            = delete;
     FirDecimatingFilter &operator=(const FirDecimatingFilter &) = delete;
     FirDecimatingFilter(FirDecimatingFilter &&)                 = default;
     FirDecimatingFilter &operator=(FirDecimatingFilter &&)      = default;
     ~FirDecimatingFilter() override                             = default;
 
-    void Initialize() noexcept override
+    void SetOutputBuffer(OutputBufferT new_output_buffer) noexcept override
     {
-        arm_fir_decimate_init_f32(&filter_instance,
-                                  numberOfCoefficients,
-                                  decimatingFactor,
-                                  coefficients.data(),
-                                  stateBuffer.data(),
-                                  blockSize);
+        configASSERT(new_output_buffer->size() >= (blockSize / decimatingFactor));
+        outputBuffer = new_output_buffer;
     }
+    void PushData(ValueT new_value) noexcept override
+    {
+        *manualInsertionIterator = new_value;
+        manualInsertionIterator++;
 
+        if (manualInsertionIterator == inputBuffer->end()) {
+            DoFilter();
+            manualInsertionIterator = inputBuffer->begin();
+        }
+    }
     void DoFilter() noexcept override
     {
         arm_fir_decimate_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), blockSize);
         AbstractFilter::outputReadyCallback();
     }
     void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
+    void SetInputBuffer(InputBufferT new_input_buffer) noexcept override
+    {
+        configASSERT(new_input_buffer->size() == blockSize);
+        inputBuffer             = new_input_buffer;
+        manualInsertionIterator = inputBuffer->begin();
+    }
 
-    [[nodiscard]] OutputBufferT GetOutputBuffer() noexcept { return outputBuffer; }
+    [[nodiscard]] InputBufferT CreateAndSetNewInputBuffer() noexcept override
+    {
+        inputBuffer             = std::make_shared<BufferT>(blockSize);
+        manualInsertionIterator = inputBuffer->begin();
+        return inputBuffer;
+    }
+    [[nodiscard]] OutputBufferT CreateAndSetNewOutputBuffer() noexcept override
+    {
+        return outputBuffer = std::make_shared<BufferT>(blockSize / decimatingFactor);
+    }
 
   private:
     arm_fir_decimate_instance_f32 filter_instance{};
-    CoefficientsT                 coefficients;
-    StateBuffT                    stateBuffer{};
-    InputBufferT                  inputBuffer;
-    OutputBufferT                 outputBuffer;
+
+    size_t decimatingFactor;
+    size_t blockSize;
 };
 
-template<size_t numberOfStages, size_t filterBlockSize>
 class BiquadCascadeDF2TFilter : public AbstractFilter {
   public:
-    using ValueT              = float;
-    using CoefficientT        = float;
-    using CoefficientsT       = std::array<CoefficientT, numberOfStages * 5>;
-    using StateBuffT          = std::array<ValueT, numberOfStages * 2>;
-    using InputBufferT        = std::shared_ptr<std::array<ValueT, filterBlockSize>>;
-    using OutputBufferSubType = std::array<ValueT, filterBlockSize>;
-    using OutputBufferT       = std::shared_ptr<OutputBufferSubType>;
+    using AbstractFilter::ValueT;
+    using AbstractFilter::BufferT;
+    using AbstractFilter::InputBufferT;
+    using AbstractFilter::OutputBufferT;
+    using AbstractFilter::CoefficientT;
+    using AbstractFilter::CoefficientsPack;
 
-    BiquadCascadeDF2TFilter(CoefficientsT &&new_coefficients, InputBufferT new_input_buffer)
-      : coefficients{ std::move(new_coefficients) }
-      , inputBuffer{ new_input_buffer }
-      , outputBuffer{ std::make_shared<OutputBufferSubType>() }
+    BiquadCascadeDF2TFilter(CoefficientsPack &&new_coefficients, size_t block_size)
+      : stageNumber{ new_coefficients.size() / coefficients_per_stage }
+      , blockSize{ block_size }
     {
-        Initialize();
+        coefficients = std::move(new_coefficients);
+
+        //assure number of coefficients supplied is correct
+        configASSERT(coefficients.size() % coefficients_per_stage == 0);
+
+        stateBuffer.resize(stageNumber * state_variables_per_stage);
+
+        inputBuffer             = std::make_shared<BufferT>(blockSize);
+        manualInsertionIterator = inputBuffer->begin();
+        outputBuffer            = std::make_shared<BufferT>(blockSize);
+        arm_biquad_cascade_df2T_init_f32(&filter_instance, stageNumber, coefficients.data(), stateBuffer.data());
     }
 
     BiquadCascadeDF2TFilter(const BiquadCascadeDF2TFilter &)            = delete;
@@ -119,41 +180,66 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     BiquadCascadeDF2TFilter &operator=(BiquadCascadeDF2TFilter &&)      = default;
     ~BiquadCascadeDF2TFilter() override                                 = default;
 
-    void Initialize() noexcept override
-    {
-        arm_biquad_cascade_df2T_init_f32(&filter_instance, numberOfStages, coefficients.data(), stateBuffer.data());
-    }
-
     void DoFilter() noexcept override
     {
-        arm_biquad_cascade_df2T_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), filterBlockSize);
+        arm_biquad_cascade_df2T_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), blockSize);
         AbstractFilter::outputReadyCallback();
     }
-
     void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
+    void PushData(ValueT new_value) noexcept override
+    {
+        *manualInsertionIterator = new_value;
+        manualInsertionIterator++;
 
-    [[nodiscard]] OutputBufferT GetOutputBuffer() noexcept { return outputBuffer; }
+        if (manualInsertionIterator == inputBuffer->end()) {
+            DoFilter();
+            manualInsertionIterator = inputBuffer->begin();
+        }
+    }
+    void SetOutputBuffer(OutputBufferT new_output_buffer) noexcept override
+    {
+        configASSERT(new_output_buffer->size() == blockSize);
+        outputBuffer = new_output_buffer;
+    }
+    void SetInputBuffer(InputBufferT new_input_buffer) noexcept override
+    {
+        configASSERT(new_input_buffer->size() == blockSize);
+        inputBuffer             = new_input_buffer;
+        manualInsertionIterator = inputBuffer->begin();
+    }
+
+    [[nodiscard]] InputBufferT CreateAndSetNewInputBuffer() noexcept override
+    {
+        inputBuffer             = std::make_shared<BufferT>(blockSize);
+        manualInsertionIterator = inputBuffer->begin();
+        return inputBuffer;
+    }
+    [[nodiscard]] OutputBufferT CreateAndSetNewOutputBuffer() noexcept override
+    {
+        return outputBuffer = std::make_shared<BufferT>(blockSize);
+    }
 
   private:
     arm_biquad_cascade_df2T_instance_f32 filter_instance{};
-    CoefficientsT                        coefficients;
-    StateBuffT                           stateBuffer{};
-    InputBufferT                         inputBuffer;
-    OutputBufferT                        outputBuffer;
+    size_t                               stageNumber;
+    size_t                               blockSize;
+
+    auto constexpr static coefficients_per_stage    = 5;
+    auto constexpr static state_variables_per_stage = 2;
 };
 
 // todo:make double channel filter
-template<typename ValueT, size_t firstBufferSize, size_t lastBufferSize>
+template<typename ValueT>
 class SuperFilter {
   public:
-    using FirstBufferT      = std::shared_ptr<std::array<ValueT, firstBufferSize>>;
-    using LastBufferT       = std::shared_ptr<std::array<ValueT, lastBufferSize>>;
-    using DataReadyCallback = std::function<void()>;
+    using DataReadyCallback = AbstractFilter::OutputReadyCallbackT;
     using InputStream       = StreamBuffer<ValueT>;
     using OwnedQueue        = QueueHandle_t;
     using BorrowedQueue     = OwnedQueue;
     using Lock              = std::lock_guard<Mutex>;
-
+    using BufferT           = AbstractFilter::BufferT;
+    using InputBufferT      = AbstractFilter::InputBufferT;
+    using OutputBufferT     = AbstractFilter::OutputBufferT;
     enum Configs {
         QueueMsgSize          = sizeof(ValueT),
         QueueSendTimeoutValue = 0,
@@ -163,7 +249,6 @@ class SuperFilter {
     SuperFilter() noexcept
       : inputStream{ std::make_shared<InputStream>(ProjectConfigs::ADCStreamBufferCapacity,
                                                    ProjectConfigs::ADCStreamBufferTriggeringSize) }
-      , firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
       , filterTask([this]() { this->InputTask(); },
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Filter),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Filter),
@@ -172,29 +257,13 @@ class SuperFilter {
         filterTask.Suspend();
     }
 
-
-    void Push(ValueT new_value) noexcept
-    {
-        (*firstBuffer)[bufferIteratorPosition++] = new_value;
-        if (bufferIteratorPosition == firstBufferSize) {
-            filters.at(0)->DoFilter();
-            bufferIteratorPosition = 0;
-        }
-    }
-    template<template<size_t...> class FilterType, size_t... sizes, typename... Args>
-    void EmplaceFilter(Args &&...args)
-    {
-        if (filters.empty()) {
-            filters.push_back(std::unique_ptr<AbstractFilter>(new FilterType<sizes...>(std::forward<Args>(args)..., firstBuffer)));
-        }
-        else {
-            //            filters.push_back(std::unique_ptr<AbstractFilter>(
-            //              new FilterType<sizes...>(std::forward<Args>(args)..., )));
-        }
-    }
+    void PushData(ValueT new_value) noexcept { (*filters.begin())->PushData(new_value); }
     void InsertFilter(std::unique_ptr<AbstractFilter> &&filter) noexcept
     {
         filters.push_back(std::forward<decltype(filter)>(filter));
+
+        if (filters.size() == 1)
+            firstFilterInput = (*filters.begin())->GetInputBuffer();
 
         if (filters.size() >= 2) {
             auto one_before_back = filters.end() - 2;
@@ -204,18 +273,18 @@ class SuperFilter {
         }
 
         filters.back()->SetOutputDataReadyCallback([this]() { LastFilterDataReadyCallback(); });
+        lastFilterOutput = (*filters.back()).GetOutputBuffer();
     }
     void SetOutputQueue(BorrowedQueue new_output_queue) noexcept
     {
         Lock{ outputQueueMutex };
         outputQueue = new_output_queue;
     }
-    void SetLastBuffer(LastBufferT new_last_buffer) noexcept { lastBuffer = std::move(new_last_buffer); }
     void Resume() noexcept { filterTask.Resume(); }
     void Suspend() noexcept { filterTask.Suspend(); }
 
-    [[nodiscard]] FirstBufferT                 GetFirstBuffer() noexcept { return firstBuffer; }
-    [[nodiscard]] LastBufferT                  GetLastBuffer() noexcept { return lastBuffer; }
+    [[nodiscard]] InputBufferT                 GetFirstBuffer() noexcept { return firstFilterInput; }
+    [[nodiscard]] OutputBufferT                GetLastBuffer() noexcept { return lastFilterOutput; }
     [[nodiscard]] std::shared_ptr<InputStream> GetInputStreamBuffer() const noexcept { return inputStream; }
     [[nodiscard]] OwnedQueue                   GetOutputQueue() noexcept
     {
@@ -226,32 +295,31 @@ class SuperFilter {
   protected:
     [[gnu::hot]] [[noreturn]] void InputTask() noexcept
     {
-        auto buffer = std::array<ValueT, firstBufferSize>{};
-
         while (true) {
-            (*firstBuffer) = inputStream->template Receive<firstBufferSize>(ReceiveTimeout);
-            filters.at(0)->DoFilter();
+            auto input = inputStream->template Receive<ProjectConfigs::ADCStreamBufferTriggeringSize>(ReceiveTimeout);
+
+            std::transform(input.begin(), input.end(), firstFilterInput->begin(), [](auto &input) { return input; });
+
+            (*filters.begin())->DoFilter();
         }
     }
     void LastFilterDataReadyCallback()
     {
-        auto new_output_value = (*lastBuffer)[0];
+        auto output_value = *(lastFilterOutput->begin());
         Lock{ outputQueueMutex };
-        xQueueSend(outputQueue, &new_output_value, QueueSendTimeoutValue);
+
+        xQueueSend(outputQueue, static_cast<const void *>(&output_value), QueueSendTimeoutValue);
     }
 
   private:
     std::shared_ptr<InputStream> inputStream;
-
-    BorrowedQueue outputQueue = nullptr;
-
-    FirstBufferT firstBuffer;
-    LastBufferT  lastBuffer;
+    BorrowedQueue                outputQueue = nullptr;
+    InputBufferT                 firstFilterInput;
+    OutputBufferT                lastFilterOutput;
 
     std::vector<std::unique_ptr<AbstractFilter>> filters;
 
-    size_t bufferIteratorPosition = 0;
-    Mutex  outputQueueMutex;
+    Mutex outputQueueMutex;
 
     Task filterTask;
 };

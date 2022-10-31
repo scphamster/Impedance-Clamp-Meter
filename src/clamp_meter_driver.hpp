@@ -76,12 +76,10 @@ class ClampMeterDriver {
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                    "clamp sensor" }
-    /*, testSenderTask([this]() { this->TestSenderTask(); }, 400, 3, "test sender")*/
     {
         InitializeFilters();
         InitializeSensors();
 
-        //        testSenderTask.Suspend();         // test
     }
 
     void StartMeasurements() noexcept
@@ -192,99 +190,99 @@ class ClampMeterDriver {
     void StandardSensorOnDisableCallback() noexcept { sensors.at(activeSensor).SetMinGain(); }
     void InitializeFilters() noexcept
     {
-        auto constexpr fir1_dec_blocksize = 100;
+        auto constexpr filter2_block_size = 100;
 
-        auto constexpr biquad1_nstages  = 2;
-        auto constexpr biquad1_ncoeffs  = biquad1_nstages * 5;
-        auto constexpr biquad1_buffsize = fir1_dec_blocksize;
+        auto constexpr biquad1_nstages    = 2;
+        auto constexpr biquad1_ncoeffs    = biquad1_nstages * 5;
+        auto constexpr filter1_block_size = filter2_block_size;
 
-        auto constexpr fir1_dec_ncoeffs = 5;
-        auto constexpr fir_dec_factor   = 10;
+        auto constexpr fir1_dec_ncoeffs  = 5;
+        auto constexpr decimating_factor = 10;
 
-        auto constexpr fir2_dec_blocksize = 10;
+        auto constexpr filter4_block_size = 10;
         auto constexpr fir2_dec_ncoeffs   = 5;
 
-        auto constexpr biquad2_nstages  = 2;
-        auto constexpr biquad2_ncoeffs  = biquad2_nstages * 5;
-        auto constexpr biquad2_buffsize = fir2_dec_blocksize;
+        auto constexpr biquad2_nstages    = 2;
+        auto constexpr biquad2_ncoeffs    = biquad2_nstages * 5;
+        auto constexpr filter3_block_size = filter4_block_size;
 
-        auto constexpr biquad3_nstages  = 3;
-        auto constexpr biquad3_ncoeffs  = biquad3_nstages * 5;
-        auto constexpr biquad3_buffsize = 1;
+        auto constexpr biquad3_nstages    = 3;
+        auto constexpr biquad3_ncoeffs    = biquad3_nstages * 5;
+        auto constexpr filter5_block_size = 1;
 
-        using CoefficientT = BiquadCascadeDF2TFilter<0, 0>::CoefficientT;
+        using CoefficientsPack = AbstractFilter::CoefficientsPack;
+        auto sin_filter1       = std::make_unique<BiquadCascadeDF2TFilter>(CoefficientsPack{ 0.00018072660895995795726776123046875f,
+                                                                                       0.0003614532179199159145355224609375f,
+                                                                                       0.00018072660895995795726776123046875f,
 
-        auto sin_filter1 = std::make_unique<BiquadCascadeDF2TFilter<biquad1_nstages, biquad1_buffsize>>(
-          std::array<CoefficientT, biquad1_ncoeffs>{ 0.00018072660895995795726776123046875f,
-                                                     0.0003614532179199159145355224609375f,
-                                                     0.00018072660895995795726776123046875f,
+                                                                                       1.9746592044830322265625f,
+                                                                                       -0.975681483745574951171875f,
 
-                                                     1.9746592044830322265625f,
-                                                     -0.975681483745574951171875f,
+                                                                                       0.00035528256557881832122802734375f,
+                                                                                       0.0007105651311576366424560546875f,
+                                                                                       0.00035528256557881832122802734375f,
 
-                                                     0.00035528256557881832122802734375f,
-                                                     0.0007105651311576366424560546875f,
-                                                     0.00035528256557881832122802734375f,
+                                                                                       1.94127738475799560546875f,
+                                                                                       -0.9422824382781982421875f },
+                                                                     filter1_block_size);
 
-                                                     1.94127738475799560546875f,
-                                                     -0.9422824382781982421875f },
-          filter.GetFirstBuffer());
+        auto sin_filter2 = std::make_unique<FirDecimatingFilter>(CoefficientsPack{ 0.02868781797587871551513671875f,
+                                                                                   0.25f,
+                                                                                   0.4426243603229522705078125f,
+                                                                                   0.25f,
+                                                                                   0.02868781797587871551513671875f },
+                                                                 decimating_factor,
+                                                                 filter2_block_size);
 
-        auto sin_filter2 = std::make_unique<FirDecimatingFilter<fir1_dec_blocksize, fir1_dec_ncoeffs, fir_dec_factor>>(
-          std::array<CoefficientT, fir1_dec_ncoeffs>{ 0.02868781797587871551513671875f,
-                                                      0.25f,
-                                                      0.4426243603229522705078125f,
-                                                      0.25f,
-                                                      0.02868781797587871551513671875f },
-          sin_filter1->GetOutputBuffer());
+        auto sin_filter3 = std::make_unique<BiquadCascadeDF2TFilter>(CoefficientsPack{ 0.000180378541699610650539398193359375f,
+                                                                                       0.00036075708339922130107879638671875f,
+                                                                                       0.000180378541699610650539398193359375f,
 
-        auto sin_filter3 = std::make_unique<BiquadCascadeDF2TFilter<biquad2_nstages, biquad2_buffsize>>(
-          std::array<CoefficientT, biquad2_ncoeffs>{ 0.000180378541699610650539398193359375f,
-                                                     0.00036075708339922130107879638671875f,
-                                                     0.000180378541699610650539398193359375f,
+                                                                                       1.97468459606170654296875f,
+                                                                                       -0.975704848766326904296875f,
 
-                                                     1.97468459606170654296875f,
-                                                     -0.975704848766326904296875f,
+                                                                                       0.00035460057551972568035125732421875f,
+                                                                                       0.0007092011510394513607025146484375f,
+                                                                                       0.00035460057551972568035125732421875f,
 
-                                                     0.00035460057551972568035125732421875f,
-                                                     0.0007092011510394513607025146484375f,
-                                                     0.00035460057551972568035125732421875f,
+                                                                                       1.941333770751953125f,
+                                                                                       -0.942336857318878173828125f },
+                                                                     filter3_block_size);
 
-                                                     1.941333770751953125f,
-                                                     -0.942336857318878173828125f },
-          sin_filter2->GetOutputBuffer());
+        auto sin_filter4 = std::make_unique<FirDecimatingFilter>(CoefficientsPack{ 0.02867834083735942840576171875f,
+                                                                                   0.25f,
+                                                                                   0.4426433145999908447265625f,
+                                                                                   0.25f,
+                                                                                   0.02867834083735942840576171875f },
+                                                                 decimating_factor,
+                                                                 filter4_block_size);
 
-        auto sin_filter4 = std::make_unique<FirDecimatingFilter<fir2_dec_blocksize, fir2_dec_ncoeffs, fir_dec_factor>>(
-          std::array<CoefficientT, fir2_dec_ncoeffs>{ 0.02867834083735942840576171875f,
-                                                      0.25f,
-                                                      0.4426433145999908447265625f,
-                                                      0.25f,
-                                                      0.02867834083735942840576171875f },
-          sin_filter3->GetOutputBuffer());
+        auto sin_filter5 = std::make_unique<BiquadCascadeDF2TFilter>(CoefficientsPack{ 0.0000231437370530329644680023193359375f,
+                                                                                       0.000046287474106065928936004638671875f,
+                                                                                       0.0000231437370530329644680023193359375f,
 
-        auto sin_filter5 = std::make_unique<BiquadCascadeDF2TFilter<biquad3_nstages, biquad3_buffsize>>(
-          std::array<CoefficientT, biquad3_ncoeffs>{ 0.0000231437370530329644680023193359375f,
-                                                     0.000046287474106065928936004638671875f,
-                                                     0.0000231437370530329644680023193359375f,
+                                                                                       1.98140633106231689453125f,
+                                                                                       -0.981498897075653076171875f,
 
-                                                     1.98140633106231689453125f,
-                                                     -0.981498897075653076171875f,
+                                                                                       0.000020184184904792346060276031494140625f,
+                                                                                       0.00004036836980958469212055206298828125f,
+                                                                                       0.000020184184904792346060276031494140625f,
 
-                                                     0.000020184184904792346060276031494140625f,
-                                                     0.00004036836980958469212055206298828125f,
-                                                     0.000020184184904792346060276031494140625f,
+                                                                                       1.99491560459136962890625f,
+                                                                                       -0.99500882625579833984375f,
 
-                                                     1.99491560459136962890625f,
-                                                     -0.99500882625579833984375f,
+                                                                                       0.000026784562578541226685047149658203125f,
+                                                                                       0.00005356912515708245337009429931640625f,
+                                                                                       0.000026784562578541226685047149658203125f,
 
-                                                     0.000026784562578541226685047149658203125f,
-                                                     0.00005356912515708245337009429931640625f,
-                                                     0.000026784562578541226685047149658203125f,
+                                                                                       1.9863297939300537109375f,
+                                                                                       -0.986422598361968994140625f },
+                                                                     filter5_block_size);
 
-                                                     1.9863297939300537109375f,
-                                                     -0.986422598361968994140625f },
-          sin_filter4->GetOutputBuffer());
-        filter.SetLastBuffer(sin_filter5->GetOutputBuffer());
+        sin_filter1->SetOutputBuffer(sin_filter2->GetInputBuffer());
+        sin_filter3->SetInputBuffer(sin_filter2->GetOutputBuffer());
+        sin_filter3->SetOutputBuffer(sin_filter4->GetInputBuffer());
+        sin_filter5->SetInputBuffer(sin_filter4->GetOutputBuffer());
 
         filter.InsertFilter(std::move(sin_filter1));
         filter.InsertFilter(std::move(sin_filter2));
@@ -450,12 +448,12 @@ class ClampMeterDriver {
 
     PeripheralsController peripherals;
 
-    OutputGenerator                                     generator;
-    AdcDriverT                                          adc;   // todo: make type independent
-    SuperFilter<float, firstBufferSize, lastBufferSize> filter;
-    std::map<Sensor, SensorController>                  sensors;
-    std::shared_ptr<SensorController>                   voltageSensor;
-    Sensor                                              activeSensor;
+    OutputGenerator                    generator;
+    AdcDriverT                         adc;   // todo: make type independent
+    SuperFilter<float>                 filter;
+    std::map<Sensor, SensorController> sensors;
+    std::shared_ptr<SensorController>  voltageSensor;
+    Sensor                             activeSensor;
 
     Task voltageTask;
     Task shuntTask;
