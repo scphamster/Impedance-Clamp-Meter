@@ -63,10 +63,7 @@ class ClampMeterDriver {
 
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> new_test_value)
       : testValue{ new_test_value }
-      , adc{ ProjectConfigs::ADCAddress,
-             ProjectConfigs::ADCStreamBufferCapacity,
-             ProjectConfigs::ADCStreamBufferTriggeringSize }
-      , filter{ ProjectConfigs::GetQueueSize(ProjectConfigs::QueueSize::FromAdc) }
+      , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , voltageTask{ [this]() { this->VoltageSensorTask(); },
                      ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                      ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
@@ -89,11 +86,6 @@ class ClampMeterDriver {
 
     void StartMeasurements() noexcept
     {
-        // test
-        //        SwitchSensor(Sensor::Voltage);
-        //        testSenderTask.Resume();
-        //        return;
-
         SwitchSensor(Sensor::Voltage);
         filter.Resume();
         peripherals.powerSupply.Activate();
@@ -101,7 +93,6 @@ class ClampMeterDriver {
 
         adc.StartMeasurement();
         generator.StartGenerating();
-
         peripherals.outputRelay.Activate();
     }
     void StopMeasurements() noexcept
@@ -169,16 +160,16 @@ class ClampMeterDriver {
         auto   some_value = float{};
         size_t counter    = 0;
         while (true) {
-//            some_value = sinus_table.at(counter);
-//
-//            auto send_result = xQueueSend(sensors.at(Sensor::Voltage).GetInputQueue(), &some_value, 0);
-//            if (send_result == errQUEUE_FULL)
-//                QueueFullHook(xTaskGetCurrentTaskHandle(), "sender");
-//
-//            counter++;
-//
-//            if (counter == 22)
-//                counter = 0;
+            //            some_value = sinus_table.at(counter);
+            //
+            //            auto send_result = xQueueSend(sensors.at(Sensor::Voltage).GetInputQueue(), &some_value, 0);
+            //            if (send_result == errQUEUE_FULL)
+            //                QueueFullHook(xTaskGetCurrentTaskHandle(), "sender");
+            //
+            //            counter++;
+            //
+            //            if (counter == 22)
+            //                counter = 0;
 
             //            vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -332,7 +323,7 @@ class ClampMeterDriver {
                                                         std::forward_as_tuple(std::move(v_amplifier_controller),
                                                                               iq_controller,
                                                                               adc.CreateNewStreamBuffer(),
-                                                                              filter.GetInputQueue()));
+                                                                              filter.GetInputStreamBuffer()));
 
             configASSERT(emplaced);
 
@@ -389,7 +380,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(sh_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  filter.GetInputQueue()));
+                                                  filter.GetInputStreamBuffer()));
             sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
             sensors.at(Sensor::Shunt).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
@@ -445,7 +436,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(clamp_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  filter.GetInputQueue()));
+                                                  filter.GetInputStreamBuffer()));
             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }

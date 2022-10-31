@@ -55,11 +55,13 @@ MCP23016_driver_IRQHandler(uint32_t id, uint32_t mask)
 
     BaseType_t higher_prio_task_woken;
 
+    // todo: use std array instead of raw array
     uint16_t pin_data = MCP23016_driver::GetPinsState();
     uint8_t  data_buffer[2];
     data_buffer[0] = pin_data & 0xff;
     data_buffer[1] = 0xff & (pin_data >> 8);
 
+    //todo: use StreamBuffer
     xStreamBufferSendFromISR(SB_pins_status, &data_buffer, sizeof(data_buffer), &higher_prio_task_woken);
     portYIELD_FROM_ISR(higher_prio_task_woken);
 }
@@ -127,11 +129,7 @@ MCP23016_driver::Initialize() const noexcept
 
     twiPdc_write(data5, 2, MCP23016_TWI_ADDR);
 
-    pio_handler_set(MCP23016_INT_PORT,
-                    MCP23016_INT_PORT_ID,
-                    (1 << MCP23016_INT_PIN),
-                    PIO_IT_FALL_EDGE,
-                    MCP23016_driver_IRQHandler);
+    pio_handler_set(MCP23016_INT_PORT, MCP23016_INT_PORT_ID, (1 << MCP23016_INT_PIN), PIO_IT_FALL_EDGE, MCP23016_driver_IRQHandler);
 
     pio_handler_set_priority(MCP23016_INT_PORT,
                              MCP23016_IRQ_ID,
@@ -189,12 +187,14 @@ MCP23016_driver::StartTask() noexcept
     const auto buffer_size                = StreamBufferSize;
     const auto triggering_number_of_bytes = 2;
 
+    //todo: use StreamBuffer
     SB_pins_status = xStreamBufferCreate(buffer_size, triggering_number_of_bytes);
 
     if (SB_pins_status == nullptr) {
         while (1) { }
     }
-    // todo: make better exception catcher
+
+    // todo: use Task instead of raw freeRTOS variant
     auto task_creation_result = xTaskCreate(MCP23016_DriverTask,
                                             "mcp23016 keyboard",
                                             ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::MCP23016),
@@ -211,8 +211,7 @@ MCP23016_driver::SetPinStateChangeCallback(std::function<void(const Pin_MCP23016
 }
 
 std::array<Pin_MCP23016::PinState, MCP23016_driver::NumberOfPins>
-MCP23016_driver::StreamBufferToPinStateArray(
-  std::array<Byte, MCP23016_driver::StreamBufferSinglePacketSize> &&serial_data)
+MCP23016_driver::StreamBufferToPinStateArray(std::array<Byte, MCP23016_driver::StreamBufferSinglePacketSize> &&serial_data)
 {
     auto pins_state = std::array<Pin_MCP23016::PinState, NumberOfPins>{};
 

@@ -67,6 +67,12 @@ class StreamBuffer {
 
     void Send(ItemType &&buffer, TimeoutMsec timeout) noexcept { xStreamBufferSend(handle, &buffer, sizeof(buffer), timeout); }
 
+    template<size_t NumberOfItems>
+    void Send(std::array<ItemType, NumberOfItems> &buffer, TimeoutMsec timeout) noexcept
+    {
+        xStreamBufferSend(handle, buffer.data(), sizeof(buffer), timeout);
+    }
+
     template<typename T>
     BaseType_t SendFromISR(T &&buffer) noexcept
     {

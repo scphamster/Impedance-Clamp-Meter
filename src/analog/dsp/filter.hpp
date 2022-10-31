@@ -22,6 +22,7 @@
 #include "semaphore.hpp"
 #include "project_configs.hpp"
 #include "task.hpp"
+#include "queue.hpp"
 
 class AbstractFilter {
   public:
@@ -122,6 +123,7 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     {
         arm_biquad_cascade_df2T_init_f32(&filter_instance, numberOfStages, coefficients.data(), stateBuffer.data());
     }
+
     void DoFilter() noexcept override
     {
         arm_biquad_cascade_df2T_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), filterBlockSize);
@@ -140,14 +142,14 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     OutputBufferT                        outputBuffer;
 };
 
-// todo: try to use stereofilter (superfilterpolychannel)
+// todo:make double channel filter
 template<typename ValueT, size_t firstBufferSize, size_t lastBufferSize>
 class SuperFilter {
   public:
     using FirstBufferT      = std::shared_ptr<std::array<ValueT, firstBufferSize>>;
     using LastBufferT       = std::shared_ptr<std::array<ValueT, lastBufferSize>>;
     using DataReadyCallback = std::function<void()>;
-    using QueueT            = QueueHandle_t;
+    using InputStream       = StreamBuffer<ValueT>;
     using OwnedQueue        = QueueHandle_t;
     using BorrowedQueue     = OwnedQueue;
     using Lock              = std::lock_guard<Mutex>;
@@ -155,13 +157,14 @@ class SuperFilter {
     enum Configs {
         QueueMsgSize          = sizeof(ValueT),
         QueueSendTimeoutValue = 0,
-        QueueReceiveTimeout   = portMAX_DELAY
+        ReceiveTimeout        = portMAX_DELAY
     };
 
-    SuperFilter(size_t input_queue_size)
-      : inputQueue{ xQueueCreate(input_queue_size, QueueMsgSize) }
+    SuperFilter() noexcept
+      : inputStream{ std::make_shared<InputStream>(ProjectConfigs::ADCStreamBufferCapacity,
+                                                   ProjectConfigs::ADCStreamBufferTriggeringSize) }
       , firstBuffer{ std::make_shared<std::array<ValueT, firstBufferSize>>() }
-      , filterTask([this]() { this->InputQueueTask(); },
+      , filterTask([this]() { this->InputTask(); },
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Filter),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Filter),
                    "filter input task")
@@ -169,13 +172,13 @@ class SuperFilter {
         filterTask.Suspend();
     }
 
-    [[noreturn]] void InputQueueTask()
+    [[gnu::hot]] [[noreturn]] void InputTask() noexcept
     {
-        auto new_input_value = ValueT{};
+        auto buffer = std::array<ValueT, firstBufferSize>{};
 
         while (true) {
-            xQueueReceive(inputQueue, &new_input_value, QueueReceiveTimeout);
-            Push(new_input_value);
+            (*firstBuffer) = inputStream->template Receive<firstBufferSize>(ReceiveTimeout);
+            filters.at(0)->DoFilter();
         }
     }
 
@@ -220,10 +223,10 @@ class SuperFilter {
     void Resume() noexcept { filterTask.Resume(); }
     void Suspend() noexcept { filterTask.Suspend(); }
 
-    [[nodiscard]] FirstBufferT GetFirstBuffer() noexcept { return firstBuffer; }
-    [[nodiscard]] LastBufferT  GetLastBuffer() noexcept { return lastBuffer; }
-    [[nodiscard]] QueueT       GetInputQueue() const noexcept { return inputQueue; }
-    [[nodiscard]] QueueT       GetOutputQueue() noexcept
+    [[nodiscard]] FirstBufferT                 GetFirstBuffer() noexcept { return firstBuffer; }
+    [[nodiscard]] LastBufferT                  GetLastBuffer() noexcept { return lastBuffer; }
+    [[nodiscard]] std::shared_ptr<InputStream> GetInputStreamBuffer() const noexcept { return inputStream; }
+    [[nodiscard]] OwnedQueue                   GetOutputQueue() noexcept
     {
         Lock{ outputQueueMutex };
         return outputQueue;
@@ -238,7 +241,8 @@ class SuperFilter {
     }
 
   private:
-    OwnedQueue    inputQueue  = nullptr;
+    std::shared_ptr<InputStream> inputStream;
+
     BorrowedQueue outputQueue = nullptr;
 
     FirstBufferT firstBuffer;

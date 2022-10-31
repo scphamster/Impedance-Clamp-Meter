@@ -22,24 +22,21 @@ class AmplifierController {
 
     explicit AmplifierController(std::shared_ptr<GainController> new_gain_controller)
       : gainController{ std::move(new_gain_controller) }
-    {
+    { }
 
+    //    explicit AmplifierController(GainT min_gain, GainT max_gain)
+    //      : AmplifierController{ std::make_shared<GainController>(min_gain, max_gain) }
+    //    { }
 
-    }
-
-//    explicit AmplifierController(GainT min_gain, GainT max_gain)
-//      : AmplifierController{ std::make_shared<GainController>(min_gain, max_gain) }
-//    { }
-
-    void EnableAGC(bool if_enable) noexcept { agcIsEnabled = if_enable; }
-    void SetAGC(std::unique_ptr<AGCType> &&new_agc, bool enable_agc = true) noexcept
+    [[maybe_unused]] void EnableAGC(bool if_enable) noexcept { agcIsEnabled = if_enable; }
+    [[maybe_unused]] void SetAGC(std::unique_ptr<AGCType> &&new_agc, bool enable_agc = true) noexcept
     {
         agc = std::forward<decltype(new_agc)>(new_agc);
         agc->AttachGainController(gainController);
         agcIsEnabled = enable_agc;
     }
-    void ForceForwardAmplitudeValueToAGC(auto new_value) noexcept { agc->InspectSignalAmplitude(new_value); }
-    void ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
+    [[maybe_unused]] void ForceForwardAmplitudeValueToAGC(auto new_value) noexcept { agc->InspectSignalAmplitude(new_value); }
+    [[maybe_unused]] void ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
     {
         if (agcIsEnabled)
             agc->InspectSignalAmplitude(new_value);
@@ -49,21 +46,20 @@ class AmplifierController {
         if (not agcIsEnabled)
             gainController->SetGain(new_gain);
     };
-    void                       ForceSetGain(GainT new_gain) noexcept { gainController->SetGain(new_gain); }
-    void                       SetMinGain() noexcept { gainController->SetGain(gainController->GetMinGain()); }
-    void                       SetMaxGain() noexcept { gainController->SetGain(gainController->GetMaxGain()); }
-    bool                       AgcIsEnabled() const noexcept { return agcIsEnabled; }
-    std::unique_ptr<AGCType> &&TakeAGC() noexcept
+    [[maybe_unused]] void                       ForceSetGain(GainT new_gain) noexcept { gainController->SetGain(new_gain); }
+    void                                        SetMinGain() noexcept { gainController->SetGain(gainController->GetMinGain()); }
+    void                                        SetMaxGain() noexcept { gainController->SetGain(gainController->GetMaxGain()); }
+    [[maybe_unused]] [[nodiscard]] bool         AgcIsEnabled() const noexcept { return agcIsEnabled; }
+    [[maybe_unused]] std::unique_ptr<AGCType> &&TakeAGC() noexcept
     {
         agcIsEnabled = false;
         return std::move(agc);
     };
 
   protected:
-
-
-    std::shared_ptr<GainController> gainController;
+  private:
+    std::shared_ptr<GainController>    gainController;
     std::shared_ptr<UniversalSafeType> testVal;
-    std::unique_ptr<AGCType>        agc;
-    bool                            agcIsEnabled = false;
+    std::unique_ptr<AGCType>           agc;
+    bool                               agcIsEnabled = false;
 };

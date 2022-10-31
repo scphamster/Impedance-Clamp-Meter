@@ -64,8 +64,7 @@ class TasksControllerImplementation {
                     "display" }
       , clampMeter{ vOverall }
       , model{ std::make_shared<Menu>() }
-      , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used),
-                std::forward<decltype(new_keyboard)>(new_keyboard) }
+      , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , vOverall{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , vShunt{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , zClamp{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
@@ -81,9 +80,11 @@ class TasksControllerImplementation {
   protected:
     [[noreturn]] void DisplayTask() noexcept
     {
+        auto lastDrawTime = xTaskGetTickCount();
+
         while (1) {
             drawer.DrawerTask();
-            vTaskDelay(pdMS_TO_TICKS(200));
+            vTaskDelayUntil(&lastDrawTime, ProjectConfigs::DisplayDrawingDrawingPeriodMs);
         }
     }
 
@@ -192,16 +193,15 @@ class TasksControllerImplementation {
 
   private:
     // todo: to be deleted from here
-    std::shared_ptr<std::array<float, 1>> mybuffer;
-    PageDataT                             vOverall;
-    PageDataT                             vShunt;
-    PageDataT                             zClamp;
-    PageDataT                             sensorMag;
-    PageDataT                             sensorPhi;
+    PageDataT vOverall;
+    PageDataT vShunt;
+    PageDataT zClamp;
+    PageDataT sensorMag;
+    PageDataT sensorPhi;
 
-    Task drawerTask;
+    Task                                 drawerTask;
     ClampMeterDriver                     clampMeter;
     std::shared_ptr<MenuModel<Keyboard>> model;
 
-    MenuModelDrawer<DrawerT, Keyboard>   drawer;
+    MenuModelDrawer<DrawerT, Keyboard> drawer;
 };

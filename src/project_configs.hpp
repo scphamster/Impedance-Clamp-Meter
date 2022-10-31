@@ -7,18 +7,18 @@ enum class TaskStackSize {
     Main              = 400,
     Display           = 500,
     ClampDriverSensor = 400,
-    SensorInput       = 300,
+    SensorInput       = 400,
     SensorFromFilter  = 300,
     Filter            = 600,
     MCP23016          = 300
 };
 enum class TaskPriority {
     Main              = 3,
-    Display           = 3,
+    Display           = 4,
     ClampDriverSensor = 3,
-    SensorInput       = 3,
-    SensorFromFilter  = 3,
-    Filter            = 4,
+    SensorInput       = 4,
+    SensorFromFilter  = 4,
+    Filter            = 3,
     MCP23016          = 2
 };
 
@@ -40,7 +40,9 @@ enum {
     SuperFilterFirstBufferSize = 100,
     ADCAddress         = 0x40,
     ADCStreamBufferCapacity = 200,
-    ADCStreamBufferTriggeringSize = SuperFilterFirstBufferSize
+    ADCStreamBufferTriggeringSize = SuperFilterFirstBufferSize,
+
+    DisplayDrawingDrawingPeriodMs = pdMS_TO_TICKS(200),
 };
 
 enum class Tasks {
