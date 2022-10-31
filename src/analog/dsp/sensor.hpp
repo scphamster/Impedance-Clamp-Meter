@@ -15,13 +15,13 @@
 #include <mutex>
 #include <utility>
 #include <algorithm>
-#include <iostream>
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "stream_buffer.h"
 #include "semphr.h"
+#include "arm_math.h"
 
 #include "amplifier_controller.hpp"
 #include "iq_calculator.hpp"
@@ -29,8 +29,10 @@
 #include "task.hpp"
 #include "project_configs.hpp"
 #include "queue.hpp"
+#include "mcp3462_driver.hpp"
 
-// extern TickType_t time_difference;
+extern TickType_t time_difference;
+extern int        input_task_counter;
 
 class SensorData {
   public:
@@ -110,6 +112,7 @@ class SensorController {
 
     void Enable() noexcept
     {
+        iqCalculator->ResetTickCounter();
         ResumeTasks();
 
         if (activationCallback)
@@ -157,32 +160,24 @@ class SensorController {
 
   protected:
     // tasks
-    [[noreturn]] void InputTask() noexcept
+    // todo: cleanup after tests
+    [[noreturn]] [[gnu::hot]] void InputTask() noexcept
     {
         constexpr auto                                 filterFirstBufferSize = 100;
         std::array<InputValueT, filterFirstBufferSize> inputBuffer{};
         std::array<ValueT, filterFirstBufferSize>      to_filter{};
 
         while (true) {
-            inputBuffer = inputSB->Receive<filterFirstBufferSize>(ReceiveTimeout);
+            inputBuffer = inputSB->ReceiveBlocking<filterFirstBufferSize>(ReceiveTimeout);
+            input_task_counter++;
 
-            //            std::transform(inputBuffer.begin(), inputBuffer.end(), to_filter.begin(), [this](auto const &first) {
-            //                auto [I, Q] = iqCalculator->CalculateIQ(first);
-            //                return I;
-            //            });
-            //            time_difference = xTaskGetTickCount();
-            for (auto counter{ 0 }, sin_counter{ 0 }; auto &value : inputBuffer) {
-                //                auto [I,Q] = iqCalculator->CalculateIQ(static_cast<ValueT>(value));
-                to_filter.at(counter) = sinus_table.at(sin_counter);
-                if (sin_counter == 21)
-                    sin_counter = 0;
-                else
-                    sin_counter++;
+//            configASSERT(adc_interrupt_counter >= 100);
+            adc_interrupt_counter = 0;
 
-                counter++;
+            for (auto counter{ 0 }, sin_counter{ 0 }; counter < filterFirstBufferSize; counter++) {
+                auto [I, Q]           = iqCalculator->CalculateIQ(inputBuffer.at(counter));
+                to_filter.at(counter) = I;
             }
-
-            //            time_difference = xTaskGetTickCount() - time_difference;
 
             toFilterSB->Send<filterFirstBufferSize>(to_filter, SendTimeout);
         }

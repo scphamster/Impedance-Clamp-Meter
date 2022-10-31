@@ -32,10 +32,12 @@ auto constexpr CMD_INCREMENTAL_WRITE = 0x02;
 auto constexpr CMD_INCREMENTAL_READ  = 0x03;
 
 static MCP3462_driver *driver = nullptr;
-
+//todo: remove
+uint32_t adc_interrupt_counter = 0;
 extern "C" void
 mcp3462_interrupt_handler(uint32_t, uint32_t)
 {
+    adc_interrupt_counter++;
     portYIELD_FROM_ISR(driver->HandleInterruptStreamBuffer());
 }
 

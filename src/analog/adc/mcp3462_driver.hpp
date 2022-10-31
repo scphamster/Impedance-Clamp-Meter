@@ -19,6 +19,8 @@
 #include "clamp_meter_concepts.hpp"
 #include "queue.hpp"
 
+extern uint32_t adc_interrupt_counter;
+
 // todo: try to make data transfer more c++ish, to make class not SINGLETONE
 class MCP3462_driver {
   public:
@@ -247,7 +249,7 @@ class MCP3462_driver {
     std::shared_ptr<OutputStreamBuffer> outputSB;
 
     size_t streamBufferCapacity;
-    size_t streamBufferTriggeringSize;
+    size_t  streamBufferTriggeringSize;
 
     bool clockIsEnabled = false;
 

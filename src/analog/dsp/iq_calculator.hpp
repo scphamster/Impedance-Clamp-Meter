@@ -2,6 +2,7 @@
 #include "compiler_compatibility_workaround.hpp"
 #include <memory>
 #include "dsp_resources.hpp"
+#include "arm_math.h"
 
 template<typename ValueT>
 class SynchronousIQCalculator {

@@ -15,11 +15,12 @@ extern "C" {
 System_t System;
 uint32_t g_ten_millis;
 
-void TC0_Handler(void)
-{
-	g_ten_millis++;
-	tc_get_status(TC0, 0);
-}
+//void TC0_Handler(void)
+//{
+////	g_ten_millis++;
+//    g_100us++;
+//	tc_get_status(TC0, 0);
+//}
 
 uint32_t systick_read(void)
 {

@@ -186,6 +186,8 @@ ten_milliseconds_timer_init(void)
     tc_start(TC0, 0);
 }
 
+
+
 void
 system_tick_init(void)
 {
@@ -273,8 +275,8 @@ system_init(void)
     twi_init();
     twiPdc_init();
 
-    ten_milliseconds_timer_init();
-    buzzer_timer_init();
+//    ten_milliseconds_timer_init();
+//    buzzer_timer_init();
 
     delay_ms(100);
 

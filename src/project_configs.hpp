@@ -5,16 +5,16 @@ namespace ProjectConfigs
 {
 enum class TaskStackSize {
     Main              = 400,
-    Display           = 500,
-    ClampDriverSensor = 400,
-    SensorInput       = 400,
+    Display           = 300,
+    ClampDriverSensor = 300,
+    SensorInput       = 1000,
     SensorFromFilter  = 300,
     Filter            = 600,
     MCP23016          = 300
 };
 enum class TaskPriority {
     Main              = 3,
-    Display           = 4,
+    Display           = 1,
     ClampDriverSensor = 3,
     SensorInput       = 4,
     SensorFromFilter  = 4,

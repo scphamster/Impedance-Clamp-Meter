@@ -228,6 +228,7 @@ set(FREERTOS_SOURCES
     src/ASF/thirdparty/FreeRTOS/croutine.c
     src/ASF/thirdparty/FreeRTOS/event_groups.c
     src/ASF/thirdparty/FreeRTOS/FreeRTOSConfig.h
+    src/ASF/thirdparty/FreeRTOS/time_stat_timer.c
     src/ASF/thirdparty/FreeRTOS/include/atomic.h
     src/ASF/thirdparty/FreeRTOS/include/croutine.h
     src/ASF/thirdparty/FreeRTOS/include/deprecated_definitions.h

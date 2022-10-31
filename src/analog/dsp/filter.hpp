@@ -172,15 +172,6 @@ class SuperFilter {
         filterTask.Suspend();
     }
 
-    [[gnu::hot]] [[noreturn]] void InputTask() noexcept
-    {
-        auto buffer = std::array<ValueT, firstBufferSize>{};
-
-        while (true) {
-            (*firstBuffer) = inputStream->template Receive<firstBufferSize>(ReceiveTimeout);
-            filters.at(0)->DoFilter();
-        }
-    }
 
     void Push(ValueT new_value) noexcept
     {
@@ -233,6 +224,15 @@ class SuperFilter {
     }
 
   protected:
+    [[gnu::hot]] [[noreturn]] void InputTask() noexcept
+    {
+        auto buffer = std::array<ValueT, firstBufferSize>{};
+
+        while (true) {
+            (*firstBuffer) = inputStream->template Receive<firstBufferSize>(ReceiveTimeout);
+            filters.at(0)->DoFilter();
+        }
+    }
     void LastFilterDataReadyCallback()
     {
         auto new_output_value = (*lastBuffer)[0];

@@ -32,6 +32,7 @@
 #define DACC_ACR_VAL       0x103
 
 #define MY_TIMER_RC_VAL 9375
+#define FREERTOS_TIMESTATS_100US 93
 #define MY_TIMER_PRIO   3
 
 #define BUZZER_PIN           26

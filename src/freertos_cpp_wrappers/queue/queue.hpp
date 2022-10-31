@@ -52,7 +52,7 @@ class StreamBuffer {
     ItemType Receive(TimeoutMsec timeout) noexcept
     {
         ItemType buffer;
-        xStreamBufferReceive(handle, &buffer, sizeof(buffer), pdMS_TO_TICKS(timeout));
+        xStreamBufferReceive(handle, &buffer, sizeof(buffer), timeout);
         return buffer;
     }
 
@@ -60,8 +60,22 @@ class StreamBuffer {
     std::array<ItemType, NumberOfItems> Receive(TimeoutMsec timeout) noexcept
     {
         std::array<ItemType, NumberOfItems> buffer;
+        auto received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
 
-        xStreamBufferReceive(handle, buffer.data(), sizeof(buffer), timeout);
+//        configASSERT(buffer.size() * sizeof(ItemType) == received_number_of_bytes);
+        return buffer;
+    }
+
+    template<size_t NumberOfItems>
+    std::array<ItemType, NumberOfItems> ReceiveBlocking(TimeoutMsec timeout) noexcept
+    {
+        std::array<ItemType, NumberOfItems> buffer;
+        auto constexpr buffer_size_in_bytes = buffer.size() * sizeof(ItemType);
+
+        for(size_t received_number_of_bytes = 0; received_number_of_bytes != buffer_size_in_bytes; ) {
+            received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
+        }
+
         return buffer;
     }
 

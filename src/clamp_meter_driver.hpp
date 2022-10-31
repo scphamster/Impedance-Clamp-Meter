@@ -97,13 +97,12 @@ class ClampMeterDriver {
     }
     void StopMeasurements() noexcept
     {
-        // test
-        //        testSenderTask.Suspend();
-        //        return;
         peripherals.outputRelay.Deactivate();
         generator.StopGenerating();
         peripherals.powerSupply.Deactivate();
         adc.StopMeasurement();
+        vTaskDelay(pdMS_TO_TICKS(200));
+        sensors.at(activeSensor).Disable();
         filter.Suspend();
     }
 
