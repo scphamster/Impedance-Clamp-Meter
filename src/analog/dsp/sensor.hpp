@@ -70,8 +70,6 @@ class SensorController {
   public:
     using InputValueT          = int32_t;
     using ValueT               = float;
-    using QueueOwned           = QueueHandle_t;
-    using QueueBorrowed        = QueueOwned;
     using ActivationCallback   = std::function<void()>;
     using DeactivationCallback = ActivationCallback;
     using SemaphoreT           = SemaphoreHandle_t;
@@ -79,7 +77,9 @@ class SensorController {
     using Lock                 = std::lock_guard<Mutex>;
     using GainT                = GainController::GainLevelT;
     using InputStreamBufferr   = StreamBuffer<InputValueT>;
-    using ToFilterStreamBuffer = StreamBuffer<ValueT>;
+    using FilterT              = SuperFilterNoTask<ValueT>;
+    using Filter               = std::shared_ptr<FilterT>;
+
     enum Configs {
         SendTimeout    = 0,
         ReceiveTimeout = portMAX_DELAY
@@ -88,18 +88,21 @@ class SensorController {
     explicit SensorController(std::unique_ptr<AmplifierController> &&new_amplifier_controller,
                               std::shared_ptr<IQCalculator>          new_iq_calculator,
                               std::shared_ptr<InputStreamBufferr>    new_input_stream_buffer,
-                              std::shared_ptr<ToFilterStreamBuffer>  new_to_filterI_SB)
+                              //                              std::shared_ptr<ToFilterStreamBuffer>  new_to_filterI_SB)
+                              Filter new_filter_I,
+                              Filter new_filter_Q)
       : inputTask{ [this]() { this->InputTask(); },
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorInput),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorInput),
                    "s_input" }
-      , fromFilterTask{ [this]() { this->FromFilterIDataHandlerTask(); },
-                        ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorFromFilter),
-                        ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorFromFilter),
-                        "fromFilter" }
+      //      , fromFilterTask{ [this]() { this->FromFilterIDataHandlerTask(); },
+      //                        ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorFromFilter),
+      //                        ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorFromFilter),
+      //                        "fromFilter" }
       , inputSB{ std::move(new_input_stream_buffer) }
-      , toFilterI_SB{ std::move(new_to_filterI_SB) }
-      , fromFilterI_Queue{ xQueueCreate(fromFilterQueueLen, sizeof(ValueT)) }
+      , filterI{ std::move(new_filter_I) }
+      , filterQ{ std::move(new_filter_Q) }   //      , toFilterI_SB{ std::move(new_to_filterI_SB) }
+                                             //      , fromFilterI_Queue{ xQueueCreate(fromFilterQueueLen, sizeof(ValueT)) }
       , dataReadySemaphore{ xSemaphoreCreateBinary() }
       , amplifierController{ std::forward<decltype(new_amplifier_controller)>(new_amplifier_controller) }
       , iqCalculator{ std::move(new_iq_calculator) }
@@ -144,20 +147,19 @@ class SensorController {
     void                  SuspendTasks() noexcept
     {
         inputTask.Suspend();
-        fromFilterTask.Suspend();
+        //        fromFilterTask.Suspend();
     }
     void ResumeTasks() noexcept
     {
         inputTask.Resume();
-        fromFilterTask.Resume();
+        //        fromFilterTask.Resume();
     }
 
-    [[nodiscard]] decltype(auto)        GetInputStreamBuffer() const noexcept { return inputSB; }
-    [[maybe_unused]] [[nodiscard]] auto GetToFilterSB() const noexcept { return toFilterI_SB; }
-    [[nodiscard]] QueueOwned            GetFromFilterQueueI() const noexcept { return fromFilterI_Queue; }
-    [[nodiscard]] SemaphoreT            GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] ValueT                GetValue() const noexcept { return data.trueValue_I; }
-    [[maybe_unused]] [[nodiscard]] bool IsActivated() const noexcept { return isActivated; }
+    [[nodiscard]] decltype(auto) GetInputStreamBuffer() const noexcept { return inputSB; }
+    //    [[maybe_unused]] [[nodiscard]] auto GetToFilterSB() const noexcept { return toFilterI_SB; }
+    [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
+    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.trueValue_I, data.trueValue_Q }; }
+    [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
 
   protected:
     // tasks
@@ -166,35 +168,39 @@ class SensorController {
     {
         constexpr auto                                 filterFirstBufferSize = 100;
         std::array<InputValueT, filterFirstBufferSize> inputBuffer{};
-        std::array<ValueT, filterFirstBufferSize>      to_filter{};
+        auto                                           filterI_input_buffer = filterI->GetFirstBuffer();
+        auto                                           filterQ_input_buffer = filterQ->GetFirstBuffer();
 
         while (true) {
             inputBuffer = inputSB->ReceiveBlocking<filterFirstBufferSize>(ReceiveTimeout);
-            input_task_counter++;
-
-            //            configASSERT(adc_interrupt_counter >= 100);
-            adc_interrupt_counter = 0;
 
             for (auto counter{ 0 }, sin_counter{ 0 }; counter < filterFirstBufferSize; counter++) {
-                auto [I, Q]           = iqCalculator->CalculateIQ(inputBuffer.at(counter));
-                to_filter.at(counter) = I;
+                auto [I, Q] = iqCalculator->CalculateIQ(inputBuffer.at(counter));
+                //                to_filter.at(counter) = I;
+
+                filterI_input_buffer->at(counter) = I;
+                filterQ_input_buffer->at(counter) = Q;
             }
 
-            toFilterI_SB->Send<filterFirstBufferSize>(to_filter, SendTimeout);
-        }
-    }
-    [[noreturn]] [[gnu::hot]] void FromFilterIDataHandlerTask()
-    {
-        auto from_filter_value = ValueT{};
-
-        while (true) {
-            xQueueReceive(fromFilterI_Queue, &from_filter_value, ReceiveTimeout);
-
-            data.trueValue_I = from_filter_value;
+            //            toFilterI_SB->Send<filterFirstBufferSize>(to_filter, SendTimeout);
+            data.trueValue_I = filterI->DoFilter();
+            data.trueValue_Q = filterQ->DoFilter();
 
             xSemaphoreGive(dataReadySemaphore);
         }
     }
+    //    [[noreturn]] [[gnu::hot]] void FromFilterIDataHandlerTask()
+    //    {
+    //        auto from_filter_value = ValueT{};
+    //
+    //        while (true) {
+    //            xQueueReceive(fromFilterI_Queue, &from_filter_value, ReceiveTimeout);
+    //
+    //            data.trueValue_I = from_filter_value;
+    //
+    //            xSemaphoreGive(dataReadySemaphore);
+    //        }
+    //    }
 
   private:
     auto constexpr static fromFilterQueueLen = 20;
@@ -202,16 +208,16 @@ class SensorController {
     SensorData data;
 
     Task inputTask;
-    Task fromFilterTask;
+    //    Task fromFilterTask;
 
-    std::shared_ptr<InputStreamBufferr>   inputSB;
-    std::shared_ptr<ToFilterStreamBuffer> toFilterI_SB;
-    std::shared_ptr<ToFilterStreamBuffer> toFilterQ_SB;
-    std::shared_ptr<SuperFilterWithTask<ValueT>> filterI;
-    std::shared_ptr<SuperFilterWithTask<ValueT>> filterQ;
+    std::shared_ptr<InputStreamBufferr> inputSB;
+    //    std::shared_ptr<ToFilterStreamBuffer>        toFilterI_SB;
+    //    std::shared_ptr<ToFilterStreamBuffer>        toFilterQ_SB;
+    Filter filterI;
+    Filter filterQ;
 
-    QueueOwned fromFilterI_Queue;
-    QueueOwned fromFilterQ_Queue;
+    //    QueueOwned fromFilterI_Queue;
+    //    QueueOwned fromFilterQ_Queue;
     SemaphoreT dataReadySemaphore;
 
     Mutex queuesMutex;

@@ -62,7 +62,7 @@ class TasksControllerImplementation {
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ vOverall }
+      , clampMeter{ vOverall, vShunt }
       , model{ std::make_shared<Menu>() }
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , vOverall{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test

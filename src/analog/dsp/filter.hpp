@@ -37,7 +37,6 @@ class AbstractFilter {
     using OutputBufferT        = std::shared_ptr<BufferT>;
     using StateBuff            = std::vector<ValueT>;
 
-
     virtual ~AbstractFilter()        = 0;
     virtual void DoFilter() noexcept = 0;
 
@@ -409,17 +408,18 @@ class SuperFilterNoTask {
 
             ConnectTwoLastFilters();
         }
-//        filters.back()->SetOutputDataReadyCallback([this]() { LastFilterDataReadyCallback(); });
+        filters.back()->SetOutputDataReadyCallback([this]() { ; });
         lastFilterOutput = (*filters.back()).GetOutputBuffer();
     }
-    void PushData(ValueT new_value) noexcept { (*filters.begin())->PushData(new_value); }
-    ValueT DoFilter() noexcept {
+    void   PushData(ValueT new_value) noexcept { (*filters.begin())->PushData(new_value); }
+    ValueT DoFilter() noexcept
+    {
         (*filters.begin())->DoFilter();
         return *(lastFilterOutput->begin());
     }
 
-    [[nodiscard]] InputBufferT                 GetFirstBuffer() noexcept { return firstFilterInput; }
-    [[nodiscard]] OutputBufferT                GetLastBuffer() noexcept { return lastFilterOutput; }
+    [[nodiscard]] InputBufferT  GetFirstBuffer() noexcept { return firstFilterInput; }
+    [[nodiscard]] OutputBufferT GetLastBuffer() noexcept { return lastFilterOutput; }
 
   protected:
     void ConnectTwoLastFilters() noexcept
@@ -433,8 +433,8 @@ class SuperFilterNoTask {
     }
 
   private:
-    InputBufferT                 firstFilterInput;
-    OutputBufferT                lastFilterOutput;
+    InputBufferT  firstFilterInput;
+    OutputBufferT lastFilterOutput;
 
     std::vector<std::unique_ptr<AbstractFilter>> filters;
 };
