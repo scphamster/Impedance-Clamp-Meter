@@ -182,11 +182,11 @@ adc_interrupt_handler(uint32_t id, uint32_t mask)
         phase_counter++;
 }
 
-void
-DACC_Handler(void)
-{
-    pdc_tx_init(g_dacc_pdc_base, NULL, &g_dacc_next_packet);
-}
+//void
+//DACC_Handler(void)
+//{
+//    pdc_tx_init(g_dacc_pdc_base, NULL, &g_dacc_next_packet);
+//}
 
 void
 dsp_calculate_sine_table(uint16_t amplitude)

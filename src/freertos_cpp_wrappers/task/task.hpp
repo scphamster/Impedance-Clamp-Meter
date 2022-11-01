@@ -12,17 +12,30 @@ extern "C" void   TaskCppTaskWrapper(void *);
 class Task {
   public:
     using TaskFunctor = std::function<void()>;
-
-    Task(TaskFunctor &&new_functor, size_t stacksize, size_t priority, std::string new_name)
+    using TimeT       = portTickType;
+    using TickT       = portTickType;
+    enum {
+        TaskCreationSucceeded = pdPASS
+    };
+    Task(TaskFunctor &&new_functor, size_t stacksize, size_t new_priority, std::string new_name)
       : task{ std::move(new_functor) }
       , name{ std::move(new_name) }
+      , stackSize{ stacksize }
+      , priority{ new_priority }
     {
-        auto task_creation_result = xTaskCreate(TaskCppTaskWrapper, name.c_str(), stacksize, this, priority, &taskHandle);
-        configASSERT(task_creation_result == pdPASS);
+        configASSERT(Initialize());
     }
 
     Task(Task const &)            = delete;
     Task &operator=(Task const &) = delete;
+    ~Task() noexcept { DeleteTask(); }
+
+    void Reset() noexcept
+    {
+        Suspend();
+        vTaskDelete(taskHandle);
+        configASSERT(Initialize());
+    }
 
     [[noreturn]] void Run() noexcept
     {
@@ -34,7 +47,6 @@ class Task {
         // should not get here
         TaskLoopBreachHook(taskHandle, name);
     }
-
     void Suspend() noexcept
     {
         if (not task)
@@ -42,7 +54,6 @@ class Task {
 
         vTaskSuspend(taskHandle);
     }
-
     void Resume() noexcept
     {
         if (not task)
@@ -51,7 +62,18 @@ class Task {
         vTaskResume(taskHandle);
     }
 
-    ~Task() noexcept
+    static void DelayMs(TimeT for_ms) { vTaskDelay(pdMS_TO_TICKS(for_ms)); }
+    static void DelayTicks(TickT ticks) noexcept { vTaskDelay(ticks); }
+    static void DelayMsUntil(TimeT for_ms) { configASSERT(false); }   // todo:implement
+
+  protected:
+    bool Initialize() noexcept
+    {
+        return (xTaskCreate(TaskCppTaskWrapper, name.c_str(), stackSize, this, priority, &taskHandle) == TaskCreationSucceeded)
+                 ? true
+                 : false;
+    }
+    void DeleteTask() noexcept
     {
         if (taskHandle != nullptr)
             vTaskDelete(taskHandle);
@@ -60,5 +82,8 @@ class Task {
   private:
     TaskHandle_t taskHandle;
     TaskFunctor  task;
-    std::string  name;
+
+    std::string name;
+    size_t      stackSize;
+    size_t      priority;
 };

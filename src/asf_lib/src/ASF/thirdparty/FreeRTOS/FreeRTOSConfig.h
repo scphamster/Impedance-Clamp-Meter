@@ -105,7 +105,7 @@ void freertos_timestat_timer_init(void);
 #define configUSE_APPLICATION_TASK_TAG  1
 #define configGENERATE_RUN_TIME_STATS   1
 #define configRECORD_STACK_HIGH_ADDRESS 1
-#define configQUEUE_REGISTRY_SIZE       1
+#define configQUEUE_REGISTRY_SIZE       10
 
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() freertos_timestat_timer_init();
 #define portGET_RUN_TIME_COUNTER_VALUE()         g_100us;

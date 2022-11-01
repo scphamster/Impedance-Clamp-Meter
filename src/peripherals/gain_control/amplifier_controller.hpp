@@ -7,8 +7,10 @@
 
 class AmplifierController {
   public:
-    using AGCType = AutomaticGainController<GainController, float>;
-    using GainT   = typename GainController::GainLevelT;
+    using AGCType    = AutomaticGainController<GainController, float>;
+    using GainT      = typename GainController::GainLevelT;
+    using GainValueT = GainController::GainValueT;
+    using PhaseShift = GainController::PhaseShift;
 
     explicit AmplifierController(std::shared_ptr<GainController> new_gain_controller,
                                  std::unique_ptr<AGCType>      &&new_agc,
@@ -55,11 +57,12 @@ class AmplifierController {
         agcIsEnabled = false;
         return std::move(agc);
     };
+    [[nodiscard]] GainValueT GetGainValue() const noexcept { return gainController->GetGainValue(); }
+    [[nodiscard]] PhaseShift GetPhaseShift() const noexcept { return gainController->GetPhaseShift(); }
 
   protected:
   private:
-    std::shared_ptr<GainController>    gainController;
-    std::shared_ptr<UniversalSafeType> testVal;
-    std::unique_ptr<AGCType>           agc;
-    bool                               agcIsEnabled = false;
+    std::shared_ptr<GainController> gainController;
+    std::unique_ptr<AGCType>        agc;
+    bool                            agcIsEnabled = false;
 };

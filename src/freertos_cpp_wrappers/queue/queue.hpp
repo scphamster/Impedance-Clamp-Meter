@@ -49,50 +49,47 @@ class StreamBuffer {
         configASSERT(handle != nullptr);
     }
 
-    ItemType Receive(TimeoutMsec timeout) noexcept
-    {
-        ItemType buffer;
-        xStreamBufferReceive(handle, &buffer, sizeof(buffer), timeout);
-        return buffer;
-    }
-
-    template<size_t NumberOfItems>
-    std::array<ItemType, NumberOfItems> Receive(TimeoutMsec timeout) noexcept
-    {
-        std::array<ItemType, NumberOfItems> buffer;
-        auto received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
-
-//        configASSERT(buffer.size() * sizeof(ItemType) == received_number_of_bytes);
-        return buffer;
-    }
-
-    template<size_t NumberOfItems>
-    std::array<ItemType, NumberOfItems> ReceiveBlocking(TimeoutMsec timeout) noexcept
-    {
-        std::array<ItemType, NumberOfItems> buffer;
-        auto constexpr buffer_size_in_bytes = buffer.size() * sizeof(ItemType);
-
-        for(size_t received_number_of_bytes = 0; received_number_of_bytes != buffer_size_in_bytes; ) {
-            received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
-        }
-
-        return buffer;
-    }
-
-    void Send(ItemType &&buffer, TimeoutMsec timeout) noexcept { xStreamBufferSend(handle, &buffer, sizeof(buffer), timeout); }
-
     template<size_t NumberOfItems>
     void Send(std::array<ItemType, NumberOfItems> &buffer, TimeoutMsec timeout) noexcept
     {
         xStreamBufferSend(handle, buffer.data(), sizeof(buffer), timeout);
     }
-
+    void Send(ItemType &&buffer, TimeoutMsec timeout) noexcept { xStreamBufferSend(handle, &buffer, sizeof(buffer), timeout); }
+    bool Reset() const noexcept { return (xStreamBufferReset(handle) == pdPASS) ? true : false; }
     template<typename T>
     BaseType_t SendFromISR(T &&buffer) noexcept
     {
         BaseType_t higher_prio_task_voken;
         xStreamBufferSendFromISR(handle, &buffer, sizeof(buffer), &higher_prio_task_voken);
         return higher_prio_task_voken;
+    }
+
+    ItemType Receive(TimeoutMsec timeout) noexcept
+    {
+        ItemType buffer;
+        xStreamBufferReceive(handle, &buffer, sizeof(buffer), timeout);
+        return buffer;
+    }
+    template<size_t NumberOfItems>
+    std::array<ItemType, NumberOfItems> Receive(TimeoutMsec timeout) noexcept
+    {
+        std::array<ItemType, NumberOfItems> buffer;
+        auto received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
+
+        //        configASSERT(buffer.size() * sizeof(ItemType) == received_number_of_bytes);
+        return buffer;
+    }
+    template<size_t NumberOfItems>
+    std::array<ItemType, NumberOfItems> ReceiveBlocking(TimeoutMsec timeout) noexcept
+    {
+        std::array<ItemType, NumberOfItems> buffer;
+        auto constexpr buffer_size_in_bytes = buffer.size() * sizeof(ItemType);
+
+        for (size_t received_number_of_bytes = 0; received_number_of_bytes != buffer_size_in_bytes;) {
+            received_number_of_bytes = xStreamBufferReceive(handle, buffer.data(), buffer.size() * sizeof(ItemType), timeout);
+        }
+
+        return buffer;
     }
 
   private:

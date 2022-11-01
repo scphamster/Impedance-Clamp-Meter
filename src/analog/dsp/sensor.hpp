@@ -117,6 +117,7 @@ class SensorController {
     void Enable() noexcept
     {
         iqCalculator->ResetTickCounter();
+        configASSERT(inputSB->Reset());
         ResumeTasks();
 
         if (activationCallback)
@@ -144,16 +145,8 @@ class SensorController {
     [[maybe_unused]] void SetGain(GainT new_gain) noexcept { amplifierController->SetGain(new_gain); }
     void                  SetMinGain() noexcept { amplifierController->SetMinGain(); }
     [[maybe_unused]] void SetMaxGain() noexcept { amplifierController->SetMaxGain(); }
-    void                  SuspendTasks() noexcept
-    {
-        inputTask.Suspend();
-        //        fromFilterTask.Suspend();
-    }
-    void ResumeTasks() noexcept
-    {
-        inputTask.Resume();
-        //        fromFilterTask.Resume();
-    }
+    void                  SuspendTasks() noexcept { inputTask.Suspend(); }
+    void                  ResumeTasks() noexcept { inputTask.Resume(); }
 
     [[nodiscard]] decltype(auto) GetInputStreamBuffer() const noexcept { return inputSB; }
     //    [[maybe_unused]] [[nodiscard]] auto GetToFilterSB() const noexcept { return toFilterI_SB; }
@@ -166,62 +159,43 @@ class SensorController {
     // todo: cleanup after tests
     [[noreturn]] [[gnu::hot]] void InputTask() noexcept
     {
-        constexpr auto                                 filterFirstBufferSize = 100;
-        std::array<InputValueT, filterFirstBufferSize> inputBuffer{};
-        auto                                           filterI_input_buffer = filterI->GetFirstBuffer();
-        auto                                           filterQ_input_buffer = filterQ->GetFirstBuffer();
+        std::array<InputValueT, ProjectConfigs::SensorFirstFilterBufferSize> inputBuffer{};
+        auto                                                                 filterI_input_buffer = filterI->GetFirstBuffer();
+        auto                                                                 filterQ_input_buffer = filterQ->GetFirstBuffer();
 
         while (true) {
-            inputBuffer = inputSB->ReceiveBlocking<filterFirstBufferSize>(ReceiveTimeout);
+            inputBuffer = inputSB->Receive<ProjectConfigs::SensorFirstFilterBufferSize>(ReceiveTimeout);
 
-            for (auto counter{ 0 }, sin_counter{ 0 }; counter < filterFirstBufferSize; counter++) {
-                auto [I, Q] = iqCalculator->CalculateIQ(inputBuffer.at(counter));
-                //                to_filter.at(counter) = I;
+            for (auto counter{ 0 }; ValueT const abs_value : inputBuffer) {
+                amplifierController->ForwardAmplitudeValueToAGCIfEnabled(abs_value);
 
+                auto [I, Q] = iqCalculator->CalculateIQ(abs_value);
+                amplifierController->ForwardAmplitudeValueToAGCIfEnabled(inputBuffer.at(counter));
                 filterI_input_buffer->at(counter) = I;
                 filterQ_input_buffer->at(counter) = Q;
+
+                counter++;
             }
 
-            //            toFilterI_SB->Send<filterFirstBufferSize>(to_filter, SendTimeout);
-            data.trueValue_I = filterI->DoFilter();
-            data.trueValue_Q = filterQ->DoFilter();
-
+            auto gain        = amplifierController->GetGainValue();
+            data.trueValue_I = filterI->DoFilter() / gain;
+            data.trueValue_Q = filterQ->DoFilter() / gain;
+            auto abs_and_degree = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.trueValue_I, data.trueValue_Q);
             xSemaphoreGive(dataReadySemaphore);
         }
     }
-    //    [[noreturn]] [[gnu::hot]] void FromFilterIDataHandlerTask()
-    //    {
-    //        auto from_filter_value = ValueT{};
-    //
-    //        while (true) {
-    //            xQueueReceive(fromFilterI_Queue, &from_filter_value, ReceiveTimeout);
-    //
-    //            data.trueValue_I = from_filter_value;
-    //
-    //            xSemaphoreGive(dataReadySemaphore);
-    //        }
-    //    }
 
   private:
-    auto constexpr static fromFilterQueueLen = 20;
-
     SensorData data;
+    SemaphoreT dataReadySemaphore;
 
-    Task inputTask;
-    //    Task fromFilterTask;
-
+    Task                                inputTask;
     std::shared_ptr<InputStreamBufferr> inputSB;
-    //    std::shared_ptr<ToFilterStreamBuffer>        toFilterI_SB;
-    //    std::shared_ptr<ToFilterStreamBuffer>        toFilterQ_SB;
+
     Filter filterI;
     Filter filterQ;
 
-    //    QueueOwned fromFilterI_Queue;
-    //    QueueOwned fromFilterQ_Queue;
-    SemaphoreT dataReadySemaphore;
-
-    Mutex queuesMutex;
-
+    // todo: use queue instead of semaphore
     std::unique_ptr<AmplifierController> amplifierController;
     std::shared_ptr<IQCalculator>        iqCalculator;
 

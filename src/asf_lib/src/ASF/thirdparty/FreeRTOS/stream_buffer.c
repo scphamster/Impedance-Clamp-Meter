@@ -417,24 +417,22 @@ xStreamBufferReset(StreamBufferHandle_t xStreamBuffer)
     /* Can only reset a message buffer if there are no tasks blocked on it. */
     taskENTER_CRITICAL();
     {
-        if (pxStreamBuffer->xTaskWaitingToReceive == NULL) {
-            if (pxStreamBuffer->xTaskWaitingToSend == NULL) {
-                prvInitialiseNewStreamBuffer(pxStreamBuffer,
-                                             pxStreamBuffer->pucBuffer,
-                                             pxStreamBuffer->xLength,
-                                             pxStreamBuffer->xTriggerLevelBytes,
-                                             pxStreamBuffer->ucFlags);
-                xReturn = pdPASS;
+        // 01.11.2022 mymodification: make reset possible even with blocked tasks
+
+        prvInitialiseNewStreamBuffer(pxStreamBuffer,
+                                     pxStreamBuffer->pucBuffer,
+                                     pxStreamBuffer->xLength,
+                                     pxStreamBuffer->xTriggerLevelBytes,
+                                     pxStreamBuffer->ucFlags);
+        xReturn = pdPASS;
 
 #if (configUSE_TRACE_FACILITY == 1)
-                {
-                    pxStreamBuffer->uxStreamBufferNumber = uxStreamBufferNumber;
-                }
+        {
+            pxStreamBuffer->uxStreamBufferNumber = uxStreamBufferNumber;
+        }
 #endif
 
-                traceSTREAM_BUFFER_RESET(xStreamBuffer);
-            }
-        }
+        traceSTREAM_BUFFER_RESET(xStreamBuffer);
     }
     taskEXIT_CRITICAL();
 
@@ -717,7 +715,7 @@ prvWriteMessageToBuffer(StreamBuffer_t *const pxStreamBuffer,
 }
 /*-----------------------------------------------------------*/
 
-//todo: try to optimize
+// todo: try to optimize
 size_t
 xStreamBufferReceive(StreamBufferHandle_t xStreamBuffer, void *pvRxData, size_t xBufferLengthBytes, TickType_t xTicksToWait)
 {

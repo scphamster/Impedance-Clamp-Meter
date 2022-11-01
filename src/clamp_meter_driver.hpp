@@ -88,6 +88,16 @@ class ClampMeterDriver {
 
     void StartMeasurements() noexcept
     {
+        if (firstTimeEntry) {
+            //fixme: very very ugly workaround for synchronization of adc and dac
+            SwitchSensor(Sensor::Voltage);
+            adc.StartMeasurement();
+            Task::DelayMs(100);
+            adc.StopMeasurement();
+
+            firstTimeEntry =false;
+        }
+
         SwitchSensor(Sensor::Voltage);
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
@@ -114,7 +124,7 @@ class ClampMeterDriver {
             xSemaphoreTake(sensors.at(Sensor::Shunt).GetDataReadySemaphore(), SemaphoreTakeTimeout);
 
             auto some_value = sensors.at(Sensor::Shunt).GetValue();
-//            *VoutValue      = some_value;
+            //            *VoutValue      = some_value;
         }
     }
     [[noreturn]] void VoltageSensorTask()
@@ -137,7 +147,7 @@ class ClampMeterDriver {
             xSemaphoreTake(sensors.at(Sensor::Clamp).GetDataReadySemaphore(), SemaphoreTakeTimeout);
 
             auto some_value = sensors.at(Sensor::Clamp).GetValue();
-//            *VoutValue      = some_value;
+            //            *VoutValue      = some_value;
         }
     }
 
@@ -322,7 +332,11 @@ class ClampMeterDriver {
 
         {
             auto v_gain_controller = std::make_shared<GainController>(1, 1);
-            v_gain_controller->SetGainChangeFunctor(1, [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); });
+            v_gain_controller->SetGainChangeFunctor(
+              1,
+              [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); },
+              60314.3242f,
+              161.143814f);
             auto v_amplifier_controller = std::make_unique<AmplifierController>(std::move(v_gain_controller));
             auto [_unused_, emplaced]   = sensors.emplace(std::piecewise_construct,
                                                         std::forward_as_tuple(Sensor::Voltage),
@@ -339,47 +353,18 @@ class ClampMeterDriver {
 
         {
             auto sh_gain_controller = std::make_shared<GainController>(1, 10);
-            sh_gain_controller->SetGainChangeFunctor(1, [this]() {
-                shunt_sensor_set_gain(0);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1V3);
-            });
-            sh_gain_controller->SetGainChangeFunctor(2, [this]() {
-                shunt_sensor_set_gain(0);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            sh_gain_controller->SetGainChangeFunctor(3, [this]() {
-                shunt_sensor_set_gain(1);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            sh_gain_controller->SetGainChangeFunctor(4, [this]() {
-                shunt_sensor_set_gain(2);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            sh_gain_controller->SetGainChangeFunctor(5, [this]() {
-                shunt_sensor_set_gain(3);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            sh_gain_controller->SetGainChangeFunctor(6, [this]() {
-                shunt_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            sh_gain_controller->SetGainChangeFunctor(7, [this]() {
-                shunt_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_2);
-            });
-            sh_gain_controller->SetGainChangeFunctor(8, [this]() {
-                shunt_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_4);
-            });
-            sh_gain_controller->SetGainChangeFunctor(9, [this]() {
-                shunt_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_8);
-            });
-            sh_gain_controller->SetGainChangeFunctor(10, [this]() {
-                shunt_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_16);
-            });
-
+            // clang-format off
+            sh_gain_controller->SetGainChangeFunctor(1, [this]() { shunt_sensor_set_gain(0);  adc.SetGain(AdcDriverT::Gain::GAIN_1V3);},  53784.875f / 3  , 90.9220352f);
+            sh_gain_controller->SetGainChangeFunctor(2, [this]() { shunt_sensor_set_gain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  53784.875f      , 90.9220352f);
+            sh_gain_controller->SetGainChangeFunctor(3, [this]() { shunt_sensor_set_gain(1); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  132666.203f     , 90.9662323f);
+            sh_gain_controller->SetGainChangeFunctor(4, [this]() { shunt_sensor_set_gain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  264311.406f     , 91.0643845f);
+            sh_gain_controller->SetGainChangeFunctor(5, [this]() { shunt_sensor_set_gain(3); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  8696278.f       , 90.829567f);
+            sh_gain_controller->SetGainChangeFunctor(6, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  17165270.f      , 90.9678421f);
+            sh_gain_controller->SetGainChangeFunctor(7, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  17165270.f * 2  , 90.9678421f);
+            sh_gain_controller->SetGainChangeFunctor(8, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  17165270.f * 4  , 90.9678421f);
+            sh_gain_controller->SetGainChangeFunctor(9, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  17165270.f * 8  , 90.9678421f);
+            sh_gain_controller->SetGainChangeFunctor(10, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  17165270.f * 16 , 90.9678421f);
+            // clang-format on
             auto sh_agc                  = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
             auto sh_amplifier_controller = std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
             sensors.emplace(std::piecewise_construct,
@@ -395,47 +380,18 @@ class ClampMeterDriver {
 
         {
             auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
-            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {
-                clamp_sensor_set_gain(0);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1V3);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {
-                clamp_sensor_set_gain(0);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {
-                clamp_sensor_set_gain(1);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {
-                clamp_sensor_set_gain(2);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {
-                clamp_sensor_set_gain(3);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {
-                clamp_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_1);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {
-                clamp_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_2);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {
-                clamp_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_4);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {
-                clamp_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_8);
-            });
-            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {
-                clamp_sensor_set_gain(4);
-                adc.SetGain(AdcDriverT::Gain::GAIN_16);
-            });
-
+            // clang-format off
+            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}, 338750944.f / 3      , 255.35321f );
+            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , 338750944.f          , 255.35321f );
+            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(1);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , 645587648.f          , 90.9662323f);
+            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {clamp_sensor_set_gain(2);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , 955409024.f          , 91.0643845f);
+            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(3);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , 1.53519985e+010f     , 90.829567f );
+            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , 1.50437837e+010f     , 90.9678421f);
+            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_2);}  , 1.50437837e+010f * 2 , 90.9678421f);
+            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_4);}  , 1.50437837e+010f * 4 , 90.9678421f);
+            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_8);}  , 1.50437837e+010f * 8 , 90.9678421f);
+            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_16);}, 1.50437837e+010f * 16, 90.9678421f);
+            // clang-format on
             auto clamp_agc = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
             auto clamp_amplifier_controller =
               std::make_unique<AmplifierController>(clamp_gain_controller, std::move(clamp_agc), true);
@@ -458,6 +414,7 @@ class ClampMeterDriver {
     // todo test
     std::shared_ptr<UniversalSafeType> VoutValue;
     std::shared_ptr<UniversalSafeType> VShunt;
+    bool firstTimeEntry = true;
 
     PeripheralsController peripherals;
 

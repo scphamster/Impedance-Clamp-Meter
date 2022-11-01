@@ -1,5 +1,6 @@
 #pragma once
 #include <type_traits>
+#include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 
 namespace ProjectConfigs
@@ -7,7 +8,7 @@ namespace ProjectConfigs
 enum class TaskStackSize {
     Display           = configMINIMAL_STACK_SIZE,
     ClampDriverSensor = configMINIMAL_STACK_SIZE,
-    SensorInput       = 1500,
+    SensorInput       = 400,
     SensorFromFilter  = configMINIMAL_STACK_SIZE,
     Filter            = configMINIMAL_STACK_SIZE,
     MCP23016          = configMINIMAL_STACK_SIZE
@@ -28,21 +29,24 @@ enum class QueueSize {
 
 enum class InterruptPriority {
     ADC      = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY,
-    Keyboard = 13
+    Keyboard = 13,
+    DaccPdc  = 2,
 };
 
 enum class Interrupts {
     ADC,
-    Keyboard
+    Keyboard,
+    DaccPdc
 };
 
 enum {
-    SuperFilterFirstBufferSize = 100,
-    ADCAddress         = 0x40,
-    ADCStreamBufferCapacity = 200,
+    SuperFilterFirstBufferSize    = 100,
+    ADCAddress                    = 0x40,
+    ADCStreamBufferCapacity       = 200,
     ADCStreamBufferTriggeringSize = SuperFilterFirstBufferSize,
 
     DisplayDrawingDrawingPeriodMs = pdMS_TO_TICKS(200),
+    SensorFirstFilterBufferSize   = 100
 };
 
 enum class Tasks {
@@ -54,6 +58,13 @@ enum class Tasks {
     Filter,
     MCP23016
 };
+
+template<typename EnumClassType>
+consteval std::underlying_type_t<EnumClassType>
+ToUnderlying(EnumClassType enum_value)
+{
+    return static_cast<std::underlying_type_t<EnumClassType>>(enum_value);
+}
 
 constexpr std::underlying_type_t<TaskStackSize>
 GetTaskStackSize(Tasks task)
@@ -99,7 +110,7 @@ GetInterruptPriority(Interrupts interrupt)
     switch (interrupt) {
     case Interrupts::ADC: return static_cast<UnderType>(InterruptPriority::ADC);
     case Interrupts::Keyboard: return static_cast<UnderType>(InterruptPriority::Keyboard);
-
+    case Interrupts::DaccPdc: return ToUnderlying(InterruptPriority::DaccPdc);
     default: return -1;
     }
 }

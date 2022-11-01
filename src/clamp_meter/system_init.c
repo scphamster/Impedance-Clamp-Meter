@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "DSP_functions.h"
 #include "external_periph_ctrl.h"
+#include "signal_conditioning.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -265,8 +266,7 @@ system_init(void)
     master_clock_init();
     periph_clock_init();
 
-    io_init();
-    external_periph_ctrl_init();
+//    external_periph_ctrl_init();
 //    system_tick_init();
     keyboard_encoder_init();
 
@@ -280,14 +280,17 @@ system_init(void)
 
     delay_ms(100);
 
-    //todo:test
 //    keyboard_init();
 //    LCD_init();
 
 //    delay_ms(10);
 
-    MCP3462_init();
-    dsp_init();
+//    MCP3462_init();
+//    dsp_init();
+
+    //inserted new
+    recall_coeffs_from_flash_struct();
+
 }
 
 

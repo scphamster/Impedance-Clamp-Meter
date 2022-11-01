@@ -8,6 +8,9 @@ class GainController {
   public:
     using GainLevelT        = int;
     using GainChangeFunctor = std::function<void()>;
+    using GainValueT        = float;
+    using PhaseShift        = float;
+    using GainAndPhaseShift = std::pair<GainValueT, PhaseShift>;
 
     GainController(GainLevelT new_min_gain, GainLevelT new_max_gain)
       : maxGain(new_max_gain)
@@ -29,20 +32,39 @@ class GainController {
     }
     void IncreaseGain() noexcept { SetGain(gain + 1); }
     void DecreaseGain() noexcept { SetGain(gain - 1); }
-    void SetGainChangeFunctor(GainLevelT for_gain_level, GainChangeFunctor &&new_functor)
+    void SetGainChangeFunctor(GainLevelT          for_gain_level,
+                              GainChangeFunctor &&new_functor,
+                              GainValueT          gainValue,
+                              PhaseShift          phaseShift)
     {
         if (for_gain_level > maxGain)
             return;
 
         gainChangeFunctors[for_gain_level] = std::move(new_functor);
+        gainLevelData[for_gain_level]      = { gainValue, phaseShift };
     }
+    void SetGainValueAndPhaseShift(GainLevelT for_level, GainValueT gainValue, PhaseShift phaseShift) noexcept
+    {
+        gainLevelData.at(for_level).gainValue  = gainValue;
+        gainLevelData.at(for_level).phaseShift = phaseShift;
+    }
+
     [[nodiscard]] GainLevelT GetMaxGain() const noexcept { return maxGain; }
     [[nodiscard]] GainLevelT GetMinGain() const noexcept { return minGain; }
+    [[nodiscard]] GainLevelT GetGainValue() const noexcept { return gainLevelData.at(gain).gainValue; }
+    [[nodiscard]] GainLevelT GetPhaseShift() const noexcept { return gainLevelData.at(gain).phaseShift; }
 
   private:
     GainLevelT maxGain = 0;
     GainLevelT minGain = 0;
     GainLevelT gain    = minGain;
 
+    struct GainLevelData {
+      public:
+        GainValueT gainValue;
+        PhaseShift phaseShift;
+    };
+
     std::map<GainLevelT, GainChangeFunctor> gainChangeFunctors;
+    std::map<GainLevelT, GainLevelData>     gainLevelData;
 };
