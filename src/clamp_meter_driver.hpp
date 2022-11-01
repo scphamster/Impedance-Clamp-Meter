@@ -50,6 +50,8 @@ class ClampMeterDriver {
     using Semaphore                     = SemaphoreHandle_t;
     using FilterT                       = SuperFilterNoTask<ValueT>;
     using Filter                        = std::shared_ptr<FilterT>;
+    using FromSensorQueueT              = Queue<SensorData>;
+
     enum Configs {
         NumberOfSensors                 = 3,
         NumberOfSensorPreamps           = 2,
@@ -69,6 +71,9 @@ class ClampMeterDriver {
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , filterI{ std::make_shared<FilterT>() }
       , filterQ{ std::make_shared<FilterT>() }
+      , fromVoltageSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
+      , fromShuntSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
+      , fromClampSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
       , voltageTask{ [this]() { this->VoltageSensorTask(); },
                      ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                      ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
@@ -89,13 +94,13 @@ class ClampMeterDriver {
     void StartMeasurements() noexcept
     {
         if (firstTimeEntry) {
-            //fixme: very very ugly workaround for synchronization of adc and dac
+            // fixme: very very ugly workaround for synchronization of adc and dac
             SwitchSensor(Sensor::Voltage);
             adc.StartMeasurement();
             Task::DelayMs(100);
             adc.StopMeasurement();
 
-            firstTimeEntry =false;
+            firstTimeEntry = false;
         }
 
         SwitchSensor(Sensor::Voltage);
@@ -132,11 +137,11 @@ class ClampMeterDriver {
         ValueT new_value;
 
         while (true) {
-            xSemaphoreTake(sensors.at(Sensor::Voltage).GetDataReadySemaphore(), SemaphoreTakeTimeout);
+            //            xSemaphoreTake(sensors.at(Sensor::Voltage).GetDataReadySemaphore(), SemaphoreTakeTimeout);
+            auto data = fromVoltageSensorQueue->Receive();
 
-            auto [V, S] = sensors.at(Sensor::Voltage).GetValue();
-            *VoutValue  = V;
-            *VShunt     = S;
+            *VoutValue = data.GetTrueValue_I();
+            *VShunt    = data.GetTrueValue_Q();
         }
     }
     [[noreturn]] void ClampSensorTask()
@@ -343,6 +348,7 @@ class ClampMeterDriver {
                                                         std::forward_as_tuple(std::move(v_amplifier_controller),
                                                                               iq_controller,
                                                                               adc.CreateNewStreamBuffer(),
+                                                                              fromVoltageSensorQueue,
                                                                               filterI,
                                                                               filterQ));
 
@@ -372,6 +378,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(sh_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
+                                                  fromShuntSensorQueue,
                                                   filterI,
                                                   filterQ));
             sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
@@ -400,6 +407,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(clamp_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
+                                                  fromClampSensorQueue,
                                                   filterI,
                                                   filterQ));
             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
@@ -414,7 +422,7 @@ class ClampMeterDriver {
     // todo test
     std::shared_ptr<UniversalSafeType> VoutValue;
     std::shared_ptr<UniversalSafeType> VShunt;
-    bool firstTimeEntry = true;
+    bool                               firstTimeEntry = true;
 
     PeripheralsController peripherals;
 
@@ -427,8 +435,12 @@ class ClampMeterDriver {
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterQ;
 
     std::map<Sensor, SensorController> sensors;
-    std::shared_ptr<SensorController>  voltageSensor;
-    Sensor                             activeSensor;
+    //    std::shared_ptr<SensorController>  voltageSensor;
+    Sensor activeSensor;
+
+    std::shared_ptr<FromSensorQueueT> fromVoltageSensorQueue;
+    std::shared_ptr<FromSensorQueueT> fromShuntSensorQueue;
+    std::shared_ptr<FromSensorQueueT> fromClampSensorQueue;
 
     Task voltageTask;
     Task shuntTask;

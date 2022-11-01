@@ -40,30 +40,23 @@ class SensorData {
     using ValueT                  = float;
     using QueueT [[maybe_unused]] = QueueHandle_t;
 
-    [[maybe_unused]] void SetRawValue_I(ValueT new_value_i) noexcept { rawValue_I = new_value_i; }
-    [[maybe_unused]] void SetRawValue_Q(ValueT new_value_q) noexcept { rawValue_Q = new_value_q; }
-    [[maybe_unused]] void SetRawAbsoluteValue(ValueT new_absolutevalue) noexcept { rawAbsoluteValue = new_absolutevalue; }
-    [[maybe_unused]] void SetRawDegree(ValueT new_degree) noexcept { rawDegree = new_degree; }
-    [[maybe_unused]] void SetTrueValue_I(ValueT new_true_value_i) noexcept { trueValue_I = new_true_value_i; }
-    [[maybe_unused]] void SetTrueValue_Q(ValueT new_true_value_q) noexcept { trueValue_Q = new_true_value_q; }
-    [[maybe_unused]] void SetTrueAbsoluteValue(ValueT new_true_absolutevalue) noexcept
-    {
-        trueAbsoluteValue = new_true_absolutevalue;
-    }
-    [[maybe_unused]] void SetTrueDegree(ValueT new_true_degree) noexcept { trueDegree = new_true_degree; }
+    void SetTrueValue_I(ValueT new_true_value_i) noexcept { trueValue_I = new_true_value_i; }
+    void SetTrueValue_Q(ValueT new_true_value_q) noexcept { trueValue_Q = new_true_value_q; }
+    void SetTrueAbsoluteValue(ValueT new_true_absolutevalue) noexcept { trueAbsoluteValue = new_true_absolutevalue; }
+    void SetTrueDegree(ValueT new_true_degree) noexcept { trueDegree = new_true_degree; }
+
+    [[nodiscard]] ValueT GetTrueValue_I() const noexcept { return trueValue_I; }
+    [[nodiscard]] ValueT GetTrueValue_Q() const noexcept { return trueValue_Q; }
+    [[nodiscard]] ValueT GetTrueAbsoluteValue() const noexcept { return trueAbsoluteValue; }
+    [[nodiscard]] ValueT GetTrueDegree() const noexcept { return trueDegree; }
 
   private:
     friend class SensorController;
 
-    [[maybe_unused]] ValueT rawValue_I{};
-    [[maybe_unused]] ValueT rawValue_Q{};
-    [[maybe_unused]] ValueT rawAbsoluteValue{};
-    [[maybe_unused]] ValueT rawDegree{};
-
-    ValueT                  trueValue_I{};
-    [[maybe_unused]] ValueT trueValue_Q{};
-    [[maybe_unused]] ValueT trueAbsoluteValue{};
-    [[maybe_unused]] ValueT trueDegree{};
+    ValueT trueValue_I{};
+    ValueT trueValue_Q{};
+    ValueT trueAbsoluteValue{};
+    ValueT trueDegree{};
 };
 
 class SensorController {
@@ -79,6 +72,7 @@ class SensorController {
     using InputStreamBufferr   = StreamBuffer<InputValueT>;
     using FilterT              = SuperFilterNoTask<ValueT>;
     using Filter               = std::shared_ptr<FilterT>;
+    using ToMasterQueue        = Queue<SensorData>;
 
     enum Configs {
         SendTimeout    = 0,
@@ -88,9 +82,9 @@ class SensorController {
     explicit SensorController(std::unique_ptr<AmplifierController> &&new_amplifier_controller,
                               std::shared_ptr<IQCalculator>          new_iq_calculator,
                               std::shared_ptr<InputStreamBufferr>    new_input_stream_buffer,
-                              //                              std::shared_ptr<ToFilterStreamBuffer>  new_to_filterI_SB)
-                              Filter new_filter_I,
-                              Filter new_filter_Q)
+                              std::shared_ptr<ToMasterQueue>         toMasterQueue,
+                              Filter                                 new_filter_I,
+                              Filter                                 new_filter_Q)
       : inputTask{ [this]() { this->InputTask(); },
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorInput),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorInput),
@@ -100,6 +94,7 @@ class SensorController {
       //                        ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorFromFilter),
       //                        "fromFilter" }
       , inputSB{ std::move(new_input_stream_buffer) }
+      , outputQueue{ toMasterQueue }
       , filterI{ std::move(new_filter_I) }
       , filterQ{ std::move(new_filter_Q) }   //      , toFilterI_SB{ std::move(new_to_filterI_SB) }
                                              //      , fromFilterI_Queue{ xQueueCreate(fromFilterQueueLen, sizeof(ValueT)) }
@@ -166,10 +161,10 @@ class SensorController {
         while (true) {
             inputBuffer = inputSB->Receive<ProjectConfigs::SensorFirstFilterBufferSize>(ReceiveTimeout);
 
-            for (auto counter{ 0 }; ValueT const abs_value : inputBuffer) {
-                amplifierController->ForwardAmplitudeValueToAGCIfEnabled(abs_value);
+            for (auto counter{ 0 }; auto const abs_value : inputBuffer) {
+                amplifierController->ForwardAmplitudeValueToAGCIfEnabled(static_cast<ValueT>(abs_value));
 
-                auto [I, Q] = iqCalculator->CalculateIQ(abs_value);
+                auto [I, Q] = iqCalculator->CalculateIQ(static_cast<ValueT>(abs_value));
                 amplifierController->ForwardAmplitudeValueToAGCIfEnabled(inputBuffer.at(counter));
                 filterI_input_buffer->at(counter) = I;
                 filterQ_input_buffer->at(counter) = Q;
@@ -180,8 +175,14 @@ class SensorController {
             auto gain        = amplifierController->GetGainValue();
             data.trueValue_I = filterI->DoFilter() / gain;
             data.trueValue_Q = filterQ->DoFilter() / gain;
-            auto abs_and_degree = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.trueValue_I, data.trueValue_Q);
-            xSemaphoreGive(dataReadySemaphore);
+
+            auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.trueValue_I, data.trueValue_Q);
+            data.trueDegree               = degree - amplifierController->GetPhaseShift();
+            data.trueAbsoluteValue        = absolute_value;
+
+//            xSemaphoreGive(dataReadySemaphore);
+
+            outputQueue->SendImmediate(data);
         }
     }
 
@@ -191,6 +192,7 @@ class SensorController {
 
     Task                                inputTask;
     std::shared_ptr<InputStreamBufferr> inputSB;
+    std::shared_ptr<ToMasterQueue>      outputQueue;
 
     Filter filterI;
     Filter filterQ;

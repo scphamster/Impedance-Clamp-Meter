@@ -12,17 +12,31 @@
 template<typename ItemType>
 class Queue {
   public:
+    using TimeT = portTickType;
+
     Queue(size_t queue_length)
       : handle{ xQueueCreate(queue_length, sizeof(ItemType)) }
     {
         configASSERT(handle != nullptr);
     }
-
-    ItemType &Receive(portTickType timeout = 0)
+    ~Queue() noexcept
     {
-        ItemType *ptr_to_item;
-        //        xQueueReceive(handle, )
+        configASSERT(handle != nullptr);
+        vQueueDelete(handle);
     }
+
+    ItemType Receive(TimeT timeout = portMAX_DELAY)
+    {
+        ItemType new_item;
+        configASSERT(xQueueReceive(handle, &new_item, timeout) == pdTRUE); //todo: handle exception
+        return new_item;
+    }
+
+    bool Send(ItemType const &item, TimeT timeout) const noexcept
+    {
+        return (xQueueSend(handle, static_cast<const void *>(&item), timeout) == pdTRUE) ? true : false;
+    }
+    bool SendImmediate(ItemType const &item) const noexcept { return Send(item, 0); }
 
   private:
     QueueHandle_t handle = nullptr;
