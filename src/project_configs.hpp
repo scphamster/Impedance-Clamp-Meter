@@ -1,16 +1,16 @@
 #pragma once
 #include <type_traits>
+#include "FreeRTOSConfig.h"
 
 namespace ProjectConfigs
 {
 enum class TaskStackSize {
-    Main              = 400,
-    Display           = 300,
-    ClampDriverSensor = 300,
-    SensorInput       = 1000,
-    SensorFromFilter  = 300,
-    Filter            = 600,
-    MCP23016          = 300
+    Display           = configMINIMAL_STACK_SIZE,
+    ClampDriverSensor = configMINIMAL_STACK_SIZE,
+    SensorInput       = 500,
+    SensorFromFilter  = configMINIMAL_STACK_SIZE,
+    Filter            = configMINIMAL_STACK_SIZE,
+    MCP23016          = configMINIMAL_STACK_SIZE
 };
 enum class TaskPriority {
     Main              = 3,
@@ -62,7 +62,6 @@ GetTaskStackSize(Tasks task)
     using UnderType           = std::underlying_type_t<EnumClassOfInterest>;
 
     switch (task) {
-    case Tasks::Main: return static_cast<UnderType>(EnumClassOfInterest::Main);
     case Tasks::Display: return static_cast<UnderType>(EnumClassOfInterest::Display);
     case Tasks::ClampDriverSensor: return static_cast<UnderType>(EnumClassOfInterest::ClampDriverSensor);
     case Tasks::SensorInput: return static_cast<UnderType>(EnumClassOfInterest::SensorInput);

@@ -79,13 +79,12 @@ class ClampMeterDriver {
     {
         InitializeFilters();
         InitializeSensors();
-
     }
 
     void StartMeasurements() noexcept
     {
         SwitchSensor(Sensor::Voltage);
-        filter.Resume();
+        filter_I.Resume();
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
@@ -101,7 +100,7 @@ class ClampMeterDriver {
         adc.StopMeasurement();
         vTaskDelay(pdMS_TO_TICKS(200));
         sensors.at(activeSensor).Disable();
-        filter.Suspend();
+        filter_I.Suspend();
     }
 
     [[noreturn]] void ShuntSensorTask()
@@ -184,7 +183,7 @@ class ClampMeterDriver {
         adc.SetOutputStreamBuffer(sensors.at(activeSensor).GetInputStreamBuffer());
         adc.SetMux(adcChannelsMuxSettings.at(static_cast<UnderType>(activeSensor)).first,
                    adcChannelsMuxSettings.at(static_cast<UnderType>(activeSensor)).second);
-        filter.SetOutputQueue(sensors.at(activeSensor).GetFromFilterQueueI());
+        filter_I.SetOutputQueue(sensors.at(activeSensor).GetFromFilterQueueI());
         sensors.at(activeSensor).SetMinGain();
     }
     void StandardSensorOnDisableCallback() noexcept { sensors.at(activeSensor).SetMinGain(); }
@@ -279,16 +278,23 @@ class ClampMeterDriver {
                                                                                        -0.986422598361968994140625f },
                                                                      filter5_block_size);
 
-        sin_filter1->SetOutputBuffer(sin_filter2->GetInputBuffer());
-        sin_filter3->SetInputBuffer(sin_filter2->GetOutputBuffer());
-        sin_filter3->SetOutputBuffer(sin_filter4->GetInputBuffer());
-        sin_filter5->SetInputBuffer(sin_filter4->GetOutputBuffer());
+        auto cos_filter1 = std::make_unique<BiquadCascadeDF2TFilter>(*sin_filter1);
+        auto cos_filter2 = std::make_unique<FirDecimatingFilter>(*sin_filter2);
+        auto cos_filter3 = std::make_unique<BiquadCascadeDF2TFilter>(*sin_filter3);
+        auto cos_filter4 = std::make_unique<FirDecimatingFilter>(*sin_filter4);
+        auto cos_filter5 = std::make_unique<BiquadCascadeDF2TFilter>(*sin_filter5);
 
-        filter.InsertFilter(std::move(sin_filter1));
-        filter.InsertFilter(std::move(sin_filter2));
-        filter.InsertFilter(std::move(sin_filter3));
-        filter.InsertFilter(std::move(sin_filter4));
-        filter.InsertFilter(std::move(sin_filter5));
+        filter_I.InsertFilter(std::move(sin_filter1));
+        filter_I.InsertFilter(std::move(sin_filter2));
+        filter_I.InsertFilter(std::move(sin_filter3));
+        filter_I.InsertFilter(std::move(sin_filter4));
+        filter_I.InsertFilter(std::move(sin_filter5));
+
+        filter_Q.InsertFilter(std::move(cos_filter1));
+        filter_Q.InsertFilter(std::move(cos_filter2));
+        filter_Q.InsertFilter(std::move(cos_filter3));
+        filter_Q.InsertFilter(std::move(cos_filter4));
+        filter_Q.InsertFilter(std::move(cos_filter5));
     }
     void InitializeIO() noexcept
     {
@@ -320,7 +326,7 @@ class ClampMeterDriver {
                                                         std::forward_as_tuple(std::move(v_amplifier_controller),
                                                                               iq_controller,
                                                                               adc.CreateNewStreamBuffer(),
-                                                                              filter.GetInputStreamBuffer()));
+                                                                              filter_I.GetInputStreamBuffer()));
 
             configASSERT(emplaced);
 
@@ -377,7 +383,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(sh_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  filter.GetInputStreamBuffer()));
+                                                  filter_I.GetInputStreamBuffer()));
             sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
             sensors.at(Sensor::Shunt).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
@@ -433,7 +439,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(clamp_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  filter.GetInputStreamBuffer()));
+                                                  filter_I.GetInputStreamBuffer()));
             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
@@ -450,7 +456,8 @@ class ClampMeterDriver {
 
     OutputGenerator                    generator;
     AdcDriverT                         adc;   // todo: make type independent
-    SuperFilter<float>                 filter;
+    SuperFilterWithTask<float>                 filter_I;
+    SuperFilterWithTask<float>                 filter_Q;
     std::map<Sensor, SensorController> sensors;
     std::shared_ptr<SensorController>  voltageSensor;
     Sensor                             activeSensor;
