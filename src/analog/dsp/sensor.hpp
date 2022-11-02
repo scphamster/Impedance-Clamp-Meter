@@ -151,7 +151,6 @@ class SensorController {
 
   protected:
     // tasks
-    // todo: cleanup after tests
     [[noreturn]] [[gnu::hot]] void InputTask() noexcept
     {
         std::array<InputValueT, ProjectConfigs::SensorFirstFilterBufferSize> inputBuffer{};
@@ -180,8 +179,6 @@ class SensorController {
             data.trueDegree               = degree - amplifierController->GetPhaseShift();
             data.trueAbsoluteValue        = absolute_value;
 
-//            xSemaphoreGive(dataReadySemaphore);
-
             outputQueue->SendImmediate(data);
         }
     }
@@ -197,7 +194,6 @@ class SensorController {
     Filter filterI;
     Filter filterQ;
 
-    // todo: use queue instead of semaphore
     std::unique_ptr<AmplifierController> amplifierController;
     std::shared_ptr<IQCalculator>        iqCalculator;
 

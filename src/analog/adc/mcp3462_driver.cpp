@@ -32,12 +32,29 @@ auto constexpr CMD_INCREMENTAL_WRITE = 0x02;
 auto constexpr CMD_INCREMENTAL_READ  = 0x03;
 
 static MCP3462_driver *driver = nullptr;
-// todo: remove
-uint32_t adc_interrupt_counter = 0;
+
+class MCP3462_driver_InterruptDirector {
+  public:
+    using Pin = size_t;
+    using Driver = MCP3462_driver;
+
+    void HandleInterruptFromPin(Pin from_pin) noexcept
+    {
+        // auto driver = FindDriverAssociatedWithPin(from_pin) {   }
+        // driver->NotifyInterrupt();
+
+    }
+
+  private:
+    std::vector<std::shared_ptr<Driver>> drivers;
+};
+
+//masterdriver
 extern "C" void
-mcp3462_interrupt_handler(uint32_t, uint32_t)
+mcp3462_interrupt_handler(uint32_t, uint32_t /* interrupt came from pin*/)
 {
-    adc_interrupt_counter++;
+    //todo: use pin identifier to not be constrained to one instance of adc driver
+    //masterdriver->HandleInterruptFromPin(interrupt_came_from_pin);
     portYIELD_FROM_ISR(driver->HandleInterruptStreamBuffer());
 }
 
@@ -51,7 +68,7 @@ MCP3462_driver::ClockInit() noexcept
     }
 
     if (pmc_switch_pck_to_mainck(CLOCK_PCK_ID, CLOCK_PCK_PRES)) {
-        while (1) {   // todo: make better implementation
+        while (1) {   // fixme: use watchdog for recovery
             ;
         }
     }
@@ -313,13 +330,10 @@ MCP3462_driver::SetMux(MCP3462_driver::Reference positive_channel, MCP3462_drive
 {
     uint32_t timeout_counter = SPI_TIMEOUT;
 
-    // todo: why this is here?
-    if ((positive_channel > Reference::CH5) || (negative_channel > Reference::CH5))
-        return;
-
     auto first_word = CreateFirstCommand_IncrementalWrite(static_cast<std::underlying_type_t<Register>>(Register::MUX));
     auto value_word = CreateMUXRegisterValue(positive_channel, negative_channel);
 
+    //fixme: use watchdog for recovery
     while ((!spi_is_tx_ready(SPI)) && (timeout_counter--))
         ;
 

@@ -274,7 +274,6 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     auto constexpr static minimal_block_size        = 1;
 };
 
-// todo:make double channel filter
 template<typename ValueT>
 class SuperFilterWithTask {
   public:

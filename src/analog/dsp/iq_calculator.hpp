@@ -15,7 +15,6 @@ class SynchronousIQCalculator {
     {
         auto retval = std::pair{ sinus_table.at(tickCounter) * fromValue, cosine_table.at(tickCounter) * fromValue };
         tickCounter++;
-        // todo: add angle output: find_angle(sine, cosine, absval);
 
         if (tickCounter == tickCounterResetTriggeringLimit) {
             tickCounter = 0;

@@ -16,10 +16,6 @@ DACC_Handler(void)
     driver->InterruptHandler();
 }
 
-OutputGenerator::OutputGenerator()
-{
-    Init();
-}
 
 void
 OutputGenerator::Init() noexcept

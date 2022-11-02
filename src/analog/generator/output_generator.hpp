@@ -27,7 +27,11 @@ class OutputGenerator {
         Disabled
     };
 
-    OutputGenerator();
+    OutputGenerator(AmplitudeT amplitude_volts)
+    {
+        SetAmplitude(amplitude_volts);
+        Init();
+    }
 
     void Init() noexcept;
     void DaccSetDivider(Dacc *p_dacc, bool if_set) noexcept;

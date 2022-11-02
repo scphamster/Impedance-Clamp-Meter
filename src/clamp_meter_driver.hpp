@@ -68,6 +68,7 @@ class ClampMeterDriver {
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout, std::shared_ptr<UniversalSafeType> shunt)
       : VoutValue{ vout }
       , VShunt{ shunt }
+      , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , filterI{ std::make_shared<FilterT>() }
       , filterQ{ std::make_shared<FilterT>() }
@@ -123,21 +124,14 @@ class ClampMeterDriver {
 
     [[noreturn]] void ShuntSensorTask()
     {
-        ValueT new_value;
-
         while (true) {
-            xSemaphoreTake(sensors.at(Sensor::Shunt).GetDataReadySemaphore(), SemaphoreTakeTimeout);
-
+            auto data       = fromShuntSensorQueue->Receive();
             auto some_value = sensors.at(Sensor::Shunt).GetValue();
-            //            *VoutValue      = some_value;
         }
     }
     [[noreturn]] void VoltageSensorTask()
     {
-        ValueT new_value;
-
         while (true) {
-            //            xSemaphoreTake(sensors.at(Sensor::Voltage).GetDataReadySemaphore(), SemaphoreTakeTimeout);
             auto data = fromVoltageSensorQueue->Receive();
 
             *VoutValue = data.GetTrueValue_I();

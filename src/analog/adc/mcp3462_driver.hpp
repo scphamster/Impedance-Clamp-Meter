@@ -19,7 +19,6 @@
 #include "clamp_meter_concepts.hpp"
 #include "queue.hpp"
 
-extern uint32_t adc_interrupt_counter;
 
 // todo: try to make data transfer more c++ish, to make class not SINGLETONE
 class MCP3462_driver {
