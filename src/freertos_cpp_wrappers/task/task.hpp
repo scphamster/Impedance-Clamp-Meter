@@ -62,9 +62,13 @@ class Task {
         vTaskResume(taskHandle);
     }
 
-    static void DelayMs(TimeT for_ms) { vTaskDelay(pdMS_TO_TICKS(for_ms)); }
+    static void DelayMs(TimeT for_ms) noexcept { vTaskDelay(pdMS_TO_TICKS(for_ms)); }
     static void DelayTicks(TickT ticks) noexcept { vTaskDelay(ticks); }
-    static void DelayMsUntil(TimeT for_ms) { configASSERT(false); }   // todo:implement
+    static void DelayMsUntil(TimeT for_ms) noexcept
+    {
+        auto time_now = xTaskGetTickCount();
+        vTaskDelayUntil(&time_now, pdMS_TO_TICKS(for_ms));
+    }
 
   protected:
     bool Initialize() noexcept

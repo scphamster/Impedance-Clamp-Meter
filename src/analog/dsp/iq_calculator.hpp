@@ -7,11 +7,14 @@
 template<typename ValueT>
 class SynchronousIQCalculator {
   public:
+    using IValueT = ValueT;
+    using QValueT = ValueT;
+
     SynchronousIQCalculator(int reset_tick_counter_at_number_of_ticks)
       : tickCounterResetTriggeringLimit{ reset_tick_counter_at_number_of_ticks }
     { }
 
-    std::pair<ValueT, ValueT> CalculateIQ(ValueT fromValue)
+    std::pair<IValueT, QValueT> GetSynchronousIQ(ValueT fromValue)
     {
         auto retval = std::pair{ sinus_table.at(tickCounter) * fromValue, cosine_table.at(tickCounter) * fromValue };
         tickCounter++;
@@ -21,6 +24,15 @@ class SynchronousIQCalculator {
         }
 
         return retval;
+    }
+
+    static std::pair<IValueT, QValueT> GetIQFromAmplitudeAndPhase(ValueT amplitude, ValueT phase_degree)
+    {
+        ValueT sine, cosine;
+
+        arm_sin_cos_f32(phase_degree, &sine, &cosine);
+
+        return std::pair{ amplitude * cosine, amplitude * sine };
     }
 
     static std::pair<ValueT, ValueT> GetAbsoluteAndDegreeFromIQ(ValueT Ival, ValueT Qval) noexcept
@@ -33,7 +45,7 @@ class SynchronousIQCalculator {
 
     void ResetTickCounter() noexcept { tickCounter = 0; }
 
-    static ValueT FindAngle(ValueT Qval, ValueT Ival, ValueT absolute_val)
+    static ValueT FindAngle(ValueT Qval, ValueT Ival, ValueT absolute_val) noexcept
     {
         ValueT        abs_sin;
         ValueT        abs_cos;
@@ -68,7 +80,20 @@ class SynchronousIQCalculator {
 
         return degree;
     }
+    static ValueT NormalizeAngle(ValueT degree) noexcept
+    {
+        if (degree < 0)
+            degree += 360;
+        else if (degree >= 360)
+            degree -= 360;
 
+        return degree;
+    }
+    static std::pair<QValueT ,IValueT > GetSinCosFromAngle(ValueT degree) {
+        ValueT sin, cos;
+        arm_sin_cos_f32(degree, &sin, &cos);
+        return {sin, cos};
+    }
   private:
     int tickCounter                     = 0;
     int tickCounterResetTriggeringLimit = 0;

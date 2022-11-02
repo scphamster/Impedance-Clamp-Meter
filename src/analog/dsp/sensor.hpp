@@ -31,6 +31,7 @@
 #include "queue.hpp"
 #include "mcp3462_driver.hpp"
 #include "filter.hpp"
+#include "DSP_functions.h"
 
 extern TickType_t time_difference;
 extern int        input_task_counter;
@@ -40,23 +41,23 @@ class SensorData {
     using ValueT                  = float;
     using QueueT [[maybe_unused]] = QueueHandle_t;
 
-    void SetTrueValue_I(ValueT new_true_value_i) noexcept { trueValue_I = new_true_value_i; }
-    void SetTrueValue_Q(ValueT new_true_value_q) noexcept { trueValue_Q = new_true_value_q; }
-    void SetTrueAbsoluteValue(ValueT new_true_absolutevalue) noexcept { trueAbsoluteValue = new_true_absolutevalue; }
-    void SetTrueDegree(ValueT new_true_degree) noexcept { trueDegree = new_true_degree; }
+    void SetI(ValueT new_true_value_i) noexcept { Value_I = new_true_value_i; }
+    void SetQ(ValueT new_true_value_q) noexcept { Value_Q = new_true_value_q; }
+    void SetAbsolute(ValueT new_true_absolutevalue) noexcept { AbsoluteValue = new_true_absolutevalue; }
+    void SetDegree(ValueT new_true_degree) noexcept { Degree = new_true_degree; }
 
-    [[nodiscard]] ValueT GetTrueValue_I() const noexcept { return trueValue_I; }
-    [[nodiscard]] ValueT GetTrueValue_Q() const noexcept { return trueValue_Q; }
-    [[nodiscard]] ValueT GetTrueAbsoluteValue() const noexcept { return trueAbsoluteValue; }
-    [[nodiscard]] ValueT GetTrueDegree() const noexcept { return trueDegree; }
+    [[nodiscard]] ValueT GetI() const noexcept { return Value_I; }
+    [[nodiscard]] ValueT GetQ() const noexcept { return Value_Q; }
+    [[nodiscard]] ValueT GetAbsolute() const noexcept { return AbsoluteValue; }
+    [[nodiscard]] ValueT GetDegree() const noexcept { return Degree; }
 
   private:
     friend class SensorController;
 
-    ValueT trueValue_I{};
-    ValueT trueValue_Q{};
-    ValueT trueAbsoluteValue{};
-    ValueT trueDegree{};
+    ValueT Value_I{};
+    ValueT Value_Q{};
+    ValueT AbsoluteValue{};
+    ValueT Degree{};
 };
 
 class SensorController {
@@ -146,7 +147,7 @@ class SensorController {
     [[nodiscard]] decltype(auto) GetInputStreamBuffer() const noexcept { return inputSB; }
     //    [[maybe_unused]] [[nodiscard]] auto GetToFilterSB() const noexcept { return toFilterI_SB; }
     [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.trueValue_I, data.trueValue_Q }; }
+    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
     [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
 
   protected:
@@ -162,22 +163,25 @@ class SensorController {
 
             for (auto counter{ 0 }; auto const abs_value : inputBuffer) {
                 amplifierController->ForwardAmplitudeValueToAGCIfEnabled(static_cast<ValueT>(abs_value));
-
-                auto [I, Q] = iqCalculator->CalculateIQ(static_cast<ValueT>(abs_value));
                 amplifierController->ForwardAmplitudeValueToAGCIfEnabled(inputBuffer.at(counter));
+
+                auto [I, Q]                       = iqCalculator->GetSynchronousIQ(static_cast<ValueT>(abs_value));
                 filterI_input_buffer->at(counter) = I;
                 filterQ_input_buffer->at(counter) = Q;
 
                 counter++;
             }
 
-            auto gain        = amplifierController->GetGainValue();
-            data.trueValue_I = filterI->DoFilter() / gain;
-            data.trueValue_Q = filterQ->DoFilter() / gain;
+            auto gain                     = amplifierController->GetGainValue();
+            auto Ival_nocal               = filterI->DoFilter() / gain;
+            auto Qval_nocal               = filterQ->DoFilter() / gain;
+            auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
+            data.Degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
+            data.AbsoluteValue            = absolute_value;
 
-            auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.trueValue_I, data.trueValue_Q);
-            data.trueDegree               = degree - amplifierController->GetPhaseShift();
-            data.trueAbsoluteValue        = absolute_value;
+            auto [I, Q]      = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.Degree);
+            data.Value_I     = I;
+            data.Value_Q     = Q;
 
             outputQueue->SendImmediate(data);
         }

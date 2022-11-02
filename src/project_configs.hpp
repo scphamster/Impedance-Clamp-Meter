@@ -45,7 +45,7 @@ enum {
     ADCStreamBufferCapacity       = 200,
     ADCStreamBufferTriggeringSize = SuperFilterFirstBufferSize,
 
-    DisplayDrawingDrawingPeriodMs = pdMS_TO_TICKS(200),
+    DisplayDrawingDrawingPeriodMs = 200,
     SensorFirstFilterBufferSize   = 100,
     FromSensorOutputQueueLength   = 10,
     GeneratorAmplitude            = 50,

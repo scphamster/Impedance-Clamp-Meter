@@ -62,10 +62,10 @@ class TasksControllerImplementation {
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ vOverall, vShunt }
+      , clampMeter{ vOut, vShunt , zClamp}
       , model{ std::make_shared<Menu>() }
       , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , vOverall{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
+      , vOut{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , vShunt{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , zClamp{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , sensorMag{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
@@ -84,7 +84,9 @@ class TasksControllerImplementation {
 
         while (1) {
             drawer.DrawerTask();
-            vTaskDelayUntil(&lastDrawTime, ProjectConfigs::DisplayDrawingDrawingPeriodMs);
+            Task::DelayMsUntil(ProjectConfigs::DisplayDrawingDrawingPeriodMs);
+
+//            vTaskDelayUntil(&lastDrawTime, ProjectConfigs::DisplayDrawingDrawingPeriodMs);
         }
     }
 
@@ -92,43 +94,29 @@ class TasksControllerImplementation {
     {
         auto vout_info = std::make_shared<Page>(model);
         vout_info->SetName("V out");
-        vout_info->SetData(vOverall);
+        vout_info->SetData(vOut);
         vout_info->SetIndex(0);
 
-        auto iout_info = std::make_shared<Page>(model);
-        iout_info->SetName("V shunt");
-        iout_info->SetData(vShunt);
-        iout_info->SetIndex(1);
+        auto z_overall = std::make_shared<Page>(model);
+        z_overall->SetName("Z Overall");
+        z_overall->SetData(vShunt);
+        z_overall->SetIndex(1);
 
-        auto zout_info = std::make_shared<Page>(model);
-        zout_info->SetName("Z out");
-        zout_info->SetData(zClamp);
-        zout_info->SetIndex(2);
+        auto z_clamp = std::make_shared<Page>(model);
+        z_clamp->SetName("Z Clamp");
+        z_clamp->SetData(zClamp);
+        z_clamp->SetIndex(2);
 
         auto measurements_page = std::make_shared<Page>(model);
         measurements_page->SetIndex(0);
         measurements_page->SetName("Measurement");
         measurements_page->InsertChild(vout_info);
-        measurements_page->InsertChild(iout_info);
-        measurements_page->InsertChild(zout_info);
+        measurements_page->InsertChild(z_overall);
+        measurements_page->InsertChild(z_clamp);
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartMeasurements(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.StopMeasurements(); });
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, []() {
-            //            if (Analog.generator_is_active) {
-            //                switch (Analog.selected_sensor) {
-            //                case VOLTAGE_SENSOR: ::switch_sensing_chanel(SHUNT_SENSOR); break;
-            //
-            //                case SHUNT_SENSOR:
-            //                    ::switch_sensing_chanel(CLAMP_SENSOR);
-            //                    ::buzzer_enable();
-            //                    break;
-            //
-            //                case CLAMP_SENSOR:
-            //                    ::switch_sensing_chanel(VOLTAGE_SENSOR);
-            //                    ::buzzer_disable();
-            //                    break;
-            //                }
-            //            }
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() {
+            clampMeter.SwitchToNextSensor();
         });
 
         auto calibration_page0_vout_value = std::make_shared<Page>(model);
@@ -193,9 +181,12 @@ class TasksControllerImplementation {
 
   private:
     // todo: to be deleted from here
-    PageDataT vOverall;
+    PageDataT vOut;
     PageDataT vShunt;
     PageDataT zClamp;
+
+
+
     PageDataT sensorMag;
     PageDataT sensorPhi;
 
