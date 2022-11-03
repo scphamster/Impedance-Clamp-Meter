@@ -494,7 +494,6 @@ class ClampMeterDriver {
 
     std::map<Sensor, SensorController> sensors;
     ClampMeterData                     data;
-    //    std::shared_ptr<SensorController>  voltageSensor;
     Sensor activeSensor;
 
     std::shared_ptr<FromSensorQueueT> fromVoltageSensorQueue;
@@ -510,5 +509,4 @@ class ClampMeterDriver {
         std::pair{ MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1 },
         std::pair{ MCP3462_driver::Reference::CH4, MCP3462_driver::Reference::CH5 }
     };
-    //    Task testSenderTask;
 };

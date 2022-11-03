@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <array>
+#include <functional>
 
 #include "pdc.h"
 #include "dacc.h"
@@ -20,8 +21,10 @@
 
 class OutputGenerator {
   public:
-    using AmplitudeT      = uint16_t;
-    using SineTableValueT = float;
+    using AmplitudeT             = uint16_t;
+    using SineTableValueT        = float;
+    using FirstInterruptCallback = std::function<void()>;
+
     enum class Status : bool {
         Active,
         Disabled
@@ -39,7 +42,20 @@ class OutputGenerator {
     void StopGenerating() noexcept;
     void RecalculateSineTableForNewAmplitude() noexcept;
     void SetAmplitude(AmplitudeT new_amplitude_volts) noexcept;
-    void InterruptHandler() { pdc_tx_init(dacc_get_pdc_base(DACC), nullptr, &daccSecondPacket); }
+    void SetFirstTimeInterruptCallback(FirstInterruptCallback &&callback)  noexcept {
+        firstInterruptCallback = std::move(callback);
+    }
+    void InterruptHandler()
+    {
+        if (itsFirstTimeInterrupt) {
+            itsFirstTimeInterrupt = false;
+
+            if (firstInterruptCallback)
+                firstInterruptCallback();
+        }
+
+        pdc_tx_init(dacc_get_pdc_base(DACC), nullptr, &daccSecondPacket);
+    }
 
   protected:
     void SetStatus(OutputGenerator::Status new_status) noexcept;
@@ -85,4 +101,7 @@ class OutputGenerator {
     pdc_packet_t                            daccFirstPacket;
     pdc_packet_t                            daccSecondPacket;
     Status                                  status{ Status::Disabled };
+
+    FirstInterruptCallback firstInterruptCallback;
+    bool                   itsFirstTimeInterrupt = true;
 };
