@@ -208,13 +208,15 @@ class MCP3462_driver {
     void StopMeasurement() noexcept;
     void SetMeasurementMode(MeasurementMode new_mode) noexcept;   // todo implement
     void SetOutputStreamBuffer(std::shared_ptr<OutputStreamBuffer> new_sb) noexcept { outputSB = new_sb; }
-    void StartMeasurementsNoInterrupt() noexcept {
+    void StartSynchronousMeasurements() noexcept {
         if (not outputSB) std::terminate();
 
         EnableInterrupt(false);
         EnableClock();
     }
-
+    void SynchronizationCallback() noexcept {
+        EnableInterrupt(false);
+    }
 
     ValueT         SingleShotMeasurement() noexcept;   // todo implement
     ValueT         Read() noexcept;
@@ -225,8 +227,8 @@ class MCP3462_driver {
     }
 
   protected:
-    void EnableClock(bool if_enable = true) noexcept;
     void EnableInterrupt(bool if_enable = true) noexcept;
+    void EnableClock(bool if_enable = true) noexcept;
 
     CommandT        CreateConfig0RegisterValue(bool           if_full_shutdown,
                                                ClockSelection clock,

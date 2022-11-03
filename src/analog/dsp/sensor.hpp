@@ -79,6 +79,10 @@ class SensorController {
         SendTimeout    = 0,
         ReceiveTimeout = portMAX_DELAY
     };
+    enum Mode {
+        Normal,
+        Calibration
+    };
 
     explicit SensorController(std::unique_ptr<AmplifierController> &&new_amplifier_controller,
                               std::shared_ptr<IQCalculator>          new_iq_calculator,
@@ -172,24 +176,32 @@ class SensorController {
                 counter++;
             }
 
-            auto gain                     = amplifierController->GetGainValue();
-            auto Ival_nocal               = filterI->DoFilter() / gain;
-            auto Qval_nocal               = filterQ->DoFilter() / gain;
-            auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
-            data.Degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
-            data.AbsoluteValue            = absolute_value;
+            if (mode == Mode::Normal) {
+                auto gain                     = amplifierController->GetGainValue();
+                auto Ival_nocal               = filterI->DoFilter() / gain;
+                auto Qval_nocal               = filterQ->DoFilter() / gain;
+                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
+                data.Degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
+                data.AbsoluteValue            = absolute_value;
 
-            auto [I, Q]      = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.Degree);
-            data.Value_I     = I;
-            data.Value_Q     = Q;
+                auto [I, Q]      = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.Degree);
+                data.Value_I     = I;
+                data.Value_Q     = Q;
 
-            outputQueue->SendImmediate(data);
+                outputQueue->SendImmediate(data);
+            }
+            else if (mode == Calibration) {
+                
+            }
+
         }
     }
 
   private:
     SensorData data;
     SemaphoreT dataReadySemaphore;
+    Mode mode{Mode::Normal};
+
 
     Task                                inputTask;
     std::shared_ptr<InputStreamBufferr> inputSB;

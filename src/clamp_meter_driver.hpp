@@ -93,6 +93,8 @@ class ClampMeterDriver {
     {
         InitializeFilters();
         InitializeSensors();
+
+        SynchronizeAdcAndDac();
     }
 
     void StartMeasurements() noexcept
@@ -100,7 +102,7 @@ class ClampMeterDriver {
         if (firstTimeEntry) {
             // fixme: very very ugly workaround for synchronization of adc and dac
             SwitchSensor(Sensor::Voltage);
-            adc.StartMeasurement();
+            adc.StartSynchronousMeasurements();
             Task::DelayMs(100);
             adc.StopMeasurement();
 
@@ -111,7 +113,7 @@ class ClampMeterDriver {
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
-        adc.StartMeasurement();
+        adc.StartSynchronousMeasurements();
         generator.StartGenerating();
         peripherals.outputRelay.Activate();
     }
@@ -132,14 +134,29 @@ class ClampMeterDriver {
         case Sensor::Clamp: SwitchSensor(Sensor::Voltage); break;
         }
     }
+
+  protected:
+    class PeripheralsController {
+      public:
+        PeripheralsController()
+          : powerSupply{ PIOD, ID_PIOD, 31 }
+          , outputRelay{ PIOA, ID_PIOA, 21 }
+        { }
+
+      private:
+        friend class ClampMeterDriver;
+        HVPowerSupply powerSupply;
+        OutputRelay   outputRelay;
+    };
+
     [[noreturn]] void VoltageSensorTask()
     {
         while (true) {
             data.voltageSensorData = fromVoltageSensorQueue->Receive();
-            *VoutValue             = data.voltageSensorData.GetAbsolute();
+            *VoutValue             = data.voltageSensorData.GetI();
+            *Z_Overall = data.voltageSensorData.GetQ();
         }
     }
-
     [[noreturn]] void ShuntSensorTask()
     {
         while (true) {
@@ -181,39 +198,17 @@ class ClampMeterDriver {
         }
     }
 
-  protected:
-    class PeripheralsController {
-      public:
-        PeripheralsController()
-          : powerSupply{ PIOD, ID_PIOD, 31 }
-          , outputRelay{ PIOA, ID_PIOA, 21 }
-        { }
-
-      private:
-        friend class ClampMeterDriver;
-        HVPowerSupply powerSupply;
-        OutputRelay   outputRelay;
-    };
-
-    [[noreturn]] void TestSenderTask() noexcept
+    void CalculateAppliedVoltage() noexcept
     {
-        auto   some_value = float{};
-        size_t counter    = 0;
-        while (true) {
-            //            some_value = sinus_table.at(counter);
-            //
-            //            auto send_result = xQueueSend(sensors.at(Sensor::Voltage).GetInputQueue(), &some_value, 0);
-            //            if (send_result == errQUEUE_FULL)
-            //                QueueFullHook(xTaskGetCurrentTaskHandle(), "sender");
-            //
-            //            counter++;
-            //
-            //            if (counter == 22)
-            //                counter = 0;
+        data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
+        data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
+        arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
+                     &data.AppliedVoltage);
 
-            //            vTaskDelay(pdMS_TO_TICKS(1));
-        }
+        data.AppliedVoltagePhi =
+          SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
     }
+
     void SwitchSensor(Sensor new_sensor) noexcept
     {
         sensors.at(activeSensor).Disable();
@@ -439,16 +434,9 @@ class ClampMeterDriver {
             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
     }
-
-    void CalculateAppliedVoltage() noexcept
+    void SynchronizeAdcAndDac() noexcept
     {
-        data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
-        data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
-        arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
-                     &data.AppliedVoltage);
-
-        data.AppliedVoltagePhi =
-          SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
+        generator.SetFirstTimeInterruptCallback([this]() { adc.SynchronizationCallback(); });
     }
 
   private:
@@ -494,7 +482,7 @@ class ClampMeterDriver {
 
     std::map<Sensor, SensorController> sensors;
     ClampMeterData                     data;
-    Sensor activeSensor;
+    Sensor                             activeSensor;
 
     std::shared_ptr<FromSensorQueueT> fromVoltageSensorQueue;
     std::shared_ptr<FromSensorQueueT> fromShuntSensorQueue;

@@ -16,7 +16,6 @@ DACC_Handler(void)
     driver->InterruptHandler();
 }
 
-
 void
 OutputGenerator::Init() noexcept
 {
@@ -37,6 +36,8 @@ OutputGenerator::DaccSetDivider(Dacc *p_dacc, bool if_set) noexcept
 void
 OutputGenerator::StartGenerating() noexcept
 {
+    itsFirstTimeInterrupt = true;
+
     pmc_enable_periph_clk(DaccPeripheralId);
     dacc_set_trigger(DACC, DaccTriggerSelection);
     SetAmplitude(50);   // todo make configurable from outside
@@ -44,7 +45,7 @@ OutputGenerator::StartGenerating() noexcept
     pdc_enable_transfer(dacc_get_pdc_base(DACC), PERIPH_PTCR_TXTEN);
 
     NVIC_ClearPendingIRQ(DACC_IRQn);
-//    NVIC_ClearPendingIRQ(PIOA_IRQn);   // todo: why is this here? adc input trigger?
+    //    NVIC_ClearPendingIRQ(PIOA_IRQn);   // todo: why is this here? adc input trigger?
 
     dacc_enable_interrupt(DACC, DacInterruptMask);
 
