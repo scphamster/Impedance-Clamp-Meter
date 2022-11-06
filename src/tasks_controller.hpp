@@ -49,13 +49,13 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     using Drawer    = std::unique_ptr<DrawerT>;
 
     TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
-      : drawerTask{ [this]() { this->DisplayTask(); },
+      : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
+      , drawerTask{ [this]() { this->DisplayTask(); },
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ vOut, vShunt, zClamp }
+      , clampMeter{ vOut, vShunt, zClamp, drawer.CreateAndGetDialog() }
       , menu{ std::make_shared<Menu>() }
-      , drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , vOut{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }        // test
       , vShunt{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , zClamp{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
@@ -83,25 +83,26 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     {
         size_t counter = 0;
 
-//        auto dialog = drawer.CreateAndGetDialog();
-//        dialog->SetMsg("dupa 12345567");
-//        auto val = std::make_shared<UniversalSafeType>(36.5f);
-//        dialog->SetValue(val);
+        //        auto dialog = drawer.CreateAndGetDialog();
+        //        dialog->SetMsg("dupa 12345567");
+        //        auto val = std::make_shared<UniversalSafeType>(36.5f);
+        //        dialog->SetValue(val);
 
         while (true) {
             drawer.DrawerTask();
             Task::DelayMsUntil(ProjectConfigs::DisplayDrawingDrawingPeriodMs);
 
-//            counter++;
-//            if (counter == 5) {
-//                dialog->Show();
-//            }
+            //            counter++;
+            //            if (counter == 5) {
+            //                dialog->Show();
+            //            }
         }
     }
 
     // initializers
     void InitializeMenu() noexcept
     {
+        // measurements menu
         auto vout_info = std::make_shared<Page>(menu);
         vout_info->SetName("V out");
         vout_info->SetData(vOut);
@@ -127,55 +128,16 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.StopMeasurements(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
 
-        auto calibration_page0_vout_value = std::make_shared<Page>(menu);
-        calibration_page0_vout_value->SetName("magnitude = ");
-        calibration_page0_vout_value->SetData(sensorMag);
-        calibration_page0_vout_value->SetIndex(1);
-
-        auto calibration_page0_phi_value = std::make_shared<Page>(menu);
-        calibration_page0_phi_value->SetName("phi = ");
-        calibration_page0_phi_value->SetData(sensorPhi);
-        calibration_page0_phi_value->SetIndex(2);
-
-        auto calibration_G1 = std::make_shared<Page>(menu);
-        calibration_G1->SetName("Enter if data is stable");
-
-        auto calibration_G0 = std::make_shared<Page>(menu);
-        calibration_G0->SetName("Put resistor 6.73kOhm");
-        calibration_G0->SetEventCallback(Page::Event::Entrance, []() { calibration_semiauto(CALIBRATOR_GO_NEXT_STEP); });
-        calibration_G0->SetHeader("Calibration");
-        calibration_G0->InsertChild(calibration_G1);
-        calibration_G0->InsertChild(calibration_page0_vout_value);
-        calibration_G0->InsertChild(calibration_page0_phi_value);
-        calibration_G0->SetKeyCallback(Keyboard::ButtonName::F1,
-                                       [calibration_G1]() { calibration_semiauto(CALIBRATOR_GO_NEXT_STEP); });
-
-        auto calibration_vout = std::make_shared<Page>(menu);
-        calibration_vout->SetName("enter if data is stable");
-        calibration_vout->SetHeader("Calibration");
-        calibration_vout->SetEventCallback(Page::Event::Entrance, []() {
-            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
-            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
-            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);   // warning g0 shown
-        });
-        calibration_vout->InsertChild(calibration_G0);
-
+        // calibration menu
         auto start_calibration = std::make_shared<Page>(menu);
-        start_calibration->SetName("enter to start");
+        start_calibration->SetName("Press F1 to start calibration");
         start_calibration->SetHeader("Calibration");
-        start_calibration->InsertChild(calibration_vout);
-        start_calibration->InsertChild(calibration_page0_vout_value);
-        start_calibration->InsertChild(calibration_page0_phi_value);
-        start_calibration->SetEventCallback(Page::Event::Entrance, []() {
-            calibration_semiauto(CALIBRATOR_START);
-            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
-            calibration_semiauto(CALIBRATOR_GO_NEXT_STEP);
-        });
 
         auto calibration_page = std::make_shared<Page>(menu);
         calibration_page->SetIndex(1);
         calibration_page->SetName("Calibration");
         calibration_page->InsertChild(start_calibration);
+        calibration_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartCalibration(); });
 
         auto main_page = std::make_shared<Page>(menu);
         main_page->SetName("Main");
@@ -188,17 +150,18 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     }
 
   private:
+    MenuModelDrawer<DrawerT, Keyboard> drawer;
+
     // todo: to be deleted from here
     PageDataT vOut;
     PageDataT vShunt;
+
     PageDataT zClamp;
-
     PageDataT sensorMag;
-    PageDataT sensorPhi;
 
-    Task                                 drawerTask;
-    ClampMeterDriver                     clampMeter;
+    PageDataT        sensorPhi;
+    Task             drawerTask;
+    ClampMeterDriver clampMeter;
+
     std::shared_ptr<MenuModel<Keyboard>> menu;
-
-    MenuModelDrawer<DrawerT, Keyboard> drawer;
 };

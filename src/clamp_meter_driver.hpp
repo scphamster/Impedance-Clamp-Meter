@@ -36,6 +36,7 @@
 #include "DG442.hpp"
 #include "analog_switch.hpp"
 #include "dsp_resources.hpp"
+#include "menu_model_dialog.hpp"
 
 class ClampMeterDriver {
   public:
@@ -51,7 +52,7 @@ class ClampMeterDriver {
     using FilterT                       = SuperFilterNoTask<ValueT>;
     using Filter                        = std::shared_ptr<FilterT>;
     using FromSensorQueueT              = Queue<SensorData>;
-
+    using DialogT                       = MenuModelDialog;
     enum Configs {
         NumberOfSensors                 = 3,
         NumberOfSensorPreamps           = 2,
@@ -71,7 +72,8 @@ class ClampMeterDriver {
 
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout,
                      std::shared_ptr<UniversalSafeType> shunt,
-                     std::shared_ptr<UniversalSafeType> clamp)
+                     std::shared_ptr<UniversalSafeType> clamp,
+                     std::shared_ptr<DialogT>           new_msg_box)
       : VoutValue{ vout }
       , Z_Overall{ shunt }
       , Z_Clamp{ clamp }
@@ -84,6 +86,7 @@ class ClampMeterDriver {
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                                "sensors" }
+      , messageBox{ std::move(new_msg_box) }
     {
         InitializeFilters();
         InitializeSensors();
@@ -103,7 +106,6 @@ class ClampMeterDriver {
             firstTimeEntry = false;
         }
 
-        SwitchSensor(Sensor::Voltage);
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
@@ -128,14 +130,30 @@ class ClampMeterDriver {
         case Sensor::Clamp: SwitchSensor(Sensor::Voltage); break;
         }
     }
+
+    void StartNormalModeOperation() noexcept
+    {
+        workMode = Mode::Normal;
+        SwitchSensor(Sensor::Voltage);
+
+        for (auto &[sensor_id, sensor] : sensors) {
+            sensor.SetMode(SensorController::Mode::Normal);
+        }
+
+        StartMeasurements();
+    }
     void StartCalibration() noexcept
     {
         workMode = Mode::Calibration;
+        SwitchSensor(Sensor::Voltage);
+        for (auto &[sensor_id, sensor] : sensors) {
+            sensor.SetMode(SensorController::Mode::Calibration);
+        }
 
-        // calibrationTask.Resume();
+        StartMeasurements();
     }
 
-    void CalibrateVoltageSensor(ValueT vout = 36.11);
+    //    void CalibrateVoltageSensor(ValueT vout = 36.11);
 
   protected:
     class PeripheralsController {
@@ -150,73 +168,6 @@ class ClampMeterDriver {
         HVPowerSupply powerSupply;
         OutputRelay   outputRelay;
     };
-
-    void CalculateVoltageSensor() noexcept
-    {
-        if (workMode == Mode::Normal) {
-            *VoutValue = data.voltageSensorData.GetI();
-            *Z_Overall = data.voltageSensorData.GetQ();
-        }
-        else if (workMode == Mode::Calibration) {
-            // if(DataIsStable(data)) {
-            //  GoNextStep();
-        }
-    }
-    void CalculateShuntSensor() noexcept
-    {
-        CalculateAppliedVoltage();
-
-        auto admitance_mag = data.shuntSensorData.GetAbsolute() / (R_SHUNT * data.AppliedVoltage);
-        auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
-
-        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
-
-        auto conductance = admitance_mag * cos;
-        auto susceptance = admitance_mag * sin;
-
-        data.ROverall    = 1 / conductance;
-        data.XOverall    = 1 / susceptance;
-        data.ZOverall    = 1 / admitance_mag;
-        data.ZOverallPhi = admitance_phi;
-
-        *Z_Overall = data.ZOverall;
-    }
-    void CalculateClampSensor() noexcept
-    {
-        data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
-                                       data.voltageSensorData.GetDegree());
-
-        data.ZClamp     = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
-        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(data.clampSensorData.GetDegree());
-
-        data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
-        data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
-
-        *Z_Clamp = data.ZClamp;
-    }
-
-    [[noreturn]] void              CalibrationTask() noexcept { StartMeasurements(); }
-    [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
-    {
-        while (true) {
-            auto sensor_data = fromSensorDataQueue->Receive();
-
-            switch (activeSensor) {
-            case Sensor::Voltage:
-                data.voltageSensorData = std::move(sensor_data);
-                CalculateVoltageSensor();
-                break;
-            case Sensor::Shunt:
-                data.shuntSensorData = std::move(sensor_data);
-                CalculateShuntSensor();
-                break;
-            case Sensor::Clamp:
-                data.clampSensorData = std::move(sensor_data);
-                CalculateClampSensor();
-                break;
-            }
-        }
-    }
 
     void CalculateAppliedVoltage() noexcept
     {
@@ -460,6 +411,93 @@ class ClampMeterDriver {
         generator.SetFirstTimeInterruptCallback([this]() { adc.SynchronizationCallback(); });
     }
 
+    bool DataIsStable() noexcept
+    {
+        return true;   // todo: implement
+    }
+
+    // task helpers
+    void CalculateVoltageSensor() noexcept
+    {
+        if (workMode == Mode::Normal) {
+            *VoutValue = data.voltageSensorData.GetI();
+            *Z_Overall = data.voltageSensorData.GetQ();
+        }
+        else if (workMode == Mode::Calibration) {
+            messageBox->SetMsg("insert output voltage value");
+            messageBox->SetType(MenuModelDialog::DialogType::InputBox);
+
+            auto input_value = std::make_shared<UniversalSafeType>(3.1234f);
+
+            messageBox->SetValue(input_value);
+            messageBox->Show();
+            messageBox->WaitForUserDecision();
+            sensors.at(Sensor::Voltage).SetTrueValuesForCalibration(std::get<ValueT>(input_value->GetValue()), 0, 0);
+
+            messageBox->SetMsg("Wait...");
+            messageBox->SetHasValue(false);
+            messageBox->Show();
+
+            Task::DelayMs(5000);
+
+        }
+    }
+    void CalculateShuntSensor() noexcept
+    {
+        CalculateAppliedVoltage();
+
+        auto admitance_mag = data.shuntSensorData.GetAbsolute() / (R_SHUNT * data.AppliedVoltage);
+        auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
+
+        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
+
+        auto conductance = admitance_mag * cos;
+        auto susceptance = admitance_mag * sin;
+
+        data.ROverall    = 1 / conductance;
+        data.XOverall    = 1 / susceptance;
+        data.ZOverall    = 1 / admitance_mag;
+        data.ZOverallPhi = admitance_phi;
+
+        *Z_Overall = data.ZOverall;
+    }
+    void CalculateClampSensor() noexcept
+    {
+        data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
+                                       data.voltageSensorData.GetDegree());
+
+        data.ZClamp     = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
+        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(data.clampSensorData.GetDegree());
+
+        data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
+        data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
+
+        *Z_Clamp = data.ZClamp;
+    }
+
+    // tasks
+    [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
+    {
+        while (true) {
+            auto sensor_data = fromSensorDataQueue->Receive();
+
+            switch (activeSensor) {
+            case Sensor::Voltage:
+                data.voltageSensorData = std::move(sensor_data);
+                CalculateVoltageSensor();
+                break;
+            case Sensor::Shunt:
+                data.shuntSensorData = std::move(sensor_data);
+                CalculateShuntSensor();
+                break;
+            case Sensor::Clamp:
+                data.clampSensorData = std::move(sensor_data);
+                CalculateClampSensor();
+                break;
+            }
+        }
+    }
+
   private:
     struct ClampMeterData {
       public:
@@ -507,7 +545,10 @@ class ClampMeterDriver {
     Sensor                             activeSensor;
 
     std::shared_ptr<FromSensorQueueT> fromSensorDataQueue;
-    Task                              sensorDataManagerTask;
+
+    Task sensorDataManagerTask;
+
+    std::shared_ptr<DialogT> messageBox;
 
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },

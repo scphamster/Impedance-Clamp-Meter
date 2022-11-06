@@ -59,6 +59,8 @@ class DisplayDrawer {
     DisplayDrawer &operator=(DisplayDrawer &&)      = default;
     virtual ~DisplayDrawer()                        = default;
 
+    [[nodiscard]] Point GetCursorPosition() const noexcept { return cursorPosition; }
+
     void Clear(ColorT color) noexcept;
     void SetCursor(Point) noexcept;
     void SetTextColor(ColorT pixelcolor, ColorT backcolor) const noexcept;
@@ -77,11 +79,7 @@ class DisplayDrawer {
     void Print(float number, int fontsize) noexcept { Print(number, 5, fontsize); }
 
   protected:
-    void DrawFiledCircleHelper(const Point  point,
-                               ScreenSizeT  r,
-                               int          cornername,
-                               int          delta,
-                               const ColorT color) const noexcept;
+    void DrawFiledCircleHelper(const Point point, ScreenSizeT r, int cornername, int delta, const ColorT color) const noexcept;
 
   private:
     std::shared_ptr<Driver> driver;
@@ -137,11 +135,8 @@ DisplayDrawer<Driver>::DrawPoint(const Point point, const ColorT color) const no
 
 template<DisplayDriver Driver>
 void
-DisplayDrawer<Driver>::DrawFiledCircleHelper(const Point  point,
-                                             ScreenSizeT  r,
-                                             int          cornername,
-                                             int          delta,
-                                             const ColorT color) const noexcept
+DisplayDrawer<Driver>::DrawFiledCircleHelper(const Point point, ScreenSizeT r, int cornername, int delta, const ColorT color)
+  const noexcept
 {
     int f     = 1 - r;
     int ddF_x = 1;
@@ -326,10 +321,7 @@ DisplayDrawer<Driver>::DrawFiledCircle(const Point point, const ScreenSizeT r, c
 
 template<DisplayDriver Driver>
 void
-DisplayDrawer<Driver>::DrawRectangle(const Point       point,
-                                     const ScreenSizeT w,
-                                     const ScreenSizeT h,
-                                     const ColorT      color) const noexcept
+DisplayDrawer<Driver>::DrawRectangle(const Point point, const ScreenSizeT w, const ScreenSizeT h, const ColorT color) const noexcept
 {
     DrawHLine(point, w, color);
     DrawHLine(Point{ point.x, point.y + h - 1 }, w, color);
@@ -407,25 +399,25 @@ DisplayDrawer<Driver>::Print(const std::string &str, const Byte size) noexcept
         cursorPosition.x += font_w;
     }
 
-//    while ((*(string + idx) != '\0')) {
-//        if (*(string + idx) == '\n') {
-//            cursorPosition.x += font_h;
-//            cursorPosition.x = 0;
-//            string++;
-//        }
-//
-//        if (cursorPosition.x > driver->screen_width - font_w) {
-//            cursorPosition.x = 0;
-//            cursorPosition.y += font_h;
-//        }
-//
-//        if (cursorPosition.y > driver->screen_height - font_h)
-//            cursorPosition.y = cursorPosition.x = 0;
-//
-//        driver->PrintChar(Point{ cursorPosition }, *(string + idx), size);
-//        cursorPosition.x += font_w;
-//        idx++;
-//    }
+    //    while ((*(string + idx) != '\0')) {
+    //        if (*(string + idx) == '\n') {
+    //            cursorPosition.x += font_h;
+    //            cursorPosition.x = 0;
+    //            string++;
+    //        }
+    //
+    //        if (cursorPosition.x > driver->screen_width - font_w) {
+    //            cursorPosition.x = 0;
+    //            cursorPosition.y += font_h;
+    //        }
+    //
+    //        if (cursorPosition.y > driver->screen_height - font_h)
+    //            cursorPosition.y = cursorPosition.x = 0;
+    //
+    //        driver->PrintChar(Point{ cursorPosition }, *(string + idx), size);
+    //        cursorPosition.x += font_w;
+    //        idx++;
+    //    }
 }
 
 template<DisplayDriver Driver>

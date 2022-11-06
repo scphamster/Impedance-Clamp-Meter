@@ -26,7 +26,13 @@ class UniversalSafeType {
       : value{ other.value }
     { }
 
-    UniversalSafeType &operator=(const auto &new_value)
+    UniversalSafeType &operator=(const UniversalSafeType &other)
+    {
+        value = other.value;
+        return *this;
+    }
+
+    UniversalSafeType &operator=(ValueType const &new_value)
     {
         value = new_value;
         return *this;
@@ -43,7 +49,7 @@ class UniversalSafeType {
         return value;
     }
 
-    bool operator==(const auto &rhs)
+    bool operator==(const auto &rhs) const
     {
         std::lock_guard<Mutex>{ mutex };
 
@@ -54,6 +60,6 @@ class UniversalSafeType {
     }
 
   private:
-    ValueType value;
-    Mutex     mutex;
+    ValueType     value;
+    mutable Mutex mutex;
 };

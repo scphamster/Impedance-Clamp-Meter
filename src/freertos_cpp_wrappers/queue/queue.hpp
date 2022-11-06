@@ -28,7 +28,7 @@ class Queue {
     ItemType Receive(TimeT timeout = portMAX_DELAY)
     {
         ItemType new_item;
-        configASSERT(xQueueReceive(handle, &new_item, timeout) == pdTRUE); //todo: handle exception
+        configASSERT(xQueueReceive(handle, &new_item, timeout) == pdTRUE);   // todo: handle exception
         return new_item;
     }
 
@@ -37,6 +37,11 @@ class Queue {
         return (xQueueSend(handle, static_cast<const void *>(&item), timeout) == pdTRUE) ? true : false;
     }
     bool SendImmediate(ItemType const &item) const noexcept { return Send(item, 0); }
+    void Flush() noexcept
+    {
+        ItemType dummy_item;
+        while (xQueueReceive(handle, &dummy_item, 0) == pdTRUE) { }
+    }
 
   private:
     QueueHandle_t handle = nullptr;

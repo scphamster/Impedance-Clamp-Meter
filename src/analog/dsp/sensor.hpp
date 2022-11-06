@@ -206,7 +206,10 @@ class SensorController {
             }
             // calibration task
             else if (mode == Calibration) {
-                // calculations
+
+
+
+                outputQueue->SendImmediate(data);
             }
         }
     }

@@ -5,6 +5,16 @@
 
 namespace ProjectConfigs
 {
+#ifdef DEBUG
+enum class TaskStackSize {
+    Display           = 400,
+    ClampDriverSensor = 500,
+    SensorInput       = 600,
+    SensorFromFilter  = configMINIMAL_STACK_SIZE,
+    Filter            = configMINIMAL_STACK_SIZE,
+    MCP23016          = configMINIMAL_STACK_SIZE
+};
+#else
 enum class TaskStackSize {
     Display           = 350,
     ClampDriverSensor = configMINIMAL_STACK_SIZE,
@@ -13,6 +23,7 @@ enum class TaskStackSize {
     Filter            = configMINIMAL_STACK_SIZE,
     MCP23016          = configMINIMAL_STACK_SIZE
 };
+#endif
 enum class TaskPriority {
     Main              = 3,
     Display           = 1,

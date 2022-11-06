@@ -136,6 +136,7 @@ class PageItemStateStorage {
     DataT                value;
 };
 
+// todo: implement elegant fullRedraw flag
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 class MenuModelDrawer {
   public:
@@ -145,6 +146,7 @@ class MenuModelDrawer {
     using ColorT      = typename Drawer::ColorT;
     using ButtonName  = typename Keyboard::ButtonName;
     using ButtonEvent = typename Keyboard::ButtonEvent;
+    using Point       = typename Drawer::Point;
 
     explicit MenuModelDrawer(std::unique_ptr<Drawer> &&new_drawer, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
@@ -171,8 +173,10 @@ class MenuModelDrawer {
     }
     void ShowDialog(std::shared_ptr<MenuModelDialog> new_dialog) noexcept
     {
-        dialog            = std::move(new_dialog);
-        dialogMsgOnScreen = true;
+        dialogBox = std::move(new_dialog);
+        dialogBox->SetIsShown(true);
+
+        RequestFullRedraw();
     }
 
     [[nodiscard]] std::shared_ptr<MenuModelDialog> CreateAndGetDialog() noexcept
@@ -301,40 +305,74 @@ class MenuModelDrawer {
         }
     }
 
-    void DrawMessageDialog() noexcept
+    void RequestFullRedraw() noexcept
     {
-        if (not dialogMsgOnScreen)
-            return;
-
-        if (not dialog->RedrawRequired())
-            return;
-
-        drawer->DrawFiledRectangle({ msgDialogXPos, msgDialogYpos }, 320, 200, msgDialogBackground);
-        drawer->SetCursor({ msgDialogXPos, msgDialogYpos });
-        drawer->SetTextColor(msgDialogForeground, msgDialogBackground);
-        drawer->Print(dialog->GetMessage(), msgDialogFontSize);
-
-        if (dialog->HasValue()) {
-            std::visit([this](auto &&printable_data) { drawer->Print(printable_data, msgDialogFontSize); },
-                       dialog->GetValue()->GetValue());
-        }
-
-        dialog->HasBeenDrawn();
+        drawnDynamicPageItems.clear();
+        if (dialogBox)
+            dialogBox->SetHasBeenDrawnFlag(false);
+        fullRedraw = true;
     }
 
-    void SetValueToInputBoxTEST() noexcept { *(dialog->GetValue()) = 36.3f; }
+    void DrawMessageDialog() noexcept
+    {
+        if (not dialogBox)
+            return;
+
+        if (not dialogBox->IsShown())
+            return;
+
+        if (dialogBox->HasValue() and dialogBox->ValueNeedsToBeRedrawn()) {
+            drawer->SetCursor(dialogSettings.valuePosition);
+            drawer->SetTextColor(dialogSettings.foreground, dialogSettings.background);
+
+            std::visit([this](auto &&printable_data) { drawer->Print(printable_data, dialogSettings.fontSize); },
+                       dialogBox->GetValue()->GetValue());
+        }
+
+        if (dialogBox->HasBeenDrawn())
+            return;
+
+        drawer->DrawFiledRectangle(dialogSettings.topLeft, 320, 200, dialogSettings.background);
+        drawer->SetCursor(dialogSettings.topLeft);
+        drawer->SetTextColor(dialogSettings.foreground, dialogSettings.background);
+        drawer->Print(dialogBox->GetMessage(), dialogSettings.fontSize);
+
+        dialogBox->SetHasBeenDrawnFlag(true);
+    }
+
+    void SetValueToInputBoxTEST() noexcept
+    {
+        *(dialogBox->GetValue()) = 36.3f;
+        //        configASSERT(0);
+    }
 
     // slots:
-    void KeyboardMasterCallback(ButtonEvent event, ButtonName button)
+
+    void DialogBoxKeyboardHandler(ButtonEvent event, ButtonName button) noexcept
+    {
+        if (dialogBox->GetDialogType() == MenuModelDialog::DialogType::InputBox) {
+            SetValueToInputBoxTEST();
+        }
+
+        if (button == ButtonName::Enter)
+            dialogBox->KeyboardHandler(MenuModelDialog::Key::Enter);
+        else if (button == ButtonName::Back)
+            dialogBox->KeyboardHandler(MenuModelDialog::Key::Back);
+
+        RequestFullRedraw();
+    }
+
+    void KeyboardMasterCallback(ButtonEvent event, ButtonName button) noexcept
     {
         if (event != ButtonEvent::Release)
             return;
 
-        if (dialogMsgOnScreen) {
-            if (dialog->GetDialogType() == MenuModelDialog::DialogType::InputBox)
-                SetValueToInputBoxTEST();
+        if (dialogBox)
+            if (dialogBox->IsShown()) {
+                DialogBoxKeyboardHandler(event, button);
+                return;
+            }
 
-        }
         model->GetCurrentItem()->InvokeSpecialKeyboardCallback(button);
 
         switch (button) {
@@ -414,10 +452,10 @@ class MenuModelDrawer {
     PageCursor prevCursor;
 
     // todo: use queue to make stream of dialogs
-    std::shared_ptr<MenuModelDialog> dialog;
+    std::shared_ptr<MenuModelDialog> dialogBox;
 
     bool staticPageItemsDrawn{ false };
-    bool dialogMsgOnScreen{ false };
+    bool fullRedraw{ false };
     // todo: make more versatile
     // display sizes section
     int static constexpr displayHeight        = 480;
@@ -441,11 +479,26 @@ class MenuModelDrawer {
     int static constexpr pageNameFontSize = 2;
 
     // page dialog message section
-    int static constexpr msgDialogYpos{ screenUsedAreaTopY + 100 };
-    int static constexpr msgDialogXPos{ screenUsedAreaLeftX + 0 };
-    int static constexpr msgDialogFontSize{ 1 };
-    int static constexpr msgDialogBackground{ COLOR_DARKDARKGREY };
-    int static constexpr msgDialogForeground{ COLOR_REDYELLOW };
+    struct DialogSettings {
+        Point  topLeft;
+        Point  bottRight;
+        Point  valuePosition;
+        int    fontSize;
+        ColorT foreground, background;
+    };
+
+    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 100 },
+                                                    {},
+                                                    { screenUsedAreaLeftX + 50, screenUsedAreaTopY + 150 },
+                                                    1,
+                                                    COLOR_REDYELLOW,
+                                                    COLOR_DARKDARKGREY };
+
+    //    int static constexpr msgDialogYpos{ screenUsedAreaTopY + 100 };
+    //    int static constexpr msgDialogXPos{ screenUsedAreaLeftX + 0 };
+    //    int static constexpr dialogSettings.fontSize{ 1 };
+    //    int static constexpr msgDialogBackground{ COLOR_DARKDARKGREY };
+    //    int static constexpr msgDialogForeground{ COLOR_REDYELLOW };
 
     ColorT static constexpr itemValueColor            = COLOR_DARKCYAN;
     ColorT static constexpr itemNameColor             = COLOR_DARKGREEN;
@@ -457,7 +510,7 @@ template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 void
 MenuModelDrawer<Drawer, Keyboard>::DrawerTask() noexcept
 {
-    if (currentPage != model->GetCurrentItem()) {
+    if (currentPage != model->GetCurrentItem() or fullRedraw) {
         staticPageItemsDrawn = false;
         currentPage          = model->GetCurrentItem();
 
@@ -469,6 +522,8 @@ MenuModelDrawer<Drawer, Keyboard>::DrawerTask() noexcept
     // todo: draw message box
     DrawDynamicPageItems();
     DrawMessageDialog();
+
+    fullRedraw = false;
 }
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
