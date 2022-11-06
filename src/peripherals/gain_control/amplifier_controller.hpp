@@ -30,7 +30,8 @@ class AmplifierController {
     //      : AmplifierController{ std::make_shared<GainController>(min_gain, max_gain) }
     //    { }
 
-    [[maybe_unused]] void EnableAGC(bool if_enable) noexcept { agcIsEnabled = if_enable; }
+    void                  EnableAGC() noexcept { agcIsEnabled = true; }
+    void                  DisableAGC() noexcept { agcIsEnabled = false; }
     [[maybe_unused]] void SetAGC(std::unique_ptr<AGCType> &&new_agc, bool enable_agc = true) noexcept
     {
         agc = std::forward<decltype(new_agc)>(new_agc);

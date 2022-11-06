@@ -64,6 +64,10 @@ class ClampMeterDriver {
         Clamp,
         Voltage
     };
+    enum class Mode {
+        Normal,
+        Calibration
+    };
 
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout,
                      std::shared_ptr<UniversalSafeType> shunt,
@@ -75,21 +79,11 @@ class ClampMeterDriver {
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , filterI{ std::make_shared<FilterT>() }
       , filterQ{ std::make_shared<FilterT>() }
-      , fromVoltageSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
-      , fromShuntSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
-      , fromClampSensorQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
-      , voltageTask{ [this]() { this->VoltageSensorTask(); },
-                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                     "voltage sensor" }
-      , shuntTask{ [this]() { this->ShuntSensorTask(); },
-                   ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                   ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                   "shunt sensor" }
-      , clampTask{ [this]() { this->ClampSensorTask(); },
-                   ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
-                   ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
-                   "clamp sensor" }
+      , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
+      , sensorDataManagerTask{ [this]() { this->ManageSensorsDataTask(); },
+                               ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
+                               ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
+                               "sensors" }
     {
         InitializeFilters();
         InitializeSensors();
@@ -100,7 +94,7 @@ class ClampMeterDriver {
     void StartMeasurements() noexcept
     {
         if (firstTimeEntry) {
-            // fixme: very very ugly workaround for synchronization of adc and dac
+            //             fixme: very very ugly workaround for synchronization of adc and dac
             SwitchSensor(Sensor::Voltage);
             adc.StartSynchronousMeasurements();
             Task::DelayMs(100);
@@ -134,6 +128,14 @@ class ClampMeterDriver {
         case Sensor::Clamp: SwitchSensor(Sensor::Voltage); break;
         }
     }
+    void StartCalibration() noexcept
+    {
+        workMode = Mode::Calibration;
+
+        // calibrationTask.Resume();
+    }
+
+    void CalibrateVoltageSensor(ValueT vout = 36.11);
 
   protected:
     class PeripheralsController {
@@ -149,52 +151,70 @@ class ClampMeterDriver {
         OutputRelay   outputRelay;
     };
 
-    [[noreturn]] void VoltageSensorTask()
+    void CalculateVoltageSensor() noexcept
     {
-        while (true) {
-            data.voltageSensorData = fromVoltageSensorQueue->Receive();
-            *VoutValue             = data.voltageSensorData.GetI();
+        if (workMode == Mode::Normal) {
+            *VoutValue = data.voltageSensorData.GetI();
             *Z_Overall = data.voltageSensorData.GetQ();
         }
-    }
-    [[noreturn]] void ShuntSensorTask()
-    {
-        while (true) {
-            data.shuntSensorData = fromShuntSensorQueue->Receive();
-
-            CalculateAppliedVoltage();
-
-            auto admitance_mag = data.shuntSensorData.GetAbsolute() / (R_SHUNT * data.AppliedVoltage);
-            auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
-
-            auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
-
-            auto conductance = admitance_mag * cos;
-            auto susceptance = admitance_mag * sin;
-
-            data.ROverall    = 1 / conductance;
-            data.XOverall    = 1 / susceptance;
-            data.ZOverall    = 1 / admitance_mag;
-            data.ZOverallPhi = admitance_phi;
-
-            *Z_Overall = data.ZOverall;
+        else if (workMode == Mode::Calibration) {
+            // if(DataIsStable(data)) {
+            //  GoNextStep();
         }
     }
-    [[noreturn]] void ClampSensorTask()
+    void CalculateShuntSensor() noexcept
+    {
+        CalculateAppliedVoltage();
+
+        auto admitance_mag = data.shuntSensorData.GetAbsolute() / (R_SHUNT * data.AppliedVoltage);
+        auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
+
+        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
+
+        auto conductance = admitance_mag * cos;
+        auto susceptance = admitance_mag * sin;
+
+        data.ROverall    = 1 / conductance;
+        data.XOverall    = 1 / susceptance;
+        data.ZOverall    = 1 / admitance_mag;
+        data.ZOverallPhi = admitance_phi;
+
+        *Z_Overall = data.ZOverall;
+    }
+    void CalculateClampSensor() noexcept
+    {
+        data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
+                                       data.voltageSensorData.GetDegree());
+
+        data.ZClamp     = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
+        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(data.clampSensorData.GetDegree());
+
+        data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
+        data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
+
+        *Z_Clamp = data.ZClamp;
+    }
+
+    [[noreturn]] void              CalibrationTask() noexcept { StartMeasurements(); }
+    [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
     {
         while (true) {
-            data.clampSensorData = fromClampSensorQueue->Receive();
+            auto sensor_data = fromSensorDataQueue->Receive();
 
-            data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
-                                           data.voltageSensorData.GetDegree());
-
-            data.ZClamp     = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
-            auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(data.clampSensorData.GetDegree());
-
-            data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
-            data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
-
-            *Z_Clamp = data.ZClamp;
+            switch (activeSensor) {
+            case Sensor::Voltage:
+                data.voltageSensorData = std::move(sensor_data);
+                CalculateVoltageSensor();
+                break;
+            case Sensor::Shunt:
+                data.shuntSensorData = std::move(sensor_data);
+                CalculateShuntSensor();
+                break;
+            case Sensor::Clamp:
+                data.clampSensorData = std::move(sensor_data);
+                CalculateClampSensor();
+                break;
+            }
         }
     }
 
@@ -215,6 +235,7 @@ class ClampMeterDriver {
         activeSensor = new_sensor;
         sensors.at(activeSensor).Enable();
     }
+
     void StandardSensorOnEnableCallback() noexcept
     {
         using UnderType = std::underlying_type_t<Sensor>;
@@ -368,7 +389,7 @@ class ClampMeterDriver {
                                                         std::forward_as_tuple(std::move(v_amplifier_controller),
                                                                               iq_controller,
                                                                               adc.CreateNewStreamBuffer(),
-                                                                              fromVoltageSensorQueue,
+                                                                              fromSensorDataQueue,
                                                                               filterI,
                                                                               filterQ));
 
@@ -398,7 +419,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(sh_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  fromShuntSensorQueue,
+                                                  fromSensorDataQueue,
                                                   filterI,
                                                   filterQ));
             sensors.at(Sensor::Shunt).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
@@ -427,7 +448,7 @@ class ClampMeterDriver {
                             std::forward_as_tuple(std::move(clamp_amplifier_controller),
                                                   iq_controller,
                                                   adc.CreateNewStreamBuffer(),
-                                                  fromClampSensorQueue,
+                                                  fromSensorDataQueue,
                                                   filterI,
                                                   filterQ));
             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
@@ -469,6 +490,7 @@ class ClampMeterDriver {
     std::shared_ptr<UniversalSafeType> Z_Overall;
     std::shared_ptr<UniversalSafeType> Z_Clamp;
     bool                               firstTimeEntry = true;
+    Mode                               workMode       = Mode::Normal;
 
     PeripheralsController peripherals;
 
@@ -484,13 +506,8 @@ class ClampMeterDriver {
     ClampMeterData                     data;
     Sensor                             activeSensor;
 
-    std::shared_ptr<FromSensorQueueT> fromVoltageSensorQueue;
-    std::shared_ptr<FromSensorQueueT> fromShuntSensorQueue;
-    std::shared_ptr<FromSensorQueueT> fromClampSensorQueue;
-
-    Task voltageTask;
-    Task shuntTask;
-    Task clampTask;
+    std::shared_ptr<FromSensorQueueT> fromSensorDataQueue;
+    Task                              sensorDataManagerTask;
 
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },

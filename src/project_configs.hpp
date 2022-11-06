@@ -6,7 +6,7 @@
 namespace ProjectConfigs
 {
 enum class TaskStackSize {
-    Display           = configMINIMAL_STACK_SIZE,
+    Display           = 350,
     ClampDriverSensor = configMINIMAL_STACK_SIZE,
     SensorInput       = 400,
     SensorFromFilter  = configMINIMAL_STACK_SIZE,

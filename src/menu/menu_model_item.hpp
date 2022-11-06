@@ -24,50 +24,6 @@
 
 using MenuModelIndex = size_t;
 
-class UniversalSafeType {
-  public:
-    using IntegerType = int;
-    using FloatType   = float;
-    using StringType  = std::string;
-    using ValueType   = UniversalType;
-
-    UniversalSafeType() = default;
-
-    UniversalSafeType(ValueType new_value)
-      : value{ std::move(new_value) }
-    { }
-
-    UniversalSafeType &operator=(const auto &new_value)
-    {
-        value = new_value;
-        return *this;
-    }
-
-    void SetValue(ValueType new_value) noexcept
-    {
-        std::lock_guard<Mutex>{ mutex };
-        value = std::move(new_value);
-    }
-    [[nodiscard]] ValueType GetValue() noexcept
-    {
-        std::lock_guard<Mutex>{ mutex };
-        return value;
-    }
-
-    bool operator==(const auto &rhs)
-    {
-        std::lock_guard<Mutex>{ mutex };
-
-        if (value == rhs.value)
-            return true;
-        else
-            return false;
-    }
-
-  private:
-    ValueType value;
-    Mutex     mutex;
-};
 
 template<KeyboardC Keyboard>
 class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard>> {
@@ -95,12 +51,9 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     { }
 
     [[nodiscard]] std::shared_ptr<MenuModelPage> GetPtr() noexcept { return shared_from_this(); }
-    [[nodiscard]] DataT                              GetData() const noexcept { return data; }
-    [[nodiscard]] bool                               HasChild(MenuModelIndex at_position = 0) const noexcept
-    {
-        return (childItems.size() > 0) ? true : false;
-    }
-    [[nodiscard]] std::shared_ptr<MenuModelPage> GetChild(MenuModelIndex at_position) const noexcept
+    [[nodiscard]] DataT                          GetData() const noexcept { return data; }
+    [[nodiscard]] bool HasChild(MenuModelIndex at_position = 0) const noexcept { return (childItems.size() > 0) ? true : false; }
+    [[nodiscard]] std::shared_ptr<MenuModelPage> GetChild(MenuModelIndex at_position = 0) const noexcept
     {
         if (at_position >= childItems.size())
             return *(childItems.end() - 1);
@@ -108,9 +61,9 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
         return childItems.at(at_position);
     }
     [[nodiscard]] std::vector<std::shared_ptr<MenuModelPage>> GetChildren() const noexcept { return childItems; }
-    [[nodiscard]] auto                               GetChildCount() const noexcept { return childItems.size(); }
-    [[nodiscard]] MenuModelIndex                     GetPosition() const noexcept { return residesAtIndex; }
-    [[nodiscard]] std::shared_ptr<MenuModelPage> GetParent() noexcept
+    [[nodiscard]] auto                                        GetChildCount() const noexcept { return childItems.size(); }
+    [[nodiscard]] MenuModelIndex                              GetPosition() const noexcept { return residesAtIndex; }
+    [[nodiscard]] std::shared_ptr<MenuModelPage>              GetParent() noexcept
     {
         if (not parent)
             return This();
@@ -124,7 +77,7 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     [[nodiscard]] HeaderT                  GetHeader() const noexcept { return pageHeader; }
     [[nodiscard]] bool                     HasHeader() const noexcept { return (pageHeader.empty()) ? false : true; }
     void                                   SetData(DataT new_data) noexcept { data = new_data; }
-    void InsertChild(std::shared_ptr<MenuModelPage> child, MenuModelIndex at_idx) noexcept
+    void                                   InsertChild(std::shared_ptr<MenuModelPage> child, MenuModelIndex at_idx) noexcept
     {
         child->SetParent(This());
 
@@ -163,13 +116,15 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
 
   private:
     std::shared_ptr<MenuModelPage>              parent;
-    std::shared_ptr<Model>                          model;
-    MenuModelIndex                                  residesAtIndex{ 0 };
-    NameT                                           name;
-    NameT                                           pageHeader;
-    DataT                                           data;
+    std::shared_ptr<Model>                      model;
+    MenuModelIndex                              residesAtIndex{ 0 };
+    NameT                                       name;
+    NameT                                       pageHeader;
+    DataT                                       data;
     std::vector<std::shared_ptr<MenuModelPage>> childItems{};
-    bool                                            isEditable{ false };
-    SpecialKeyboardCallbacks                        specialKeyCallbacks;
-    EventCallbacks                                  eventCallbacks;
+    bool                                        isEditable{ false };
+    SpecialKeyboardCallbacks                    specialKeyCallbacks;
+    EventCallbacks                              eventCallbacks;
+//    std::map<std::string, Event> events;
 };
+

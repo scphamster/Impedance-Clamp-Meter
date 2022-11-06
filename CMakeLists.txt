@@ -78,13 +78,11 @@ set(CXX_SOURCES
     #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
     #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
 
-    ${SOURCES_DIRECTORY}/menu/menu_model_item.cpp
+    ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
-    ${SOURCES_DIRECTORY}/menu/menu.hpp
-    ${SOURCES_DIRECTORY}/menu/menu.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
-    ${SOURCES_DIRECTORY}/menu/menu_model.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_dialog.hpp
 
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
 
@@ -121,6 +119,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue/queue.hpp
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue/queue.cpp
 
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/semaphore/semaphore.hpp
+
     )
 
 set(C_SOURCES
@@ -155,8 +155,10 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/peripherals/analog_switch
     ${SOURCES_DIRECTORY}/peripherals/gain_control
 
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue
+    ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/semaphore
 
     )
 

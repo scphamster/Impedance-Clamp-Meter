@@ -1,37 +1,59 @@
 #pragma once
-#ifdef min
-#undef min
-#endif   // max
-#ifdef max
-#undef max
-#endif   // max
-#ifdef printf
-#undef printf
-#endif
-
-#include <variant>
+#include "compiler_compatibility_workaround.hpp"
+#include <utility>
 #include <string>
+#include <variant>
+#include <mutex>
+
+#include "semaphore.hpp"
 
 using UniversalType = std::variant<int, float, std::string>;
 
-// class _UniversalType : public std::variant<int, float, std::string> {
-//   public:
-//     using variant   = std::variant<int, float, std::string>;
-//     UniversalType() = default;
-//     UniversalType(const auto &other)
-//       : variant::variant(other)
-//     { }
-//     UniversalType &operator=(const auto &rhs)
-//     {
-//         variant::operator=(rhs);
-//         return *this;
-//     }
-//     UniversalType(auto &&other)
-//       : variant::variant(std::move(other))
-//     { }
-//     UniversalType &operator=(auto &&rhs)
-//     {
-//         variant::operator=(std::move(rhs));
-//         return *this;
-//     }
-// };
+class UniversalSafeType {
+  public:
+    using IntegerType = int;
+    using FloatType   = float;
+    using StringType  = std::string;
+    using ValueType   = UniversalType;
+
+    UniversalSafeType() = default;
+
+    explicit UniversalSafeType(ValueType &&new_value)
+      : value{ std::move(new_value) }
+    { }
+
+    explicit UniversalSafeType(UniversalSafeType &other)
+      : value{ other.value }
+    { }
+
+    UniversalSafeType &operator=(const auto &new_value)
+    {
+        value = new_value;
+        return *this;
+    }
+
+    void SetValue(ValueType new_value) noexcept
+    {
+        std::lock_guard<Mutex>{ mutex };
+        value = std::move(new_value);
+    }
+    [[nodiscard]] ValueType GetValue() noexcept
+    {
+        std::lock_guard<Mutex>{ mutex };
+        return value;
+    }
+
+    bool operator==(const auto &rhs)
+    {
+        std::lock_guard<Mutex>{ mutex };
+
+        if (value == rhs.value)
+            return true;
+        else
+            return false;
+    }
+
+  private:
+    ValueType value;
+    Mutex     mutex;
+};
