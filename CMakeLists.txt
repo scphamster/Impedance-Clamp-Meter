@@ -95,6 +95,8 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/analog/dsp/dsp_resources.hpp
     ${SOURCES_DIRECTORY}/analog/dsp/dsp_resources.cpp
     ${SOURCES_DIRECTORY}/analog/dsp/iq_calculator.hpp
+    ${SOURCES_DIRECTORY}/analog/dsp/deviation_calculator.hpp
+
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.hpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp

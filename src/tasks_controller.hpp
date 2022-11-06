@@ -48,6 +48,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     using PageDataT = std::shared_ptr<UniversalSafeType>;
     using Drawer    = std::unique_ptr<DrawerT>;
 
+    // fixme: make corrections of init order
     TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , drawerTask{ [this]() { this->DisplayTask(); },
@@ -55,12 +56,12 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
       , clampMeter{ vOut, vShunt, zClamp, drawer.CreateAndGetDialog() }
-      , menu{ std::make_shared<Menu>() }
       , vOut{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }        // test
       , vShunt{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , zClamp{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
       , sensorMag{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
       , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
+      , menu{ std::make_shared<Menu>() }
     {
         InitializeMenu();
     }
@@ -124,7 +125,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->InsertChild(vout_info);
         measurements_page->InsertChild(z_overall);
         measurements_page->InsertChild(z_clamp);
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartMeasurements(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartNormalModeOperation(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.StopMeasurements(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
 

@@ -37,6 +37,7 @@
 #include "analog_switch.hpp"
 #include "dsp_resources.hpp"
 #include "menu_model_dialog.hpp"
+#include "semaphore/semaphore.hpp"
 
 class ClampMeterDriver {
   public:
@@ -47,8 +48,6 @@ class ClampMeterDriver {
     using AdcDriverT                    = MCP3462_driver;
     using AdcValueT                     = AdcDriverT::ValueT;
     using SensorPreampT                 = SensorPreamp<AdcDriverT::ValueT>;
-    using QueueT                        = QueueHandle_t;
-    using Semaphore                     = SemaphoreHandle_t;
     using FilterT                       = SuperFilterNoTask<ValueT>;
     using Filter                        = std::shared_ptr<FilterT>;
     using FromSensorQueueT              = Queue<SensorData>;
@@ -86,42 +85,20 @@ class ClampMeterDriver {
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                                "sensors" }
+      , calibrationTask{ [this]() { this->CalibrationTask(); },
+                         ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverCalibration),
+                         ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverCalibration),
+                         "calibration" }
       , messageBox{ std::move(new_msg_box) }
     {
+        calibrationTask.Suspend();
+
         InitializeFilters();
         InitializeSensors();
 
         SynchronizeAdcAndDac();
     }
 
-    void StartMeasurements() noexcept
-    {
-        if (firstTimeEntry) {
-            //             fixme: very very ugly workaround for synchronization of adc and dac
-            SwitchSensor(Sensor::Voltage);
-            adc.StartSynchronousMeasurements();
-            Task::DelayMs(100);
-            adc.StopMeasurement();
-
-            firstTimeEntry = false;
-        }
-
-        peripherals.powerSupply.Activate();
-        vTaskDelay(PowerSupplyDelayAfterActivation);
-
-        adc.StartSynchronousMeasurements();
-        generator.StartGenerating();
-        peripherals.outputRelay.Activate();
-    }
-    void StopMeasurements() noexcept
-    {
-        peripherals.outputRelay.Deactivate();
-        generator.StopGenerating();
-        peripherals.powerSupply.Deactivate();
-        adc.StopMeasurement();
-        vTaskDelay(pdMS_TO_TICKS(200));
-        sensors.at(activeSensor).Disable();
-    }
     void SwitchToNextSensor() noexcept
     {
         switch (activeSensor) {
@@ -151,8 +128,13 @@ class ClampMeterDriver {
         }
 
         StartMeasurements();
+        calibrationTask.Resume();
     }
-
+    void Stop() noexcept
+    {
+        calibrationTask.Suspend();
+        StopMeasurements();
+    }
     //    void CalibrateVoltageSensor(ValueT vout = 36.11);
 
   protected:
@@ -169,24 +151,6 @@ class ClampMeterDriver {
         OutputRelay   outputRelay;
     };
 
-    void CalculateAppliedVoltage() noexcept
-    {
-        data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
-        data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
-        arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
-                     &data.AppliedVoltage);
-
-        data.AppliedVoltagePhi =
-          SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
-    }
-
-    void SwitchSensor(Sensor new_sensor) noexcept
-    {
-        sensors.at(activeSensor).Disable();
-        activeSensor = new_sensor;
-        sensors.at(activeSensor).Enable();
-    }
-
     void StandardSensorOnEnableCallback() noexcept
     {
         using UnderType = std::underlying_type_t<Sensor>;
@@ -197,6 +161,7 @@ class ClampMeterDriver {
         sensors.at(activeSensor).SetMinGain();
     }
     void StandardSensorOnDisableCallback() noexcept { sensors.at(activeSensor).SetMinGain(); }
+
     void InitializeFilters() noexcept
     {
         auto constexpr filter2_block_size = 100;
@@ -325,8 +290,10 @@ class ClampMeterDriver {
         using GainT        = GainController::GainLevelT;
         auto iq_controller = std::make_shared<SynchronousIQCalculator<float>>(sinus_table.size());
 
+        // todo: make this initializer part of gain controllers
         InitializeIO();
 
+        // Voltage sensor
         {
             auto v_gain_controller = std::make_shared<GainController>(1, 1);
             v_gain_controller->SetGainChangeFunctor(
@@ -334,21 +301,22 @@ class ClampMeterDriver {
               [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); },
               60314.3242f,
               161.143814f);
-            auto v_amplifier_controller = std::make_unique<AmplifierController>(std::move(v_gain_controller));
-            auto [_unused_, emplaced]   = sensors.emplace(std::piecewise_construct,
-                                                        std::forward_as_tuple(Sensor::Voltage),
-                                                        std::forward_as_tuple(std::move(v_amplifier_controller),
-                                                                              iq_controller,
-                                                                              adc.CreateNewStreamBuffer(),
-                                                                              fromSensorDataQueue,
-                                                                              filterI,
-                                                                              filterQ));
+            auto v_amplifier_controller        = std::make_unique<AmplifierController>(std::move(v_gain_controller));
+            auto [_unused_, emplace_succeeded] = sensors.emplace(std::piecewise_construct,
+                                                                 std::forward_as_tuple(Sensor::Voltage),
+                                                                 std::forward_as_tuple(std::move(v_amplifier_controller),
+                                                                                       iq_controller,
+                                                                                       adc.CreateNewStreamBuffer(),
+                                                                                       fromSensorDataQueue,
+                                                                                       filterI,
+                                                                                       filterQ));
 
-            configASSERT(emplaced);
+            configASSERT(emplace_succeeded);
 
             sensors.at(Sensor::Voltage).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
         }
 
+        // Shunt sensor
         {
             auto sh_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
@@ -377,6 +345,7 @@ class ClampMeterDriver {
             sensors.at(Sensor::Shunt).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
 
+        // Clamp sensor
         {
             auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
@@ -406,44 +375,72 @@ class ClampMeterDriver {
             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
         }
     }
+
+    void StartMeasurements() noexcept
+    {
+        if (firstMeasurementsStart) {
+            SwitchSensor(Sensor::Voltage);
+            adc.StartSynchronousMeasurements();
+            Task::DelayMs(100);
+            adc.StopMeasurement();
+
+            firstMeasurementsStart = false;
+        }
+
+        peripherals.powerSupply.Activate();
+        vTaskDelay(PowerSupplyDelayAfterActivation);
+
+        adc.StartSynchronousMeasurements();
+        generator.StartGenerating();
+        peripherals.outputRelay.Activate();
+    }
+    void StopMeasurements() noexcept
+    {
+        peripherals.outputRelay.Deactivate();
+        generator.StopGenerating();
+        peripherals.powerSupply.Deactivate();
+        adc.StopMeasurement();
+        vTaskDelay(pdMS_TO_TICKS(200));
+        sensors.at(activeSensor).Disable();
+    }
+    void SwitchSensor(Sensor new_sensor) noexcept
+    {
+        sensors.at(activeSensor).Disable();
+        activeSensor = new_sensor;
+        sensors.at(activeSensor).Enable();
+    }
     void SynchronizeAdcAndDac() noexcept
     {
         generator.SetFirstTimeInterruptCallback([this]() { adc.SynchronizationCallback(); });
     }
 
-    bool DataIsStable() noexcept
-    {
-        return true;   // todo: implement
-    }
-
     // task helpers
+    bool CheckDataStability(auto const &data) noexcept
+    {
+        // if current value is not deviated from last M values for more than N% -> data is stable
+    }
+    void CalculateAppliedVoltage() noexcept
+    {
+        data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
+        data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
+        arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
+                     &data.AppliedVoltage);
+
+        data.AppliedVoltagePhi =
+          SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
+    }
     void CalculateVoltageSensor() noexcept
     {
-        if (workMode == Mode::Normal) {
-            *VoutValue = data.voltageSensorData.GetI();
-            *Z_Overall = data.voltageSensorData.GetQ();
-        }
-        else if (workMode == Mode::Calibration) {
-            messageBox->SetMsg("insert output voltage value");
-            messageBox->SetType(MenuModelDialog::DialogType::InputBox);
-
-            auto input_value = std::make_shared<UniversalSafeType>(3.1234f);
-
-            messageBox->SetValue(input_value);
-            messageBox->Show();
-            messageBox->WaitForUserDecision();
-            sensors.at(Sensor::Voltage).SetTrueValuesForCalibration(std::get<ValueT>(input_value->GetValue()), 0, 0);
-
-            messageBox->SetMsg("Wait...");
-            messageBox->SetHasValue(false);
-            messageBox->Show();
-
-            Task::DelayMs(5000);
-
-        }
+        if (workMode == Mode::Calibration)
+            return;
+        *VoutValue = data.voltageSensorData.GetI();
+        *Z_Overall = data.voltageSensorData.GetQ();
     }
     void CalculateShuntSensor() noexcept
     {
+        if (workMode == Mode::Calibration)
+            return;
+
         CalculateAppliedVoltage();
 
         auto admitance_mag = data.shuntSensorData.GetAbsolute() / (R_SHUNT * data.AppliedVoltage);
@@ -463,6 +460,9 @@ class ClampMeterDriver {
     }
     void CalculateClampSensor() noexcept
     {
+        if (workMode == Mode::Calibration)
+            return;
+
         data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
                                        data.voltageSensorData.GetDegree());
 
@@ -476,6 +476,36 @@ class ClampMeterDriver {
     }
 
     // tasks
+    [[noreturn]] void CalibrationTask() noexcept
+    {
+        while (true) {
+            // todo: implement decision handling
+
+            // wait for semaphore: "voltage task is running"
+            auto constexpr backup_vOut_value = 36.47f;
+
+            messageBox->SetMsg("insert output voltage value");
+            messageBox->SetType(MenuModelDialog::DialogType::InputBox);
+
+            auto input_value = std::make_shared<UniversalSafeType>(backup_vOut_value);
+            messageBox->SetValue(input_value);
+            messageBox->Show();
+            messageBox->WaitForUserReaction();
+
+            sensors.at(Sensor::Voltage).SetTrueValuesForCalibration(std::get<ValueT>(input_value->GetValue()), 0, 0);
+
+            messageBox->SetMsg("Wait...");
+            messageBox->SetHasValue(false);
+            messageBox->Show();
+
+            // wait for stable vout
+
+            // stop measurement
+
+            Task::DelayMs(5000);
+        }
+    }
+
     [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
     {
         while (true) {
@@ -520,36 +550,40 @@ class ClampMeterDriver {
         ValueT XClamp;
     };
 
-    auto constexpr static firstBufferSize = 100;
-    auto constexpr static lastBufferSize  = 1;
+    auto constexpr static firstBufferSize        = 100;
+    auto constexpr static lastBufferSize         = 1;
+    auto constexpr static dataStabilityBufferLen = 10;
 
-    // todo test
+    // todo: compress
     std::shared_ptr<UniversalSafeType> VoutValue;
     std::shared_ptr<UniversalSafeType> Z_Overall;
     std::shared_ptr<UniversalSafeType> Z_Clamp;
-    bool                               firstTimeEntry = true;
-    Mode                               workMode       = Mode::Normal;
 
     PeripheralsController peripherals;
+    OutputGenerator       generator;
+    AdcDriverT            adc;   // todo: make type independent
 
-    OutputGenerator generator;
-    AdcDriverT      adc;   // todo: make type independent
-                           //    SuperFilterWithTask<float>                 filter_I;
-                           //    SuperFilterWithTask<float>                 filter_Q;
+    bool firstMeasurementsStart = true;
+    Mode workMode               = Mode::Normal;
 
+    Semaphore universalSemaphore;
+
+    // todo: take this from here
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterI;
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterQ;
 
-    std::map<Sensor, SensorController> sensors;
-    ClampMeterData                     data;
-    Sensor                             activeSensor;
+    std::map<Sensor, SensorController>         sensors;
+    Sensor                                     activeSensor;
+    ClampMeterData                             data;
+    std::array<ValueT, dataStabilityBufferLen> stabilityCheckBuffer;
 
     std::shared_ptr<FromSensorQueueT> fromSensorDataQueue;
 
-    Task sensorDataManagerTask;
-
+    Task                     sensorDataManagerTask;
+    Task                     calibrationTask;
     std::shared_ptr<DialogT> messageBox;
 
+    // todo: take this from here
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },
         std::pair{ MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1 },

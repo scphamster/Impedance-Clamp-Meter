@@ -7,31 +7,34 @@ namespace ProjectConfigs
 {
 #ifdef DEBUG
 enum class TaskStackSize {
-    Display           = 400,
-    ClampDriverSensor = 500,
-    SensorInput       = 600,
-    SensorFromFilter  = configMINIMAL_STACK_SIZE,
-    Filter            = configMINIMAL_STACK_SIZE,
-    MCP23016          = configMINIMAL_STACK_SIZE
+    Display                = 400,
+    ClampDriverSensor      = 500,
+    ClampDriverCalibration = configMINIMAL_STACK_SIZE,
+    SensorInput            = 600,
+    SensorFromFilter       = configMINIMAL_STACK_SIZE,
+    Filter                 = configMINIMAL_STACK_SIZE,
+    MCP23016               = configMINIMAL_STACK_SIZE
 };
 #else
 enum class TaskStackSize {
-    Display           = 350,
-    ClampDriverSensor = configMINIMAL_STACK_SIZE,
-    SensorInput       = 400,
-    SensorFromFilter  = configMINIMAL_STACK_SIZE,
-    Filter            = configMINIMAL_STACK_SIZE,
-    MCP23016          = configMINIMAL_STACK_SIZE
+    Display                = 350,
+    ClampDriverSensor      = configMINIMAL_STACK_SIZE,
+    ClampDriverCalibration = configMINIMAL_STACK_SIZE,
+    SensorInput            = 400,
+    SensorFromFilter       = configMINIMAL_STACK_SIZE,
+    Filter                 = configMINIMAL_STACK_SIZE,
+    MCP23016               = configMINIMAL_STACK_SIZE
 };
 #endif
 enum class TaskPriority {
-    Main              = 3,
-    Display           = 1,
-    ClampDriverSensor = 3,
-    SensorInput       = 4,
-    SensorFromFilter  = 4,
-    Filter            = 3,
-    MCP23016          = 2
+    Main                   = 3,
+    Display                = 1,
+    ClampDriverSensor      = 3,
+    ClampDriverCalibration = 3,
+    SensorInput            = 4,
+    SensorFromFilter       = 4,
+    Filter                 = 3,
+    MCP23016               = 2
 };
 
 enum class QueueSize {
@@ -66,6 +69,7 @@ enum class Tasks {
     Main,
     Display,
     ClampDriverSensor,
+    ClampDriverCalibration,
     SensorInput,
     SensorFromFilter,
     Filter,
@@ -88,6 +92,7 @@ GetTaskStackSize(Tasks task)
     switch (task) {
     case Tasks::Display: return static_cast<UnderType>(EnumClassOfInterest::Display);
     case Tasks::ClampDriverSensor: return static_cast<UnderType>(EnumClassOfInterest::ClampDriverSensor);
+    case Tasks::ClampDriverCalibration: return static_cast<UnderType>(EnumClassOfInterest::ClampDriverCalibration);
     case Tasks::SensorInput: return static_cast<UnderType>(EnumClassOfInterest::SensorInput);
     case Tasks::SensorFromFilter: return static_cast<UnderType>(EnumClassOfInterest::SensorFromFilter);
     case Tasks::Filter: return static_cast<UnderType>(EnumClassOfInterest::Filter);
@@ -106,6 +111,7 @@ GetTaskPriority(Tasks task)
     case Tasks::Main: return static_cast<UnderType>(EnumClassOfInterest::Main);
     case Tasks::Display: return static_cast<UnderType>(EnumClassOfInterest::Display);
     case Tasks::ClampDriverSensor: return static_cast<UnderType>(EnumClassOfInterest::ClampDriverSensor);
+    case Tasks::ClampDriverCalibration: return static_cast<UnderType>(EnumClassOfInterest::ClampDriverCalibration);
     case Tasks::SensorInput: return static_cast<UnderType>(EnumClassOfInterest::SensorInput);
     case Tasks::SensorFromFilter: return static_cast<UnderType>(EnumClassOfInterest::SensorFromFilter);
     case Tasks::Filter: return static_cast<UnderType>(EnumClassOfInterest::Filter);

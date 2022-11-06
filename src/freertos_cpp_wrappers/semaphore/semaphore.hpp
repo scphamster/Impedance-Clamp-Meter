@@ -37,12 +37,12 @@ class Semaphore {
 
     void Give() noexcept { xSemaphoreGive(semaphore); }
     void SetOnReceiveCallback(ReceiveCallbackT &&callback) { onReceiveCallback = std::move(callback); }
-    bool TakeWithTimeoutTicks(TimeT timeout_ticks = portMAX_DELAY) noexcept
+    bool TakeWithTimeoutTicks(TimeT timeout_ticks) noexcept
     {
         return (xSemaphoreTake(semaphore, timeout_ticks) == pdTRUE) ? true : false;
     }
     bool TakeWithTimeoutMs(TimeT timeout_ms) noexcept { return TakeWithTimeoutTicks(pdMS_TO_TICKS(timeout_ms)); }
-
+    bool TakeBlockInfinitely() noexcept { return TakeWithTimeoutTicks(portMAX_DELAY); }
     bool TakeImmediate() noexcept { return TakeWithTimeoutMs(0); }
 
   protected:

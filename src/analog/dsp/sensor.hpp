@@ -163,6 +163,7 @@ class SensorController {
     [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
     [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
     [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
+    [[nodiscard]] Mode                      GetMode() const noexcept { return mode; }
 
   protected:
     // tasks
@@ -206,9 +207,6 @@ class SensorController {
             }
             // calibration task
             else if (mode == Calibration) {
-
-
-
                 outputQueue->SendImmediate(data);
             }
         }

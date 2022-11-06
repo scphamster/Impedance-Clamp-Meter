@@ -304,15 +304,6 @@ class MenuModelDrawer {
             item_index++;
         }
     }
-
-    void RequestFullRedraw() noexcept
-    {
-        drawnDynamicPageItems.clear();
-        if (dialogBox)
-            dialogBox->SetHasBeenDrawnFlag(false);
-        fullRedraw = true;
-    }
-
     void DrawMessageDialog() noexcept
     {
         if (not dialogBox)
@@ -339,29 +330,15 @@ class MenuModelDrawer {
 
         dialogBox->SetHasBeenDrawnFlag(true);
     }
-
-    void SetValueToInputBoxTEST() noexcept
+    void RequestFullRedraw() noexcept
     {
-        *(dialogBox->GetValue()) = 36.3f;
-        //        configASSERT(0);
+        drawnDynamicPageItems.clear();
+        if (dialogBox)
+            dialogBox->SetHasBeenDrawnFlag(false);
+        fullRedraw = true;
     }
 
     // slots:
-
-    void DialogBoxKeyboardHandler(ButtonEvent event, ButtonName button) noexcept
-    {
-        if (dialogBox->GetDialogType() == MenuModelDialog::DialogType::InputBox) {
-            SetValueToInputBoxTEST();
-        }
-
-        if (button == ButtonName::Enter)
-            dialogBox->KeyboardHandler(MenuModelDialog::Key::Enter);
-        else if (button == ButtonName::Back)
-            dialogBox->KeyboardHandler(MenuModelDialog::Key::Back);
-
-        RequestFullRedraw();
-    }
-
     void KeyboardMasterCallback(ButtonEvent event, ButtonName button) noexcept
     {
         if (event != ButtonEvent::Release)
@@ -380,10 +357,16 @@ class MenuModelDrawer {
         default: return;
         }
     }
-    void ModelCurrentItemChangedEvent() noexcept
+    void DialogBoxKeyboardHandler(ButtonEvent event, ButtonName button) noexcept
     {
-        cursor.Reset();
-        cursor.GetItemCursor().SetMinMax(0, model->GetCurrentItem()->GetChildCount() - 1);
+        //todo: implement handling of input box
+
+        if (button == ButtonName::Enter)
+            dialogBox->KeyboardHandler(MenuModelDialog::Key::Enter);
+        else if (button == ButtonName::Back)
+            dialogBox->KeyboardHandler(MenuModelDialog::Key::Back);
+
+        RequestFullRedraw();
     }
     void EnterButtonPushEvent() noexcept
     {
@@ -436,6 +419,11 @@ class MenuModelDrawer {
                 cursor.GetItemCursor().Decrement();
             }
         }
+    }
+    void ModelCurrentItemChangedEvent() noexcept
+    {
+        cursor.Reset();
+        cursor.GetItemCursor().SetMinMax(0, model->GetCurrentItem()->GetChildCount() - 1);
     }
 
   private:
