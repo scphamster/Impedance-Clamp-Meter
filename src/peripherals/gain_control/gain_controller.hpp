@@ -32,16 +32,13 @@ class GainController {
     }
     void IncreaseGain() noexcept { SetGain(gain + 1); }
     void DecreaseGain() noexcept { SetGain(gain - 1); }
-    void SetGainChangeFunctor(GainLevelT          for_gain_level,
-                              GainChangeFunctor &&new_functor,
-                              GainValueT          gainValue,
-                              PhaseShift          phaseShift)
+    void SetGainChangeFunctor(GainLevelT for_gain_level, GainChangeFunctor &&new_functor, GainAndPhaseShift gain_and_phase)
     {
         if (for_gain_level > maxGain)
             return;
 
         gainChangeFunctors[for_gain_level] = std::move(new_functor);
-        gainLevelData[for_gain_level]      = { gainValue, phaseShift };
+        gainLevelData[for_gain_level]      = { gain_and_phase.first, gain_and_phase.second };
     }
     void SetGainValueAndPhaseShift(GainLevelT for_level, GainValueT gainValue, PhaseShift phaseShift) noexcept
     {

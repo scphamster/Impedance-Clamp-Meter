@@ -202,22 +202,22 @@ class SensorController {
                 auto [I, Q]  = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.Degree);
                 data.Value_I = I;
                 data.Value_Q = Q;
-
-                outputQueue->SendImmediate(data);
             }
             // calibration task
             else if (mode == Calibration) {
-//                outputQueue->SendImmediate(data);
+                //                outputQueue->SendImmediate(data);
 
                 auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.GetI(), data.GetQ());
-                data.Degree = iqCalculator->NormalizeAngle(degree);
-
-
+                data.Degree        = iqCalculator->NormalizeAngle(degree);
 
                 ValueT calculated_true_gain = abs / calibrationTargets.magnitude;
-                ValueT degreeError = data.Degree - calibrationTargets.phi;
+                ValueT degreeError          = data.Degree - calibrationTargets.phi;
 
+                data.Value_I = calculated_true_gain;
+                data.Value_Q = degreeError;
             }
+
+            outputQueue->SendImmediate(data);
         }
     }
 

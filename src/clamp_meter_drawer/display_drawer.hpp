@@ -73,6 +73,15 @@ class DisplayDrawer {
     void DrawFiledCircle(Point, ScreenSizeT r, ColorT) const noexcept;
     void DrawRectangle(Point, ScreenSizeT w, ScreenSizeT h, ColorT) const noexcept;
     void DrawFiledRectangle(Point, ScreenSizeT w, ScreenSizeT h, ColorT) noexcept;
+    void DrawFiledRectangle(Point top_left, Point bot_right, ColorT color) noexcept
+    {
+        auto w        = bot_right.x - top_left.x;
+        auto h        = bot_right.y - top_left.y;
+        auto n_pixels = h * w;
+
+        driver->SetPartial(top_left, bot_right);
+        driver->PutPixel(color, n_pixels);
+    }
     void Print(const std::string &string, Byte fontsize) noexcept;
     void Print(uint16_t number, Byte fontsize) noexcept;
     void Print(float number, Byte digits, Byte fontsize) noexcept;

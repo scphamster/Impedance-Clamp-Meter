@@ -323,7 +323,7 @@ class MenuModelDrawer {
         if (dialogBox->HasBeenDrawn())
             return;
 
-        drawer->DrawFiledRectangle(dialogSettings.topLeft, 320, 200, dialogSettings.background);
+        drawer->DrawFiledRectangle(dialogSettings.topLeft, dialogSettings.bottRight, dialogSettings.background);
         drawer->SetCursor(dialogSettings.topLeft);
         drawer->SetTextColor(dialogSettings.foreground, dialogSettings.background);
         drawer->Print(dialogBox->GetMessage(), dialogSettings.fontSize);
@@ -359,7 +359,7 @@ class MenuModelDrawer {
     }
     void DialogBoxKeyboardHandler(ButtonEvent event, ButtonName button) noexcept
     {
-        //todo: implement handling of input box
+        // todo: implement handling of input box
 
         if (button == ButtonName::Enter)
             dialogBox->KeyboardHandler(MenuModelDialog::Key::Enter);
@@ -475,18 +475,12 @@ class MenuModelDrawer {
         ColorT foreground, background;
     };
 
-    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 100 },
-                                                    {},
-                                                    { screenUsedAreaLeftX + 50, screenUsedAreaTopY + 150 },
+    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 200 },
+                                                    {screenUsedAreaLeftX + 319, screenUsedAreaTopY + 300},
+                                                    { screenUsedAreaLeftX + 50, screenUsedAreaTopY + 250 },
                                                     1,
                                                     COLOR_REDYELLOW,
                                                     COLOR_DARKDARKGREY };
-
-    //    int static constexpr msgDialogYpos{ screenUsedAreaTopY + 100 };
-    //    int static constexpr msgDialogXPos{ screenUsedAreaLeftX + 0 };
-    //    int static constexpr dialogSettings.fontSize{ 1 };
-    //    int static constexpr msgDialogBackground{ COLOR_DARKDARKGREY };
-    //    int static constexpr msgDialogForeground{ COLOR_REDYELLOW };
 
     ColorT static constexpr itemValueColor            = COLOR_DARKCYAN;
     ColorT static constexpr itemNameColor             = COLOR_DARKGREEN;

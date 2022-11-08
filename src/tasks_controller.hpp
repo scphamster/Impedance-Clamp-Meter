@@ -55,12 +55,12 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ vOut, vShunt, zClamp, drawer.CreateAndGetDialog() }
-      , vOut{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }        // test
-      , vShunt{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
-      , zClamp{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }      // test
-      , sensorMag{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
-      , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
+      , clampMeter{ valueOne, valueTwo, valueThree, drawer.CreateAndGetDialog() }
+      , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
+      , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
+      , valueThree{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
+      , valueFour{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
+      , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , menu{ std::make_shared<Menu>() }
     {
         InitializeMenu();
@@ -106,17 +106,17 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         // measurements menu
         auto vout_info = std::make_shared<Page>(menu);
         vout_info->SetName("V out");
-        vout_info->SetData(vOut);
+        vout_info->SetData(valueOne);
         vout_info->SetIndex(0);
 
         auto z_overall = std::make_shared<Page>(menu);
         z_overall->SetName("Z Overall");
-        z_overall->SetData(vShunt);
+        z_overall->SetData(valueTwo);
         z_overall->SetIndex(1);
 
         auto z_clamp = std::make_shared<Page>(menu);
         z_clamp->SetName("Z Clamp");
-        z_clamp->SetData(zClamp);
+        z_clamp->SetData(valueThree);
         z_clamp->SetIndex(2);
 
         auto measurements_page = std::make_shared<Page>(menu);
@@ -130,15 +130,31 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
 
         // calibration menu
+
+
+
         auto start_calibration = std::make_shared<Page>(menu);
         start_calibration->SetName("Press F1 to start calibration");
         start_calibration->SetHeader("Calibration");
+
+        auto valueI = std::make_shared<Page>(menu);
+        valueI->SetName("Value I");
+        valueI->SetData(valueOne);
+        valueI->SetIndex(1);
+
+        auto valueQ = std::make_shared<Page>(menu);
+        valueQ->SetName("Value Q");
+        valueQ->SetData(valueTwo);
+        valueQ->SetIndex(2);
 
         auto calibration_page = std::make_shared<Page>(menu);
         calibration_page->SetIndex(1);
         calibration_page->SetName("Calibration");
         calibration_page->InsertChild(start_calibration);
         calibration_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartCalibration(); });
+        calibration_page->InsertChild(valueI);
+        calibration_page->InsertChild(valueQ);
+
 
         auto main_page = std::make_shared<Page>(menu);
         main_page->SetName("Main");
@@ -154,11 +170,10 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     MenuModelDrawer<DrawerT, Keyboard> drawer;
 
     // todo: to be deleted from here
-    PageDataT vOut;
-    PageDataT vShunt;
-
-    PageDataT zClamp;
-    PageDataT sensorMag;
+    PageDataT valueOne;
+    PageDataT valueTwo;
+    PageDataT valueThree;
+    PageDataT valueFour;
 
     PageDataT        sensorPhi;
     Task             drawerTask;
