@@ -46,13 +46,18 @@ message(DEBUG "link flags: ${MY_LINK_FLAGS}")
 set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/compiler_compatibility_workaround.hpp
     ${SOURCES_DIRECTORY}/main.cpp
+
     ${SOURCES_DIRECTORY}/project_configs.hpp
     ${SOURCES_DIRECTORY}/tasks_controller.hpp
+
     ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
     ${SOURCES_DIRECTORY}/clamp_meter_driver.cpp
 
     ${SOURCES_DIRECTORY}/mutex/semaphore.hpp
     ${SOURCES_DIRECTORY}/mutex/semaphore.cpp
+
+    ${SOURCES_DIRECTORY}/nvm_controller/flash_controller.hpp
+
     ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.cpp
     ${SOURCES_DIRECTORY}/ili9486/ili9486_driver.hpp
     ${SOURCES_DIRECTORY}/ili9486/font.hpp
@@ -140,6 +145,7 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/clamp_meter_drawer
     ${SOURCES_DIRECTORY}/ili9486
     ${SOURCES_DIRECTORY}/mutex
+    ${SOURCES_DIRECTORY}/nvm_controller
     ${SOURCES_DIRECTORY}/main_task
     ${SOURCES_DIRECTORY}/keyboard
     ${SOURCES_DIRECTORY}/timer

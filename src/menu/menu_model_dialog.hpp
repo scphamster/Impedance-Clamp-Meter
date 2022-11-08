@@ -89,7 +89,7 @@ class MenuModelDialog {
             return false;
     }
     bool                                  HasValue() const noexcept { return hasValue; }
-    bool                                  WaitForUserReaction() noexcept { return decisionMadeSemaphore->TakeWithTimeoutTicks(); }
+    bool                                  WaitForUserReaction() noexcept { return decisionMadeSemaphore->TakeBlockInfinitely(); }
     [[nodiscard]] MessageT                GetMessage() const noexcept { return message; }
     [[nodiscard]] bool                    HasBeenDrawn() const noexcept { return hasBeenDrawn; }
     [[nodiscard]] bool                    IsShown() const noexcept { return isShown; }

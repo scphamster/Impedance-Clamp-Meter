@@ -10,23 +10,25 @@
 template<typename ValueT, size_t BufferLen>
 class DeviationCalculator {
   public:
-    ValueT PushBackAndGetRelativeStdDeviation(ValueT new_value) noexcept
+    void PushBackAndCalculate(ValueT new_value) noexcept
     {
-        std::transform(buffer.begin() + 1, buffer.end(), buffer.begin(), [](auto &input) { return input; });
+        std::transform(buffer.crbegin() + 1, buffer.crend(), buffer.rbegin(), [](auto &input) { return input; });
 
-        *(buffer.end() - 1) = new_value;
+        buffer.at(0) = new_value;
 
         CalculateMean();
 
         auto dev_squared = FindSumOfDeviationsSquared();
         dev_squared /= buffer.size();
-        ValueT std_deviation;
-        arm_sqrt_f32(dev_squared, &std_deviation);
 
-        return std_deviation / mean;
+        arm_sqrt_f32(dev_squared, &stdDev);
+
+        relativeStdDev = stdDev / mean;
     }
+    ValueT GetStandardDeviation() const noexcept { return stdDev; }
+    ValueT GetRelativeStdDev() const noexcept { return relativeStdDev; }
 
-    void CalculateMean() noexcept
+    void   CalculateMean() noexcept
     {
         ValueT sum{ 0 };
 
@@ -51,4 +53,6 @@ class DeviationCalculator {
   private:
     std::array<ValueT, BufferLen> buffer;
     ValueT                        mean;
+    ValueT                        stdDev;
+    ValueT                        relativeStdDev;
 };

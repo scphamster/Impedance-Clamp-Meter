@@ -207,7 +207,16 @@ class SensorController {
             }
             // calibration task
             else if (mode == Calibration) {
-                outputQueue->SendImmediate(data);
+//                outputQueue->SendImmediate(data);
+
+                auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.GetI(), data.GetQ());
+                data.Degree = iqCalculator->NormalizeAngle(degree);
+
+
+
+                ValueT calculated_true_gain = abs / calibrationTargets.magnitude;
+                ValueT degreeError = data.Degree - calibrationTargets.phi;
+
             }
         }
     }

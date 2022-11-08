@@ -38,6 +38,15 @@
 #include "dsp_resources.hpp"
 #include "menu_model_dialog.hpp"
 #include "semaphore/semaphore.hpp"
+#include "deviation_calculator.hpp"
+#include "flash_controller.hpp"
+
+// todo: remove from here
+#include "signal_conditioning.h"
+// todo: cleanup
+extern std::array<std::pair<float, float>, 21> calibration_data;
+extern bool                                    flash_restore_result;
+extern bool                                    flash_save_result;
 
 class ClampMeterDriver {
   public:
@@ -52,6 +61,10 @@ class ClampMeterDriver {
     using Filter                        = std::shared_ptr<FilterT>;
     using FromSensorQueueT              = Queue<SensorData>;
     using DialogT                       = MenuModelDialog;
+
+    using CalibrationDataT = std::array<std::pair<ValueT, ValueT>, 21>;
+    using FlashController2 = FlashController<CalibrationDataT, uint32_t>;
+
     enum Configs {
         NumberOfSensors                 = 3,
         NumberOfSensorPreamps           = 2,
@@ -135,7 +148,6 @@ class ClampMeterDriver {
         calibrationTask.Suspend();
         StopMeasurements();
     }
-    //    void CalibrateVoltageSensor(ValueT vout = 36.11);
 
   protected:
     class PeripheralsController {
@@ -293,6 +305,8 @@ class ClampMeterDriver {
         // todo: make this initializer part of gain controllers
         InitializeIO();
 
+        auto [cal, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
+
         // Voltage sensor
         {
             auto v_gain_controller = std::make_shared<GainController>(1, 1);
@@ -385,8 +399,11 @@ class ClampMeterDriver {
             adc.StopMeasurement();
 
             firstMeasurementsStart = false;
-        }
 
+            CalibrationDataT cali{ std::pair{ 1.f, 2.f }, std::pair{ 3.f, 4.f } };
+
+            flash_save_result = FlashController2::Store(cali, COEFFS_FLASH_START_ADDR);
+        }
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
@@ -415,9 +432,12 @@ class ClampMeterDriver {
     }
 
     // task helpers
-    bool CheckDataStability(auto const &data) noexcept
+    void CheckDataStability(ValueT data) noexcept
     {
-        // if current value is not deviated from last M values for more than N% -> data is stable
+        deviationCalc.PushBackAndCalculate(data);
+        devValue = deviationCalc.GetRelativeStdDev();
+        devdevCalc.PushBackAndCalculate(deviationCalc.GetRelativeStdDev());
+        deviationOfDeviation = devdevCalc.GetStandardDeviation();
     }
     void CalculateAppliedVoltage() noexcept
     {
@@ -434,7 +454,8 @@ class ClampMeterDriver {
         if (workMode == Mode::Calibration)
             return;
         *VoutValue = data.voltageSensorData.GetI();
-        *Z_Overall = data.voltageSensorData.GetQ();
+        *Z_Overall = devValue;
+        *Z_Clamp   = deviationOfDeviation;
     }
     void CalculateShuntSensor() noexcept
     {
@@ -494,15 +515,19 @@ class ClampMeterDriver {
 
             sensors.at(Sensor::Voltage).SetTrueValuesForCalibration(std::get<ValueT>(input_value->GetValue()), 0, 0);
 
-            messageBox->SetMsg("Wait...");
+            messageBox->SetMsg("Waiting until voltage is stable ... ");
             messageBox->SetHasValue(false);
             messageBox->Show();
 
-            // wait for stable vout
+            for (;;) {
+                if (deviationOfDeviation < 0.001f)
+                    break;
+            }
 
-            // stop measurement
+            messageBox->SetMsg("voltage is stable, going to next step");
+            messageBox->Show();
 
-            Task::DelayMs(5000);
+            Task::DelayMs(600);
         }
     }
 
@@ -510,6 +535,8 @@ class ClampMeterDriver {
     {
         while (true) {
             auto sensor_data = fromSensorDataQueue->Receive();
+
+            CheckDataStability(sensor_data.GetQ());
 
             switch (activeSensor) {
             case Sensor::Voltage:
@@ -571,6 +598,12 @@ class ClampMeterDriver {
     // todo: take this from here
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterI;
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterQ;
+
+    auto static constexpr deviationCalcBufferLen = 10;
+    DeviationCalculator<ValueT, deviationCalcBufferLen> deviationCalc;
+    DeviationCalculator<ValueT, 30>                     devdevCalc;
+    ValueT                                              deviationOfDeviation;
+    ValueT                                              devValue;
 
     std::map<Sensor, SensorController>         sensors;
     Sensor                                     activeSensor;

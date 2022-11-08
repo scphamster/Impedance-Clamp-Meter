@@ -126,7 +126,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->InsertChild(z_overall);
         measurements_page->InsertChild(z_clamp);
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartNormalModeOperation(); });
-        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.StopMeasurements(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.Stop(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
 
         // calibration menu
