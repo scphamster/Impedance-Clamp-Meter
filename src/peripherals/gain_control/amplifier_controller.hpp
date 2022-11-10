@@ -26,10 +26,6 @@ class AmplifierController {
       : gainController{ std::move(new_gain_controller) }
     { }
 
-    //    explicit AmplifierController(GainT min_gain, GainT max_gain)
-    //      : AmplifierController{ std::make_shared<GainController>(min_gain, max_gain) }
-    //    { }
-
     void                  EnableAGC() noexcept { agcIsEnabled = true; }
     void                  DisableAGC() noexcept { agcIsEnabled = false; }
     [[maybe_unused]] void SetAGC(std::unique_ptr<AGCType> &&new_agc, bool enable_agc = true) noexcept
@@ -58,8 +54,9 @@ class AmplifierController {
         agcIsEnabled = false;
         return std::move(agc);
     };
-    [[nodiscard]] GainValueT GetGainValue() const noexcept { return gainController->GetGainValue(); }
-    [[nodiscard]] PhaseShift GetPhaseShift() const noexcept { return gainController->GetPhaseShift(); }
+    [[nodiscard]] GainValueT                      GetGainValue() const noexcept { return gainController->GetGainValue(); }
+    [[nodiscard]] PhaseShift                      GetPhaseShift() const noexcept { return gainController->GetPhaseShift(); }
+    [[nodiscard]] std::shared_ptr<GainController> GetGainController() const noexcept { return gainController; }
 
   protected:
   private:

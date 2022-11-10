@@ -50,6 +50,7 @@ class SensorData {
     [[nodiscard]] ValueT GetQ() const noexcept { return Value_Q; }
     [[nodiscard]] ValueT GetAbsolute() const noexcept { return AbsoluteValue; }
     [[nodiscard]] ValueT GetDegree() const noexcept { return Degree; }
+    [[nodiscard]] ValueT GetDegreeNocal() const noexcept { return DegreeNocal; }
 
   private:
     friend class SensorController;
@@ -58,6 +59,9 @@ class SensorData {
     ValueT Value_Q{};
     ValueT AbsoluteValue{};
     ValueT Degree{};
+
+    // test
+    ValueT DegreeNocal{};
 };
 
 class SensorController {
@@ -155,15 +159,21 @@ class SensorController {
     }
     void                  SetGain(GainT new_gain) noexcept { amplifierController->SetGain(new_gain); }
     void                  SetMinGain() noexcept { amplifierController->SetMinGain(); }
+    void                  EnableAGC() noexcept { amplifierController->EnableAGC(); }
+    void                  DisableAGC() noexcept { amplifierController->DisableAGC(); }
     [[maybe_unused]] void SetMaxGain() noexcept { amplifierController->SetMaxGain(); }
     void                  SuspendTasks() noexcept { inputTask.Suspend(); }
     void                  ResumeTasks() noexcept { inputTask.Resume(); }
 
-    [[nodiscard]] decltype(auto)            GetInputStreamBuffer() const noexcept { return inputSB; }
-    [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
-    [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
-    [[nodiscard]] Mode                      GetMode() const noexcept { return mode; }
+    [[nodiscard]] decltype(auto)                  GetInputStreamBuffer() const noexcept { return inputSB; }
+    [[nodiscard]] SemaphoreT                      GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
+    [[nodiscard]] std::pair<ValueT, ValueT>       GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
+    [[maybe_unused]] [[nodiscard]] bool           IsActivated() const noexcept { return isActivated; }
+    [[nodiscard]] Mode                            GetMode() const noexcept { return mode; }
+    [[nodiscard]] std::shared_ptr<GainController> GetGainController() const noexcept
+    {
+        return amplifierController->GetGainController();
+    }
 
   protected:
     // tasks
@@ -187,15 +197,13 @@ class SensorController {
                 counter++;
             }
 
-            data.SetI(filterI->DoFilter());
-            data.SetQ(filterQ->DoFilter());
-
             // measurement task // use calibration
             if (mode == Mode::Normal) {
                 auto gain                     = amplifierController->GetGainValue();
                 auto Ival_nocal               = filterI->DoFilter() / gain;
                 auto Qval_nocal               = filterQ->DoFilter() / gain;
                 auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
+                data.DegreeNocal              = degree;
                 data.Degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
                 data.AbsoluteValue            = absolute_value;
 
@@ -203,18 +211,14 @@ class SensorController {
                 data.Value_I = I;
                 data.Value_Q = Q;
             }
+
             // calibration task
             else if (mode == Calibration) {
-                //                outputQueue->SendImmediate(data);
+                auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(), filterQ->DoFilter());
 
-                auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(data.GetI(), data.GetQ());
-                data.Degree        = iqCalculator->NormalizeAngle(degree);
-
-                ValueT calculated_true_gain = abs / calibrationTargets.magnitude;
-                ValueT degreeError          = data.Degree - calibrationTargets.phi;
-
-                data.Value_I = calculated_true_gain;
-                data.Value_Q = degreeError;
+                data.SetAbsolute(abs / calibrationTargets.magnitude);
+                data.SetDegree(iqCalculator->NormalizeAngle(degree - calibrationTargets.phi));
+                data.SetI(abs);
             }
 
             outputQueue->SendImmediate(data);

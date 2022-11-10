@@ -69,6 +69,8 @@ class Task {
         auto time_now = xTaskGetTickCount();
         vTaskDelayUntil(&time_now, pdMS_TO_TICKS(for_ms));
     }
+    static void SuspendAll() noexcept { vTaskSuspendAll(); }
+    static void ResumeAll() noexcept { xTaskResumeAll(); }
 
   protected:
     bool Initialize() noexcept

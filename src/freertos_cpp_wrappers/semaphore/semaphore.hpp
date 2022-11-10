@@ -18,7 +18,7 @@ class Semaphore {
       : semaphore{ xSemaphoreCreateBinary() }
     {
         if (semaphore == nullptr)
-            std::terminate;
+            std::terminate();
     }
     explicit Semaphore(ReceiveCallbackT &&callback)
       : Semaphore()

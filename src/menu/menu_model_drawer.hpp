@@ -475,8 +475,8 @@ class MenuModelDrawer {
         ColorT foreground, background;
     };
 
-    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 200 },
-                                                    {screenUsedAreaLeftX + 319, screenUsedAreaTopY + 300},
+    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 300 },
+                                                    {screenUsedAreaLeftX + 319, screenUsedAreaTopY + 400},
                                                     { screenUsedAreaLeftX + 50, screenUsedAreaTopY + 250 },
                                                     1,
                                                     COLOR_REDYELLOW,

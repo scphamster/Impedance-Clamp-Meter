@@ -46,7 +46,7 @@ class SynchronousIQCalculator {
     void ResetTickCounter() noexcept { tickCounter = 0; }
 
     static ValueT FindAngle(ValueT Qval, ValueT Ival, ValueT absolute_val) noexcept
-    {
+    {   // todo: use arm_atan_f32
         ValueT        abs_sin;
         ValueT        abs_cos;
         ValueT        degree;
@@ -64,6 +64,7 @@ class SynchronousIQCalculator {
 
         if (abs_sin < abs_cos)
             degree = acosf(abs_cos / absolute_val) * rad2deg_conv_coeff;
+
         else
             degree = asinf(abs_sin / absolute_val) * rad2deg_conv_coeff;
 
@@ -82,18 +83,23 @@ class SynchronousIQCalculator {
     }
     static ValueT NormalizeAngle(ValueT degree) noexcept
     {
-        if (degree < 0)
-            degree += 360;
-        else if (degree >= 360)
-            degree -= 360;
+        if (degree > 360.f or degree < -360.f) {
+            auto full_circle_number = static_cast<int>(degree / 360.f);
+            degree                  = degree - 360.f * static_cast<ValueT>(full_circle_number);
+        }
+
+        if (degree < 0.f)
+            degree += 360.f;
 
         return degree;
     }
-    static std::pair<QValueT ,IValueT > GetSinCosFromAngle(ValueT degree) {
+    static std::pair<QValueT, IValueT> GetSinCosFromAngle(ValueT degree)
+    {
         ValueT sin, cos;
         arm_sin_cos_f32(degree, &sin, &cos);
-        return {sin, cos};
+        return { sin, cos };
     }
+
   private:
     int tickCounter                     = 0;
     int tickCounterResetTriggeringLimit = 0;

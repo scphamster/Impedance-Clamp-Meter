@@ -14,11 +14,16 @@ class Queue {
   public:
     using TimeT = portTickType;
 
-    Queue(size_t queue_length)
+    explicit Queue(size_t queue_length)
       : handle{ xQueueCreate(queue_length, sizeof(ItemType)) }
     {
         configASSERT(handle != nullptr);
     }
+
+    explicit Queue(size_t queue_length, std::string queue_debug_name) : Queue{queue_length} {
+        vQueueAddToRegistry(handle, queue_debug_name.c_str());
+    }
+
     ~Queue() noexcept
     {
         configASSERT(handle != nullptr);

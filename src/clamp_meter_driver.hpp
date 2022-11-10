@@ -108,15 +108,17 @@ class ClampMeterDriver {
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout,
                      std::shared_ptr<UniversalSafeType> shunt,
                      std::shared_ptr<UniversalSafeType> clamp,
+                     std::shared_ptr<UniversalSafeType> v4,
                      std::shared_ptr<DialogT>           new_msg_box)
-      : VoutValue{ vout }
-      , Z_Overall{ shunt }
-      , Z_Clamp{ clamp }
+      : value1{ vout }
+      , value2{ shunt }
+      , value3{ clamp }
+      , value4{ v4 }
       , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , filterI{ std::make_shared<FilterT>() }
       , filterQ{ std::make_shared<FilterT>() }
-      , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength) }
+      , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength, "sensor") }
       , sensorDataManagerTask{ [this]() { this->ManageSensorsDataTask(); },
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
@@ -163,7 +165,6 @@ class ClampMeterDriver {
             sensor.SetMode(SensorController::Mode::Calibration);
         }
 
-        StartMeasurements();
         calibrationTask.Resume();
     }
     void Stop() noexcept
@@ -329,6 +330,10 @@ class ClampMeterDriver {
         InitializeIO();
 
         auto [cal, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
+
+        //todo: clean after debug
+        result = false;
+
         if (result == false) {
             cal = reserve_calibration;
         }
@@ -414,6 +419,7 @@ class ClampMeterDriver {
         }
     }
 
+    // todo: divide responsibilities to different functions
     void StartMeasurements() noexcept
     {
         if (firstMeasurementsStart) {
@@ -424,21 +430,28 @@ class ClampMeterDriver {
 
             firstMeasurementsStart = false;
         }
+
+        SwitchSensor(activeSensor);
+
         peripherals.powerSupply.Activate();
         vTaskDelay(PowerSupplyDelayAfterActivation);
 
+        Task::SuspendAll();
         adc.StartSynchronousMeasurements();
         generator.StartGenerating();
+        Task::ResumeAll();
+
         peripherals.outputRelay.Activate();
+
     }
     void StopMeasurements() noexcept
     {
+        sensors.at(activeSensor).Disable();
         peripherals.outputRelay.Deactivate();
         generator.StopGenerating();
         peripherals.powerSupply.Deactivate();
         adc.StopMeasurement();
         vTaskDelay(pdMS_TO_TICKS(200));
-        sensors.at(activeSensor).Disable();
     }
     void SwitchSensor(Sensor new_sensor) noexcept
     {
@@ -473,9 +486,9 @@ class ClampMeterDriver {
     {
         if (workMode == Mode::Calibration)
             return;
-        *VoutValue = data.voltageSensorData.GetI();
-        *Z_Overall = devValue;
-        *Z_Clamp   = deviationOfDeviation;
+        *value1    = data.voltageSensorData.GetI();
+        *value2    = devValue;
+        *value3    = deviationOfDeviation;
     }
     void CalculateShuntSensor() noexcept
     {
@@ -497,7 +510,7 @@ class ClampMeterDriver {
         data.ZOverall    = 1 / admitance_mag;
         data.ZOverallPhi = admitance_phi;
 
-        *Z_Overall = data.ZOverall;
+        *value2 = data.ZOverall;
     }
     void CalculateClampSensor() noexcept
     {
@@ -513,7 +526,19 @@ class ClampMeterDriver {
         data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
         data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
 
-        *Z_Clamp = data.ZClamp;
+        *value3 = data.ZClamp;
+    }
+
+    void WaitForStableData(ValueT max_deviation) noexcept {
+        Task::DelayMs(1000);
+
+        for (;;) {
+            if (deviationOfDeviation < 0) deviationOfDeviation = -deviationOfDeviation;
+
+            if (deviationOfDeviation > max_deviation) Task::DelayMs(100);
+            else break;
+        }
+        Task::DelayMs(3000);
     }
 
     // tasks
@@ -526,9 +551,12 @@ class ClampMeterDriver {
             auto constexpr backup_vOut_value = 36.47f;
             CalibrationDataT cal;
 
+            StartMeasurements();
+
             messageBox->SetMsg("insert output voltage value");
             messageBox->SetType(MenuModelDialog::DialogType::InputBox);
 
+            //request measured vout from user
             auto input_value = std::make_shared<UniversalSafeType>(backup_vOut_value);
             messageBox->SetValue(input_value);
             messageBox->Show();
@@ -540,34 +568,32 @@ class ClampMeterDriver {
             messageBox->SetHasValue(false);
             messageBox->Show();
 
-            Task::DelayMs(1000);
+            WaitForStableData(3e-7);
 
-            for (;;) {
-                if (deviationOfDeviation < 0.001f)
-                    break;
-            }
+            //store calibration to temp buffer
+            cal.at(0).first  = data.voltageSensorData.GetI();
+            cal.at(0).second = data.voltageSensorData.GetDegreeNocal();
 
             StopMeasurements();
-            messageBox->SetMsg("voltage is stable, going to next step");
+            messageBox->SetMsg("Voltage sensor calibration completed.");
             messageBox->Show();
 
-            cal.at(0).first = data.voltageSensorData.GetI();
-            cal.at(0).second = data.voltageSensorData.GetQ();
-
-            sensors.at(Sensor::Voltage).
-
-            sensors.at(Sensor::Voltage).SetMode(SensorController::Mode::Normal);
+            auto v_gain_controller = sensors.at(Sensor::Voltage).GetGainController();
+            v_gain_controller->SetGainValueAndPhaseShift(1, cal.at(0).first, cal.at(0).second);
 
             messageBox->SetMsg("Set Resistor 6.73kOhm at output and press Enter");
             messageBox->Show();
             messageBox->WaitForUserReaction();
 
+            sensors.at(Sensor::Voltage).SetMode(SensorController::Mode::Normal);
+
             Task::DelayMs(600);
             StartMeasurements();
 
-            Task::DelayMs(2000);
-            StopMeasurements();
+            WaitForStableData(5e-7);
 
+            Task::DelayMs(5000);
+            StopMeasurements();
         }
     }
 
@@ -578,10 +604,14 @@ class ClampMeterDriver {
 
             CheckDataStability(sensor_data.GetQ());
             if (workMode == Mode::Calibration) {
-                *VoutValue = sensor_data.GetI();
-                *Z_Overall = sensor_data.GetQ();
+                *value1    = sensor_data.GetI();
+                *value2    = sensor_data.GetQ();
+                *value3    = sensor_data.GetDegree();
+                *value4 = sensor_data.GetDegreeNocal();
             }
-
+            else {
+                *value4 = sensor_data.GetDegreeNocal();
+            }
             switch (activeSensor) {
             case Sensor::Voltage:
                 data.voltageSensorData = std::move(sensor_data);
@@ -626,9 +656,10 @@ class ClampMeterDriver {
     auto constexpr static dataStabilityBufferLen = 10;
 
     // todo: compress
-    std::shared_ptr<UniversalSafeType> VoutValue;
-    std::shared_ptr<UniversalSafeType> Z_Overall;
-    std::shared_ptr<UniversalSafeType> Z_Clamp;
+    std::shared_ptr<UniversalSafeType> value1;
+    std::shared_ptr<UniversalSafeType> value2;
+    std::shared_ptr<UniversalSafeType> value3;
+    std::shared_ptr<UniversalSafeType> value4;
 
     PeripheralsController peripherals;
     OutputGenerator       generator;
@@ -643,9 +674,9 @@ class ClampMeterDriver {
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterI;
     std::shared_ptr<SuperFilterNoTask<ValueT>> filterQ;
 
-    auto static constexpr deviationCalcBufferLen = 10;
+    auto static constexpr deviationCalcBufferLen = 50;
     DeviationCalculator<ValueT, deviationCalcBufferLen> deviationCalc;
-    DeviationCalculator<ValueT, 30>                     devdevCalc;
+    DeviationCalculator<ValueT, 100>                     devdevCalc;
     ValueT                                              deviationOfDeviation;
     ValueT                                              devValue;
 

@@ -55,7 +55,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ valueOne, valueTwo, valueThree, drawer.CreateAndGetDialog() }
+      , clampMeter{ valueOne, valueTwo, valueThree, valueFour, drawer.CreateAndGetDialog() }
       , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueThree{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
@@ -119,23 +119,28 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         z_clamp->SetData(valueThree);
         z_clamp->SetIndex(2);
 
+        auto degree_nocall = std::make_shared<Page>(menu);
+        degree_nocall->SetName("degree nocal");
+        degree_nocall->SetData(valueFour);
+        degree_nocall->SetIndex(3);
+
         auto measurements_page = std::make_shared<Page>(menu);
         measurements_page->SetIndex(0);
         measurements_page->SetName("Measurement");
         measurements_page->InsertChild(vout_info);
         measurements_page->InsertChild(z_overall);
         measurements_page->InsertChild(z_clamp);
+        measurements_page->InsertChild(degree_nocall);
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartNormalModeOperation(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.Stop(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
 
         // calibration menu
 
-
-
         auto start_calibration = std::make_shared<Page>(menu);
         start_calibration->SetName("Press F1 to start calibration");
         start_calibration->SetHeader("Calibration");
+        start_calibration->SetIndex(0);
 
         auto valueI = std::make_shared<Page>(menu);
         valueI->SetName("Value I");
@@ -147,14 +152,25 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         valueQ->SetData(valueTwo);
         valueQ->SetIndex(2);
 
+        auto valueD = std::make_shared<Page>(menu);
+        valueD->SetName("Degree");
+        valueD->SetData(valueThree);
+        valueD->SetIndex(3);
+
+        auto valueDNocall = std::make_shared<Page>(menu);
+        valueDNocall->SetName("Phase shift");
+        valueDNocall->SetData(valueFour);
+        valueDNocall->SetIndex(4);
+
         auto calibration_page = std::make_shared<Page>(menu);
         calibration_page->SetIndex(1);
         calibration_page->SetName("Calibration");
         calibration_page->InsertChild(start_calibration);
-        calibration_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartCalibration(); });
         calibration_page->InsertChild(valueI);
         calibration_page->InsertChild(valueQ);
-
+        calibration_page->InsertChild(valueD);
+        calibration_page->InsertChild(valueDNocall);
+        calibration_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartCalibration(); });
 
         auto main_page = std::make_shared<Page>(menu);
         main_page->SetName("Main");
