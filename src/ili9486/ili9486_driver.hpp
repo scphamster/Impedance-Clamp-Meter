@@ -35,17 +35,17 @@ class ILI9486Driver {
           , left{ topLeft.x }
           , right{ botRight.x }
         { }
-        constexpr Rect(ScreenSizeT new_top, ScreenSizeT new_bot, ScreenSizeT new_left, ScreenSizeT new_right)
-          : top{ new_top }
-          , bot{ new_bot }
-          , left{ new_left }
+        constexpr Rect(ScreenSizeT new_left, ScreenSizeT new_top, ScreenSizeT new_right, ScreenSizeT new_bot)
+          : left{ new_left }
+          , top{ new_top }
           , right{ new_right }
+          , bot{ new_bot }
         { }
 
-        constexpr Point GetTopLeft() const noexcept { return Point{ left, top }; }
-        constexpr Point GetBotRight() const noexcept { return Point{ right, bot }; }
+        [[nodiscard]] constexpr Point GetTopLeft() const noexcept { return Point{ left, top }; }
+        [[nodiscard]] constexpr Point GetBotRight() const noexcept { return Point{ right, bot }; }
 
-        ScreenSizeT top{}, bot{}, left{}, right{};
+        ScreenSizeT left{}, top{}, right{}, bot{};
     };
 
     enum class Command : Byte {
