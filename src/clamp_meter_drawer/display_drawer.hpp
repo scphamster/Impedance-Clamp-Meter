@@ -96,7 +96,7 @@ class DisplayDrawer {
     void Print(const std::string &string, Byte fontsize) noexcept;
     void Print(uint16_t number, Byte fontsize) noexcept;
     void Print(float number, Byte digits, Byte fontsize) noexcept;
-    void Print(float number, int fontsize) noexcept { Print(number, 5, fontsize); }
+    void Print(float number, int fontsize) noexcept { Print(number, 6, fontsize); }
 
   protected:
     void DrawFiledCircleHelper(const Point point, ScreenSizeT r, int cornername, int delta, const ColorT color) const noexcept;
@@ -443,6 +443,7 @@ DisplayDrawer<Driver>::Print(float number, Byte n_digits, const Byte size) noexc
     char       buffer[buffsize];
 
     // TODO: optimize floating number drawing, its 1000 times slower than integer drawing
+    //test
     gcvtf(number, n_digits, &buffer[0]);
 
     Print(buffer, size);

@@ -47,36 +47,25 @@ class SynchronousIQCalculator {
 
     static ValueT FindAngle(ValueT Qval, ValueT Ival, ValueT absolute_val) noexcept
     {   // todo: use arm_atan_f32
-        ValueT        abs_sin;
-        ValueT        abs_cos;
-        ValueT        degree;
-        static ValueT rad2deg_conv_coeff = 180 / PI;
+        ValueT static constexpr rad2deg_conv_coeff = 180.f / PI;
 
-        if (Qval < 0)
-            abs_sin = -Qval;
-        else
-            abs_sin = Qval;
+        auto qAbs = Absolute(Qval);
+        auto iAbs = Absolute(Ival);
 
-        if (Ival < 0)
-            abs_cos = -Ival;
-        else
-            abs_cos = Ival;
+        auto degree = [qAbs, iAbs, absolute_val]() {
+            return (qAbs < iAbs) ? acosf(iAbs / absolute_val) * rad2deg_conv_coeff
+                                 : asinf(qAbs / absolute_val) * rad2deg_conv_coeff;
+        }();
 
-        if (abs_sin < abs_cos)
-            degree = acosf(abs_cos / absolute_val) * rad2deg_conv_coeff;
-
-        else
-            degree = asinf(abs_sin / absolute_val) * rad2deg_conv_coeff;
-
-        if (Qval < 0) {
-            if (Ival < 0)
-                degree += 180;
+        if (Qval < 0.f) {
+            if (Ival < 0.f)
+                degree += 180.f;
             else
-                degree = 360 - degree;
+                degree = 360.f - degree;
         }
         else {
-            if (Ival < 0)
-                degree = 180 - degree;
+            if (Ival < 0.f)
+                degree = 180.f - degree;
         }
 
         return degree;
@@ -99,6 +88,7 @@ class SynchronousIQCalculator {
         arm_sin_cos_f32(degree, &sin, &cos);
         return { sin, cos };
     }
+    static ValueT Absolute(ValueT value) { return (value > 0.f) ? value : -value; }
 
   private:
     int tickCounter                     = 0;

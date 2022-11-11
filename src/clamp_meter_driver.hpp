@@ -331,7 +331,7 @@ class ClampMeterDriver {
 
         auto [cal, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
 
-        //todo: clean after debug
+        // todo: clean after debug
         result = false;
 
         if (result == false) {
@@ -442,7 +442,6 @@ class ClampMeterDriver {
         Task::ResumeAll();
 
         peripherals.outputRelay.Activate();
-
     }
     void StopMeasurements() noexcept
     {
@@ -486,9 +485,9 @@ class ClampMeterDriver {
     {
         if (workMode == Mode::Calibration)
             return;
-        *value1    = data.voltageSensorData.GetI();
-        *value2    = devValue;
-        *value3    = deviationOfDeviation;
+        *value1 = data.voltageSensorData.GetI();
+        *value2 = devValue;
+        *value3 = deviationOfDeviation;
     }
     void CalculateShuntSensor() noexcept
     {
@@ -529,18 +528,24 @@ class ClampMeterDriver {
         *value3 = data.ZClamp;
     }
 
-    void WaitForStableData(ValueT max_deviation) noexcept {
+    void WaitForStableData(ValueT max_deviation) noexcept
+    {
         Task::DelayMs(1000);
 
         for (;;) {
-            if (deviationOfDeviation < 0) deviationOfDeviation = -deviationOfDeviation;
+            if (deviationOfDeviation < 0)
+                deviationOfDeviation = -deviationOfDeviation;
 
-            if (deviationOfDeviation > max_deviation) Task::DelayMs(100);
-            else break;
+            if (deviationOfDeviation > max_deviation)
+                Task::DelayMs(100);
+            else
+                break;
         }
         Task::DelayMs(3000);
     }
+    void CalibrateClamp() noexcept {
 
+    }
     // tasks
     [[noreturn]] void CalibrationTask() noexcept
     {
@@ -557,7 +562,7 @@ class ClampMeterDriver {
             messageBox->SetMsg("insert output voltage value");
             messageBox->SetType(MenuModelDialog::DialogType::InputBox);
 
-            //request measured vout from user
+            // request measured vout from user
             auto input_value = std::make_shared<UniversalSafeType>(backup_vOut_value);
             messageBox->SetValue(input_value);
             messageBox->Show();
@@ -571,7 +576,7 @@ class ClampMeterDriver {
 
             WaitForStableData(3e-7);
 
-            //store calibration to temp buffer
+            // store calibration to temp buffer
             cal.at(0).first  = data.voltageSensorData.GetAbsolute();
             cal.at(0).second = data.voltageSensorData.GetDegree();
 
@@ -586,15 +591,47 @@ class ClampMeterDriver {
             messageBox->Show();
             messageBox->WaitForUserReaction();
 
+            messageBox->SetMsg("Gain 1 Calibration, waiting for stable output voltage...");
+            messageBox->Show();
             sensors.at(Sensor::Voltage).SetMode(SensorController::Mode::Normal);
 
-            Task::DelayMs(600);
             StartMeasurements();
-
             WaitForStableData(5e-7);
-
-            Task::DelayMs(5000);
             StopMeasurements();
+
+            SwitchSensor(Sensor::Shunt);
+            sensors.at(Sensor::Shunt)
+              .SetTrueValuesForCalibration(data.voltageSensorData.GetAbsolute() / (6730.f + 1000.f) * 1000,
+                                           data.voltageSensorData.GetDegree(),
+                                           1);
+
+            messageBox->SetMsg("Gain 1 Calibration, calibrating shunt sensor...");
+            messageBox->Show();
+
+            StartMeasurements();
+            WaitForStableData(5e-7);
+            StopMeasurements();
+
+            cal.at(1).first  = data.shuntSensorData.GetAbsolute();
+            cal.at(1).second = data.shuntSensorData.GetDegree();
+
+            auto shunt_sensor_gain_controller = sensors.at(Sensor::Shunt).GetGainController();
+            shunt_sensor_gain_controller->SetGainValueAndPhaseShift(1, cal.at(1).first, cal.at(1).second);
+
+            SwitchSensor(Sensor::Clamp);
+            sensors.at(Sensor::Clamp)
+              .SetTrueValuesForCalibration(data.voltageSensorData.GetAbsolute() / (6730.f + 1000.f),
+                                           data.voltageSensorData.GetDegree(),
+                                           1);
+
+            messageBox->SetMsg("Gain 1 Calibration, calibrating clamp sensor...");
+            messageBox->Show();
+
+            StartMeasurements();
+            WaitForStableData(5e-7);
+            StopMeasurements();
+
+            for (;;) { }
         }
     }
 
@@ -605,13 +642,13 @@ class ClampMeterDriver {
 
             CheckDataStability(sensor_data.GetI());
             if (workMode == Mode::Calibration) {
-                *value1    = sensor_data.GetI();
-                *value2    = deviationOfDeviation;
-                *value3    = sensor_data.GetAbsolute();
+                *value1 = sensor_data.GetI();
+                *value2 = deviationOfDeviation;
+                *value3 = sensor_data.GetAbsolute();
                 *value4 = sensor_data.GetDegree();
             }
             else {
-                *value4 = sensor_data.GetDegreeNocal();
+                *value4 = sensor_data.GetDegree();
             }
             switch (activeSensor) {
             case Sensor::Voltage:
@@ -677,7 +714,7 @@ class ClampMeterDriver {
 
     auto static constexpr deviationCalcBufferLen = 50;
     DeviationCalculator<ValueT, deviationCalcBufferLen> deviationCalc;
-    DeviationCalculator<ValueT, 100>                     devdevCalc;
+    DeviationCalculator<ValueT, 100>                    devdevCalc;
     ValueT                                              deviationOfDeviation;
     ValueT                                              devValue;
 

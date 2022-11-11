@@ -83,20 +83,9 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     [[noreturn]] void DisplayTask() noexcept
     {
         size_t counter = 0;
-
-        //        auto dialog = drawer.CreateAndGetDialog();
-        //        dialog->SetMsg("dupa 12345567");
-        //        auto val = std::make_shared<UniversalSafeType>(36.5f);
-        //        dialog->SetValue(val);
-
         while (true) {
             drawer.DrawerTask();
             Task::DelayMsUntil(ProjectConfigs::DisplayDrawingDrawingPeriodMs);
-
-            //            counter++;
-            //            if (counter == 5) {
-            //                dialog->Show();
-            //            }
         }
     }
 
@@ -143,16 +132,19 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         start_calibration->SetIndex(0);
 
         auto valueI = std::make_shared<Page>(menu);
-        valueI->SetName("Sensor Absolute");
+        valueI->SetName("Absolute");
         valueI->SetData(valueOne);
         valueI->SetIndex(1);
 
         auto valueQ = std::make_shared<Page>(menu);
-        valueQ->SetName("Data Instability");
+        valueQ->SetName("Deviation^2");
         valueQ->SetData(valueTwo);
         valueQ->SetIndex(2);
 
         auto valueD = std::make_shared<Page>(menu);
+        // test
+        //        auto testname= std::to_string(4.1234f);
+        //        valueD->SetName(std::move(testname));
         valueD->SetName("Gain");
         valueD->SetData(valueThree);
         valueD->SetIndex(3);

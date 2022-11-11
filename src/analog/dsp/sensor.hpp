@@ -44,12 +44,12 @@ class SensorData {
     void SetI(ValueT new_true_value_i) noexcept { Value_I = new_true_value_i; }
     void SetQ(ValueT new_true_value_q) noexcept { Value_Q = new_true_value_q; }
     void SetAbsolute(ValueT new_true_absolutevalue) noexcept { AbsoluteValue = new_true_absolutevalue; }
-    void SetDegree(ValueT new_true_degree) noexcept { Degree = new_true_degree; }
+    void SetDegree(ValueT new_true_degree) noexcept { degree = new_true_degree; }
 
     [[nodiscard]] ValueT GetI() const noexcept { return Value_I; }
     [[nodiscard]] ValueT GetQ() const noexcept { return Value_Q; }
     [[nodiscard]] ValueT GetAbsolute() const noexcept { return AbsoluteValue; }
-    [[nodiscard]] ValueT GetDegree() const noexcept { return Degree; }
+    [[nodiscard]] ValueT GetDegree() const noexcept { return degree; }
     [[nodiscard]] ValueT GetDegreeNocal() const noexcept { return DegreeNocal; }
 
   private:
@@ -58,7 +58,7 @@ class SensorData {
     ValueT Value_I{};
     ValueT Value_Q{};
     ValueT AbsoluteValue{};
-    ValueT Degree{};
+    ValueT degree{};
 
     // test
     ValueT DegreeNocal{};
@@ -204,18 +204,22 @@ class SensorController {
                 auto Qval_nocal               = filterQ->DoFilter() / gain;
                 auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
                 data.DegreeNocal              = degree;
-                data.Degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
+                data.degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
                 data.AbsoluteValue            = absolute_value;
 
-                auto [I, Q]  = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.Degree);
+                auto [I, Q]  = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.degree);
                 data.Value_I = I;
                 data.Value_Q = Q;
             }
 
             // calibration task
             else if (mode == Calibration) {
-                auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(), filterQ->DoFilter());
+                //test
+                auto dataI=   filterI->DoFilter();
+                auto dataQ = filterQ->DoFilter();
+                auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(dataI, dataQ);
 
+                data.DegreeNocal = degree;
                 data.SetAbsolute(abs / calibrationTargets.magnitude);
                 data.SetDegree(iqCalculator->NormalizeAngle(degree - calibrationTargets.phi));
                 data.SetI(abs);

@@ -48,8 +48,8 @@ class GainController {
 
     [[nodiscard]] GainLevelT GetMaxGain() const noexcept { return maxGain; }
     [[nodiscard]] GainLevelT GetMinGain() const noexcept { return minGain; }
-    [[nodiscard]] GainLevelT GetGainValue() const noexcept { return gainLevelData.at(gain).gainValue; }
-    [[nodiscard]] GainLevelT GetPhaseShift() const noexcept { return gainLevelData.at(gain).phaseShift; }
+    [[nodiscard]] GainValueT GetGainValue() const noexcept { return gainLevelData.at(gain).gainValue; }
+    [[nodiscard]] PhaseShift GetPhaseShift() const noexcept { return gainLevelData.at(gain).phaseShift; }
 
   private:
     GainLevelT maxGain = 0;
