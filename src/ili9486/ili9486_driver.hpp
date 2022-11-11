@@ -28,7 +28,24 @@ class ILI9486Driver {
         ScreenSizeT x, y;
     };
     struct Rect {
-        Point topLeft, botRight;
+        constexpr Rect() = default;
+        constexpr Rect(Point topLeft, Point botRight)
+          : top{ topLeft.y }
+          , bot{ botRight.y }
+          , left{ topLeft.x }
+          , right{ botRight.x }
+        { }
+        constexpr Rect(ScreenSizeT new_top, ScreenSizeT new_bot, ScreenSizeT new_left, ScreenSizeT new_right)
+          : top{ new_top }
+          , bot{ new_bot }
+          , left{ new_left }
+          , right{ new_right }
+        { }
+
+        constexpr Point GetTopLeft() const noexcept { return Point{ left, top }; }
+        constexpr Point GetBotRight() const noexcept { return Point{ right, bot }; }
+
+        ScreenSizeT top{}, bot{}, left{}, right{};
     };
 
     enum class Command : Byte {

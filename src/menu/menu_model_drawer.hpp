@@ -244,7 +244,7 @@ class MenuModelDrawer {
 
             drawer->DrawFiledRectangle(
               Rect{ { itemsSettings.nameColumnXPos, itemsSettings.firstValueYPos + item_index * itemsFontHeight },
-                    { screenSettings.usedArea.botRight.x, itemsSettings.firstValueYPos + (item_index + 1) * itemsFontHeight } },
+                    { screenSettings.usedArea.right, itemsSettings.firstValueYPos + (item_index + 1) * itemsFontHeight } },
               back_color);
         }
 
@@ -320,7 +320,7 @@ class MenuModelDrawer {
             return;
 
         drawer->DrawFiledRectangle(dialogSettings.usedArea, dialogSettings.background);
-        drawer->SetCursor(dialogSettings.usedArea.topLeft);
+        drawer->SetCursor(dialogSettings.usedArea.GetTopLeft());
         drawer->SetTextColor(dialogSettings.foreground, dialogSettings.background);
         drawer->Print(dialogBox->GetMessage(), dialogSettings.fontSize);
 
@@ -466,9 +466,9 @@ class MenuModelDrawer {
         int nameColumnXPos;
         int valueColumnXPos;
     };
-    PageItemsSettings static constexpr itemsSettings{ screenSettings.usedArea.topLeft.y + 100,
-                                                      screenSettings.usedArea.topLeft.x,
-                                                      screenSettings.usedArea.topLeft.x + 160 };
+    PageItemsSettings static constexpr itemsSettings{ screenSettings.usedArea.top + 100,
+                                                      screenSettings.usedArea.left,
+                                                      screenSettings.usedArea.left + 160 };
 
     //    int static constexpr firstValueYPos{ screenUsedAreaTopY + 100 };
     //    int static constexpr namesColumnXPos{ screenUsedAreaLeftX + 0 };
@@ -479,8 +479,8 @@ class MenuModelDrawer {
         int    fontSize{ 1 };
         ColorT foreground, background;
     };
-    PageHeader static constexpr pageHeaderSettings{ { screenSettings.usedArea.topLeft.x + 40,
-                                                      screenSettings.usedArea.topLeft.y + 60 },
+    PageHeader static constexpr pageHeaderSettings{ { screenSettings.usedArea.left + 40,
+                                                      screenSettings.usedArea.top + 60 },
                                                     2,
                                                     COLOR_GREY,
                                                     COLOR_BLACK };
@@ -492,9 +492,9 @@ class MenuModelDrawer {
         ColorT foreground, background;
     };
     DialogSettings static constexpr dialogSettings{
-        Rect{ Point{ screenSettings.usedArea.topLeft.x + 0, screenSettings.usedArea.topLeft.y + 300 },
-              Point{ screenSettings.usedArea.topLeft.x + 319, screenSettings.usedArea.topLeft.y + 400 } },
-        Point{ screenSettings.usedArea.topLeft.x + 50, screenSettings.usedArea.topLeft.y + 250 },
+        Rect{ Point{ screenSettings.usedArea.left + 0, screenSettings.usedArea.top + 300 },
+              Point{ screenSettings.usedArea.left + 319, screenSettings.usedArea.top + 400 } },
+        Point{ screenSettings.usedArea.left + 50, screenSettings.usedArea.top + 250 },
         1,
         COLOR_REDYELLOW,
         COLOR_DARKDARKGREY

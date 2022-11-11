@@ -273,15 +273,15 @@ ILI9486Driver::WriteParameter(Command cmd, int n_bytes, Byte *data) const noexce
 void
 ILI9486Driver::SetPartial(Rect area) const noexcept
 {
-    Byte caset_data[4] = { static_cast<Byte>(area.topLeft.x >> 8),
-                           static_cast<Byte>(area.topLeft.x),
-                           static_cast<Byte>(area.botRight.x >> 8),
-                           static_cast<Byte>(area.botRight.x) };
+    Byte caset_data[4] = { static_cast<Byte>(area.left >> 8),
+                           static_cast<Byte>(area.left),
+                           static_cast<Byte>(area.right >> 8),
+                           static_cast<Byte>(area.right) };
 
-    Byte paset_data[4] = { static_cast<Byte>(area.topLeft.y >> 8),
-                           static_cast<Byte>(area.topLeft.y),
-                           static_cast<Byte>(area.botRight.y >> 8),
-                           static_cast<Byte>(area.botRight.y) };
+    Byte paset_data[4] = { static_cast<Byte>(area.top >> 8),
+                           static_cast<Byte>(area.top),
+                           static_cast<Byte>(area.bot >> 8),
+                           static_cast<Byte>(area.bot) };
 
     WriteParameter(Command::caset, 4, caset_data);
     WriteParameter(Command::paset, 4, paset_data);

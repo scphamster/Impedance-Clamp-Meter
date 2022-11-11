@@ -343,13 +343,13 @@ template<DisplayDriver Driver>
 void
 DisplayDrawer<Driver>::DrawFiledRectangle(Rect rectangle, const ColorT color) noexcept
 {
-    if (driver->screen_width < rectangle.botRight.x)
-        rectangle.botRight.x = driver->screen_width - 1;
+    if (driver->screen_width < rectangle.right)
+        rectangle.right = driver->screen_width - 1;
 
-    if (driver->screen_height < rectangle.botRight.y)
-        rectangle.botRight.y = driver->screen_height - 1;
+    if (driver->screen_height < rectangle.bot)
+        rectangle.bot = driver->screen_height - 1;
 
-    auto n_pixels = (rectangle.botRight.x - rectangle.topLeft.x) * (rectangle.botRight.y - rectangle.topLeft.y);
+    auto n_pixels = (rectangle.right - rectangle.left) * (rectangle.bot - rectangle.top);
 
     driver->SetPartial(rectangle);
     driver->PutPixel(color, n_pixels);
