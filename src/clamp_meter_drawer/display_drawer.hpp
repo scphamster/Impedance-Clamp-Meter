@@ -72,8 +72,18 @@ class DisplayDrawer {
     void DrawHLine(Point, ScreenSizeT w, ColorT) const noexcept;
     void DrawCircle(Point, ScreenSizeT r, ColorT) const noexcept;
     void DrawFiledCircle(Point, ScreenSizeT r, ColorT) const noexcept;
-    void DrawRectangle(Point, ScreenSizeT w, ScreenSizeT h, ColorT) const noexcept;
+    void DrawRectangle(Point point, ScreenSizeT w, ScreenSizeT h, ColorT color) const noexcept
+    {
+        DrawHLine(point, w, color);
+        DrawHLine(Point{ point.x, point.y + h - 1 }, w, color);
+        DrawVLine(point, h, color);
+        DrawVLine(Point{ point.x + w - 1, point.y }, h, color);
+    }
     void DrawFiledRectangle(Rect rectangle, ColorT color) noexcept;
+    void DrawFiledRectangle(Point at_point, ScreenSizeT width, ScreenSizeT height, ColorT color) noexcept
+    {
+        DrawFiledRectangle(Rect{ at_point, Point{ at_point.x + width, at_point.y + height } }, color);
+    }
     void DrawFiledRectangle(Point top_left, Point bot_right, ColorT color) noexcept
     {
         auto w        = bot_right.x - top_left.x;
@@ -329,15 +339,6 @@ DisplayDrawer<Driver>::DrawFiledCircle(const Point point, const ScreenSizeT r, c
     DrawFiledCircleHelper(Point{ point.x, point.y }, r, 3, 0, color);
 }
 
-template<DisplayDriver Driver>
-void
-DisplayDrawer<Driver>::DrawRectangle(const Point point, const ScreenSizeT w, const ScreenSizeT h, const ColorT color) const noexcept
-{
-    DrawHLine(point, w, color);
-    DrawHLine(Point{ point.x, point.y + h - 1 }, w, color);
-    DrawVLine(point, h, color);
-    DrawVLine(Point{ point.x + w - 1, point.y }, h, color);
-}
 template<DisplayDriver Driver>
 void
 DisplayDrawer<Driver>::DrawFiledRectangle(Rect rectangle, const ColorT color) noexcept
