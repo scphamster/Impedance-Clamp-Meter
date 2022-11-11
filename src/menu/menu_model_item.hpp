@@ -24,7 +24,6 @@
 
 using MenuModelIndex = size_t;
 
-
 template<KeyboardC Keyboard>
 class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard>> {
   public:
@@ -74,10 +73,16 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     [[nodiscard]] SpecialKeyboardCallbacks GetKeyboardCallbacks() const noexcept { return specialKeyCallbacks; }
     [[nodiscard]] bool                     IsEditable() const noexcept { return isEditable; }
     [[nodiscard]] bool                     IsValueless() const noexcept { return (data) ? false : true; }
-    [[nodiscard]] HeaderT                  GetHeader() const noexcept { return pageHeader; }
-    [[nodiscard]] bool                     HasHeader() const noexcept { return (pageHeader.empty()) ? false : true; }
-    void                                   SetData(DataT new_data) noexcept { data = new_data; }
-    void                                   InsertChild(std::shared_ptr<MenuModelPage> child, MenuModelIndex at_idx) noexcept
+    [[nodiscard]] HeaderT                  GetHeader() const noexcept
+    {
+        if (pageHeader.empty())
+            return name;
+        else
+            return pageHeader;
+    }
+    [[nodiscard]] bool HasHeader() const noexcept { return (pageHeader.empty()) ? false : true; }
+    void               SetData(DataT new_data) noexcept { data = new_data; }
+    void               InsertChild(std::shared_ptr<MenuModelPage> child, MenuModelIndex at_idx) noexcept
     {
         child->SetParent(This());
 
@@ -125,6 +130,5 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     bool                                        isEditable{ false };
     SpecialKeyboardCallbacks                    specialKeyCallbacks;
     EventCallbacks                              eventCallbacks;
-//    std::map<std::string, Event> events;
+    //    std::map<std::string, Event> events;
 };
-

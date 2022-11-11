@@ -551,6 +551,7 @@ class ClampMeterDriver {
             auto constexpr backup_vOut_value = 36.47f;
             CalibrationDataT cal;
 
+            sensors.at(Sensor::Voltage).SetMode(SensorController::Mode::Calibration);
             StartMeasurements();
 
             messageBox->SetMsg("insert output voltage value");
@@ -571,8 +572,8 @@ class ClampMeterDriver {
             WaitForStableData(3e-7);
 
             //store calibration to temp buffer
-            cal.at(0).first  = data.voltageSensorData.GetI();
-            cal.at(0).second = data.voltageSensorData.GetDegreeNocal();
+            cal.at(0).first  = data.voltageSensorData.GetAbsolute();
+            cal.at(0).second = data.voltageSensorData.GetDegree();
 
             StopMeasurements();
             messageBox->SetMsg("Voltage sensor calibration completed.");
@@ -602,12 +603,12 @@ class ClampMeterDriver {
         while (true) {
             auto sensor_data = fromSensorDataQueue->Receive();
 
-            CheckDataStability(sensor_data.GetQ());
+            CheckDataStability(sensor_data.GetI());
             if (workMode == Mode::Calibration) {
                 *value1    = sensor_data.GetI();
-                *value2    = sensor_data.GetQ();
-                *value3    = sensor_data.GetDegree();
-                *value4 = sensor_data.GetDegreeNocal();
+                *value2    = deviationOfDeviation;
+                *value3    = sensor_data.GetAbsolute();
+                *value4 = sensor_data.GetDegree();
             }
             else {
                 *value4 = sensor_data.GetDegreeNocal();

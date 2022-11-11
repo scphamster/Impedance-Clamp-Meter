@@ -72,7 +72,7 @@ class MenuModelDialog {
     }
     void SetIsShown(bool if_shown) noexcept { isShown = if_shown; }
 
-    void SetHasBeenDrawnFlag(bool if_has_been_drawn = true) noexcept { hasBeenDrawn = if_has_been_drawn; }   // fixme
+    void SetHasBeenDrawnFlag(bool if_has_been_drawn = true) noexcept { hasBeenDrawn = if_has_been_drawn; }
     void SetOnShowCallback(ShowCallback &&callback) noexcept { onShowCallback = std::move(callback); }
     void SetHasValue(bool if_has_value) noexcept { hasValue = if_has_value; }
     void SetType(DialogType new_type) noexcept { type = new_type; }

@@ -50,7 +50,7 @@ concept DisplayDriver = requires(TestedDriver drv) {
                                 drv.DrawPixel(typename TestedDriver::Point{}, typename TestedDriver::ColorT{})
                             } noexcept;
                             {
-                                drv.SetPartial(typename TestedDriver::Point{}, typename TestedDriver::Point{})
+                                drv.SetPartial(typename TestedDriver::Rect{})
                             } noexcept;
                             {
                                 drv.PutPixel(typename TestedDriver::ColorT{}, typename TestedDriver::PixelNumT{})
@@ -91,9 +91,7 @@ concept DisplayDrawerC = requires(DisplayDrawerT drawer) {
                                                   typename DisplayDrawerT::ScreenSizeT{},
                                                   typename DisplayDrawerT::ScreenSizeT{},
                                                   typename DisplayDrawerT::ColorT{});
-                             drawer.DrawFiledRectangle(typename DisplayDrawerT::Point{},
-                                                       typename DisplayDrawerT::ScreenSizeT{},
-                                                       typename DisplayDrawerT::ScreenSizeT{},
+                             drawer.DrawFiledRectangle(typename DisplayDrawerT::Rect{},
                                                        typename DisplayDrawerT::ColorT{});
                              drawer.Print(static_cast<char *>(nullptr), Byte{});
                              drawer.Print(uint16_t{}, Byte{});

@@ -23,6 +23,7 @@ class DisplayDrawer {
     using ColorT      = typename Driver::ColorT;
     using ScreenSizeT = typename Driver::ScreenSizeT;
     using Point       = typename Driver::Point;
+    using Rect        = typename Driver::Rect;
     using Orientation = typename Driver::Orientation;
 
     enum class Color : uint32_t {
@@ -72,14 +73,14 @@ class DisplayDrawer {
     void DrawCircle(Point, ScreenSizeT r, ColorT) const noexcept;
     void DrawFiledCircle(Point, ScreenSizeT r, ColorT) const noexcept;
     void DrawRectangle(Point, ScreenSizeT w, ScreenSizeT h, ColorT) const noexcept;
-    void DrawFiledRectangle(Point, ScreenSizeT w, ScreenSizeT h, ColorT) noexcept;
+    void DrawFiledRectangle(Rect rectangle, ColorT color) noexcept;
     void DrawFiledRectangle(Point top_left, Point bot_right, ColorT color) noexcept
     {
         auto w        = bot_right.x - top_left.x;
         auto h        = bot_right.y - top_left.y;
         auto n_pixels = h * w;
 
-        driver->SetPartial(top_left, bot_right);
+        driver->SetPartial(bot_right);
         driver->PutPixel(color, n_pixels);
     }
     void Print(const std::string &string, Byte fontsize) noexcept;
@@ -129,7 +130,7 @@ template<DisplayDriver Driver>
 void
 DisplayDrawer<Driver>::FillScreen(ColorT color) noexcept
 {
-    DrawFiledRectangle(Point{ 0, 0 }, driver->screen_width, driver->screen_height, color);
+    DrawFiledRectangle(Rect{ Point{ 0, 0 }, Point{ driver->screen_width, driver->screen_height } }, color);
 }
 
 template<DisplayDriver Driver>
@@ -339,43 +340,17 @@ DisplayDrawer<Driver>::DrawRectangle(const Point point, const ScreenSizeT w, con
 }
 template<DisplayDriver Driver>
 void
-DisplayDrawer<Driver>::DrawFiledRectangle(Point point, ScreenSizeT w, ScreenSizeT h, const ColorT color) noexcept
+DisplayDrawer<Driver>::DrawFiledRectangle(Rect rectangle, const ColorT color) noexcept
 {
-    int end      = 0;
-    int n_pixels = 0;
+    if (driver->screen_width < rectangle.botRight.x)
+        rectangle.botRight.x = driver->screen_width - 1;
 
-    if (w < 0) {
-        w = -w;
-        point.x -= w;
-    }
+    if (driver->screen_height < rectangle.botRight.y)
+        rectangle.botRight.y = driver->screen_height - 1;
 
-    end = point.x + w;
+    auto n_pixels = (rectangle.botRight.x - rectangle.topLeft.x) * (rectangle.botRight.y - rectangle.topLeft.y);
 
-    if (point.x < 0)
-        point.x = 0;
-
-    if (end > driver->screen_width)
-        end = driver->screen_width;
-
-    w = end - point.x;
-
-    if (h < 0) {
-        h = -h;
-        point.y -= h;
-    }
-
-    end = point.y + h;
-
-    if (point.y < 0)
-        point.y = 0;
-
-    if (end > driver->screen_height)
-        end = driver->screen_height;
-
-    h        = end - point.y;
-    n_pixels = h * w;
-
-    driver->SetPartial(point, Point{ point.x + w - 1, point.y + h - 1 });
+    driver->SetPartial(rectangle);
     driver->PutPixel(color, n_pixels);
 }
 

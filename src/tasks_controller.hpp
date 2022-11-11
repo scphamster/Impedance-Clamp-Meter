@@ -143,17 +143,17 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         start_calibration->SetIndex(0);
 
         auto valueI = std::make_shared<Page>(menu);
-        valueI->SetName("Value I");
+        valueI->SetName("Sensor Absolute");
         valueI->SetData(valueOne);
         valueI->SetIndex(1);
 
         auto valueQ = std::make_shared<Page>(menu);
-        valueQ->SetName("Value Q");
+        valueQ->SetName("Data Instability");
         valueQ->SetData(valueTwo);
         valueQ->SetIndex(2);
 
         auto valueD = std::make_shared<Page>(menu);
-        valueD->SetName("Degree");
+        valueD->SetName("Gain");
         valueD->SetData(valueThree);
         valueD->SetIndex(3);
 

@@ -24,10 +24,11 @@ class ILI9486Driver {
     using ColorT      = uint16_t;
     using ScreenSizeT = int;
 
-    class Point {
-      public:
-        ScreenSizeT x;
-        ScreenSizeT y;
+    struct Point {
+        ScreenSizeT x, y;
+    };
+    struct Rect {
+        Point topLeft, botRight;
     };
 
     enum class Command : Byte {
@@ -82,7 +83,7 @@ class ILI9486Driver {
     void WriteParameter(Command cmd, int n_bytes, Byte *data) const noexcept;
     template<Orientation orientation>
     void constexpr SetOrientation() noexcept;
-    void SetPartial(const Point, const Point) const noexcept;
+    void SetPartial(Rect area) const noexcept;
     void DrawPixel(const Point, const ColorT) const noexcept;
     void PutPixel(const ColorT color) const noexcept;
     void PutPixel(const ColorT color, int n) const noexcept;

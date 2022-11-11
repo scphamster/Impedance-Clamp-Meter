@@ -82,9 +82,9 @@ class PageCursor {
         ValueLevel
     };
 
-    ValueCursor &GetValueCursor() noexcept { return valueCursor; }
-    ItemCursor  &GetItemCursor() noexcept { return itemCursor; }
-    State        GetState() const noexcept
+    ValueCursor        &GetValueCursor() noexcept { return valueCursor; }
+    ItemCursor         &GetItemCursor() noexcept { return itemCursor; }
+    [[nodiscard]] State GetState() const noexcept
     {
         if (itemCursor.IsActive()) {
             if (valueCursor.IsActive())
@@ -127,8 +127,8 @@ class PageItemStateStorage {
     [[nodiscard]] typename Item::NameT GetName() const noexcept { return name; }
     [[nodiscard]] DataT                GetValue() const noexcept { return value; }
 
-    void SetName(const typename Item::NameT &new_name) noexcept { name = new_name; }
-    void SetValue(const DataT &new_value) noexcept { value = new_value; }
+    void SetName(typename Item::NameT const &new_name) noexcept { name = new_name; }
+    void SetValue(DataT const &new_value) noexcept { value = new_value; }
     void SetValue(DataT &&new_value) noexcept { value = std::move(new_value); }
 
   private:
@@ -147,6 +147,7 @@ class MenuModelDrawer {
     using ButtonName  = typename Keyboard::ButtonName;
     using ButtonEvent = typename Keyboard::ButtonEvent;
     using Point       = typename Drawer::Point;
+    using Rect        = typename Drawer::Rect;
 
     explicit MenuModelDrawer(std::unique_ptr<Drawer> &&new_drawer, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
@@ -209,7 +210,7 @@ class MenuModelDrawer {
             back_color = nonSelectedItemBackground;
         }
 
-        drawer->SetCursor({ namesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
+        drawer->SetCursor({ itemsSettings.nameColumnXPos, itemsSettings.firstValueYPos + item_index * itemsFontHeight });
         drawer->SetTextColor(itemNameColor, back_color);
         drawer->Print(name, itemsFontSize);
     }
@@ -225,7 +226,7 @@ class MenuModelDrawer {
             back_color = nonSelectedItemBackground;
         }
 
-        drawer->SetCursor({ valuesColumnXPos, firstValueYPos + item_index * itemsFontHeight });
+        drawer->SetCursor({ itemsSettings.valueColumnXPos, itemsSettings.firstValueYPos + item_index * itemsFontHeight });
         drawer->SetTextColor(itemValueColor, back_color);
         std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsFontSize); }, value);
     }
@@ -241,10 +242,10 @@ class MenuModelDrawer {
                 back_color = nonSelectedItemBackground;
             }
 
-            drawer->DrawFiledRectangle({ screenUsedAreaLeftX, firstValueYPos + item_index * itemsFontHeight },
-                                       screenUsedAreaRightX - screenUsedAreaLeftX,
-                                       itemsFontHeight,
-                                       back_color);
+            drawer->DrawFiledRectangle(
+              Rect{ { itemsSettings.nameColumnXPos, itemsSettings.firstValueYPos + item_index * itemsFontHeight },
+                    { screenSettings.usedArea.botRight.x, itemsSettings.firstValueYPos + (item_index + 1) * itemsFontHeight } },
+              back_color);
         }
 
         if (mode == PageItemDrawingMode::WholeItem or mode == PageItemDrawingMode::OnlyName) {
@@ -260,17 +261,12 @@ class MenuModelDrawer {
     }
     void DrawStaticPageItems() const noexcept
     {
-        drawer->DrawFiledRectangle({ screenUsedAreaLeftX, screenUsedAreaTopY },
-                                   screenUsedAreaRightX - screenUsedAreaLeftX,
-                                   screenUsedAreaBotY - screenUsedAreaTopY,
-                                   COLOR_BLACK);   // todo: optimize
+        drawer->DrawFiledRectangle(screenSettings.usedArea, COLOR_BLACK);   // todo: optimize
 
-        drawer->SetCursor({ pageHeaderXPos, pageHeaderYPos });
+        drawer->SetCursor(pageHeaderSettings.position);
         drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
-        if (currentPage->HasHeader())
-            drawer->Print(currentPage->GetHeader(), pageNameFontSize);
-        else
-            drawer->Print(currentPage->GetName(), pageNameFontSize);
+
+        drawer->Print(currentPage->GetHeader(), pageHeaderSettings.fontSize);
     }
     void DrawDynamicPageItems() noexcept
     {
@@ -323,8 +319,8 @@ class MenuModelDrawer {
         if (dialogBox->HasBeenDrawn())
             return;
 
-        drawer->DrawFiledRectangle(dialogSettings.topLeft, dialogSettings.bottRight, dialogSettings.background);
-        drawer->SetCursor(dialogSettings.topLeft);
+        drawer->DrawFiledRectangle(dialogSettings.usedArea, dialogSettings.background);
+        drawer->SetCursor(dialogSettings.usedArea.topLeft);
         drawer->SetTextColor(dialogSettings.foreground, dialogSettings.background);
         drawer->Print(dialogBox->GetMessage(), dialogSettings.fontSize);
 
@@ -332,9 +328,12 @@ class MenuModelDrawer {
     }
     void RequestFullRedraw() noexcept
     {
-        drawnDynamicPageItems.clear();
+        // fixme: mutex should be used here :: reason:
+        //        drawnDynamicPageItems.clear();
+
         if (dialogBox)
             dialogBox->SetHasBeenDrawnFlag(false);
+
         fullRedraw = true;
     }
 
@@ -446,41 +445,60 @@ class MenuModelDrawer {
     bool fullRedraw{ false };
     // todo: make more versatile
     // display sizes section
-    int static constexpr displayHeight        = 480;
-    int static constexpr displayWidth         = 320;
-    int static constexpr screenUsedAreaLeftX  = 0;
-    int static constexpr screenUsedAreaRightX = 319;
-    int static constexpr screenUsedAreaTopY   = 80;
-    int static constexpr screenUsedAreaBotY   = 430;
+
+    struct DisplaySettings {
+        int  height, width;
+        Rect usedArea;
+    };
+    DisplaySettings static constexpr screenSettings{ 480, 320, { { 0, 80 }, { 320, 430 } } };
+
+    //    int static constexpr screenUsedAreaLeftX  = 0;
+    //    int static constexpr screenUsedAreaRightX = 319;
+    //    int static constexpr screenUsedAreaTopY   = 80;
+    //    int static constexpr screenUsedAreaBotY   = 430;
 
     int static constexpr itemsFontSize   = 1;
     int static constexpr itemsFontHeight = 20;
 
     // page items section
-    int static constexpr firstValueYPos{ screenUsedAreaTopY + 100 };
-    int static constexpr namesColumnXPos{ screenUsedAreaLeftX + 0 };
-    int static constexpr valuesColumnXPos{ screenUsedAreaLeftX + 160 };
+    struct PageItemsSettings {
+        int firstValueYPos;
+        int nameColumnXPos;
+        int valueColumnXPos;
+    };
+    PageItemsSettings static constexpr itemsSettings{ screenSettings.usedArea.topLeft.y + 100,
+                                                      screenSettings.usedArea.topLeft.x,
+                                                      screenSettings.usedArea.topLeft.x + 160 };
 
-    // page header section
-    int static constexpr pageHeaderYPos{ screenUsedAreaTopY + 0 };
-    int static constexpr pageHeaderXPos{ screenUsedAreaLeftX + 60 };
-    int static constexpr pageNameFontSize = 2;
+    //    int static constexpr firstValueYPos{ screenUsedAreaTopY + 100 };
+    //    int static constexpr namesColumnXPos{ screenUsedAreaLeftX + 0 };
+    //    int static constexpr valuesColumnXPos{ screenUsedAreaLeftX + 160 };
 
-    // page dialog message section
+    struct PageHeader {
+        Point  position;
+        int    fontSize{ 1 };
+        ColorT foreground, background;
+    };
+    PageHeader static constexpr pageHeaderSettings{ { screenSettings.usedArea.topLeft.x + 40,
+                                                      screenSettings.usedArea.topLeft.y + 60 },
+                                                    2,
+                                                    COLOR_GREY,
+                                                    COLOR_BLACK };
+
     struct DialogSettings {
-        Point  topLeft;
-        Point  bottRight;
+        Rect   usedArea;
         Point  valuePosition;
         int    fontSize;
         ColorT foreground, background;
     };
-
-    DialogSettings static constexpr dialogSettings{ { screenUsedAreaLeftX + 0, screenUsedAreaTopY + 300 },
-                                                    {screenUsedAreaLeftX + 319, screenUsedAreaTopY + 400},
-                                                    { screenUsedAreaLeftX + 50, screenUsedAreaTopY + 250 },
-                                                    1,
-                                                    COLOR_REDYELLOW,
-                                                    COLOR_DARKDARKGREY };
+    DialogSettings static constexpr dialogSettings{
+        Rect{ Point{ screenSettings.usedArea.topLeft.x + 0, screenSettings.usedArea.topLeft.y + 300 },
+              Point{ screenSettings.usedArea.topLeft.x + 319, screenSettings.usedArea.topLeft.y + 400 } },
+        Point{ screenSettings.usedArea.topLeft.x + 50, screenSettings.usedArea.topLeft.y + 250 },
+        1,
+        COLOR_REDYELLOW,
+        COLOR_DARKDARKGREY
+    };
 
     ColorT static constexpr itemValueColor            = COLOR_DARKCYAN;
     ColorT static constexpr itemNameColor             = COLOR_DARKGREEN;
