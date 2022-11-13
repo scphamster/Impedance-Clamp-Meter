@@ -38,6 +38,10 @@
 #include "external_periph_ctrl.h"
 #include "signal_conditioning.h"
 
+// test
+#include "agc_tests.hpp"
+#include "amplifier_controller_tests.hpp"
+
 [[noreturn]] void tasks_setup2();
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
@@ -62,6 +66,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
       , valueFour{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , menu{ std::make_shared<Menu>() }
+//      , amplifierTest{ drawer.CreateAndGetDialog() }
     {
         InitializeMenu();
     }
@@ -190,4 +195,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     ClampMeterDriver clampMeter;
 
     std::shared_ptr<MenuModel<Keyboard>> menu;
+
+    //    AGCTests agcTest;
+//    AmplifierControllerTest amplifierTest;
 };

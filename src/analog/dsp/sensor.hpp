@@ -46,11 +46,17 @@ class SensorData {
     void SetAbsolute(ValueT new_true_absolutevalue) noexcept { AbsoluteValue = new_true_absolutevalue; }
     void SetDegree(ValueT new_true_degree) noexcept { degree = new_true_degree; }
 
-    [[nodiscard]] ValueT GetI() const noexcept { return Value_I; }
-    [[nodiscard]] ValueT GetQ() const noexcept { return Value_Q; }
-    [[nodiscard]] ValueT GetAbsolute() const noexcept { return AbsoluteValue; }
-    [[nodiscard]] ValueT GetDegree() const noexcept { return degree; }
-    [[nodiscard]] ValueT GetDegreeNocal() const noexcept { return DegreeNocal; }
+    [[nodiscard]] ValueT  GetI() const noexcept { return Value_I; }
+    [[nodiscard]] ValueT  GetQ() const noexcept { return Value_Q; }
+    [[nodiscard]] ValueT  GetAbsolute() const noexcept { return AbsoluteValue; }
+    [[nodiscard]] ValueT  GetDegree() const noexcept { return degree; }
+    [[nodiscard]] ValueT  GetDegreeNocal() const noexcept { return DegreeNocal; }
+    [[nodiscard]] ValueT  GetGainValue() const noexcept { return gainValue; }
+    [[nodiscard]] auto  GetGainLevel() const noexcept { return gainLevel; }
+    [[nodiscard]] ValueT  GetRawAbsolute() const noexcept { return rawAbsolute; }
+    [[nodiscard]] bool    AgcIsEnabled() const noexcept { return agcIsEnabled; }
+    [[nodiscard]] int32_t GetAdcMax() const noexcept { return adcMax; }
+    [[nodiscard]] int32_t GetAdcMin() const noexcept { return adcMin; }
 
   private:
     friend class SensorController;
@@ -62,6 +68,14 @@ class SensorData {
 
     // test
     ValueT DegreeNocal{};
+
+    ValueT gainValue;
+    ValueT rawAbsolute;
+    int gainLevel;
+    bool   agcIsEnabled;
+
+    int32_t adcMax;
+    int32_t adcMin;
 };
 
 class SensorController {
@@ -121,6 +135,7 @@ class SensorController {
         ResumeTasks();
 
         if (mode == Mode::Normal) {
+            amplifierController->ForceSetGain(1);
             amplifierController->EnableAGC();
         }
         else {
@@ -191,9 +206,14 @@ class SensorController {
         while (true) {
             inputBuffer = inputSB->Receive<ProjectConfigs::SensorFirstFilterBufferSize>(ReceiveTimeout);
 
+            data.adcMax =0;
+            data.adcMin =0;
+
             for (auto counter{ 0 }; auto const abs_value : inputBuffer) {
                 amplifierController->ForwardAmplitudeValueToAGCIfEnabled(static_cast<ValueT>(abs_value));
-                amplifierController->ForwardAmplitudeValueToAGCIfEnabled(inputBuffer.at(counter));
+                if(abs_value > data.adcMax) data.adcMax = abs_value;
+                if (abs_value < data.adcMin) data.adcMin = abs_value;
+
 
                 auto [I, Q]                       = iqCalculator->GetSynchronousIQ(static_cast<ValueT>(abs_value));
                 filterI_input_buffer->at(counter) = I;
@@ -204,16 +224,14 @@ class SensorController {
 
             // measurement task // use calibration
             if (mode == Mode::Normal) {
-                auto gain = amplifierController->GetGainValue();
+                auto gain         = amplifierController->GetGainValue();
+                data.gainValue    = gain;
+                data.gainLevel    = amplifierController->GetGainLevel();
 
-                auto ival = filterI->DoFilter();
-
-                auto Ival_nocal               = ival / gain;
-                auto Qval_nocal               = filterQ->DoFilter() / gain;
-                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
-                data.DegreeNocal              = ival;
+                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(), filterQ->DoFilter());
+                data.rawAbsolute              = absolute_value;
+                data.AbsoluteValue            = absolute_value / gain;
                 data.degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
-                data.AbsoluteValue            = absolute_value;
 
                 auto [I, Q]  = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.degree);
                 data.Value_I = I;

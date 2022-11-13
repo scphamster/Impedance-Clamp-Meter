@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <functional>
+#include <utility>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -52,32 +53,6 @@ extern "C" char *gcvtf(float, int, char *);
 extern std::array<std::pair<float, float>, 21> calibration_data;
 extern bool                                    flash_restore_result;
 extern bool                                    flash_save_result;
-std::array<std::pair<float, float>, 21> static constexpr reserve_calibration{
-    // voltage sensor
-    std::pair{ 60314.3242f, 161.143814f },
-    // shunt sensor
-    std::pair{ 53784.875f / 3, 90.9220352f },
-    std::pair{ 53784.875f, 90.9220352f },
-    std::pair{ 132666.203f, 90.9662323f },
-    std::pair{ 264311.406f, 91.0643845f },
-    std::pair{ 8696278.f, 90.829567f },
-    std::pair{ 17165270.f, 90.9678421f },
-    std::pair{ 17165270.f * 2, 90.9678421f },
-    std::pair{ 17165270.f * 4, 90.9678421f },
-    std::pair{ 17165270.f * 8, 90.9678421f },
-    std::pair{ 17165270.f * 16, 90.9678421f },
-    // clamp sensor
-    std::pair{ 338750944.f / 3, 255.35321f },
-    std::pair{ 338750944.f, 255.35321f },
-    std::pair{ 645587648.f, 90.9662323f },
-    std::pair{ 955409024.f, 91.0643845f },
-    std::pair{ 1.53519985e+010f, 90.829567f },
-    std::pair{ 1.50437837e+010f, 90.9678421f },
-    std::pair{ 1.50437837e+010f * 2, 90.9678421f },
-    std::pair{ 1.50437837e+010f * 4, 90.9678421f },
-    std::pair{ 1.50437837e+010f * 8, 90.9678421f },
-    std::pair{ 1.50437837e+010f * 16, 90.9678421f },
-};
 
 template<size_t SensorsGainLevelsNumber>
 class CalibrationData {
@@ -88,6 +63,13 @@ class CalibrationData {
     using ShuntDataT   = ClampDataT;
     using VoltageDataT = DataPair;
     using GainLevelT   = int;
+
+    constexpr CalibrationData() = default;
+    constexpr CalibrationData(VoltageDataT v_data, ShuntDataT shunt_data, ClampDataT clamp_data)
+      : voltage{ std::move(v_data) }
+      , shunt{ shunt_data }
+      , clamp{ clamp_data }
+    { }
 
     void SetVoltageSensorData(VoltageDataT new_cals) noexcept { voltage = new_cals; }
     void InsertShuntSensorData(GainLevelT for_gain_level, DataPair new_cals) noexcept { shunt.at(for_gain_level - 1) = new_cals; }
@@ -109,6 +91,32 @@ class CalibrationData {
     VoltageDataT voltage{};
     ShuntDataT   shunt{};
     ClampDataT   clamp{};
+};
+
+CalibrationData<10> static constexpr res_cali{
+    CalibrationData<10>::VoltageDataT{ 60314.3242f, 161.143814f },
+    CalibrationData<10>::ShuntDataT{ CalibrationData<10>::ShuntDataT{ std::pair{ 53784.875f / 3, 90.9220352f },
+                                                                      std::pair{ 53784.875f, 90.9220352f },
+                                                                      std::pair{ 132666.203f, 90.9662323f },
+                                                                      std::pair{ 264311.406f, 91.0643845f },
+                                                                      std::pair{ 8696278.f, 90.829567f },
+                                                                      std::pair{ 17165270.f, 90.9678421f },
+                                                                      std::pair{ 17165270.f * 2, 90.9678421f },
+                                                                      std::pair{ 17165270.f * 4, 90.9678421f },
+                                                                      std::pair{ 17165270.f * 8, 90.9678421f },
+                                                                      std::pair{ 17165270.f * 16, 90.9678421f } } },
+
+    CalibrationData<10>::ClampDataT{ CalibrationData<10>::ClampDataT{ std::pair{ 338750944.f / 3, 255.35321f },
+                                                                      std::pair{ 338750944.f, 255.35321f },
+                                                                      std::pair{ 645587648.f, 90.9662323f },
+                                                                      std::pair{ 955409024.f, 91.0643845f },
+                                                                      std::pair{ 1.53519985e+010f, 90.829567f },
+                                                                      std::pair{ 1.50437837e+010f, 90.9678421f },
+                                                                      std::pair{ 1.50437837e+010f * 2, 90.9678421f },
+                                                                      std::pair{ 1.50437837e+010f * 4, 90.9678421f },
+                                                                      std::pair{ 1.50437837e+010f * 8, 90.9678421f },
+                                                                      std::pair{ 1.50437837e+010f * 16, 90.9678421f } } }
+
 };
 
 class ClampMeterDriver {
@@ -182,11 +190,15 @@ class ClampMeterDriver {
 
     void SwitchToNextSensor() noexcept
     {
+        StopMeasurements();
+
         switch (activeSensor) {
         case Sensor::Voltage: SetAndActivateSensor(Sensor::Shunt); break;
         case Sensor::Shunt: SetAndActivateSensor(Sensor::Clamp); break;
         case Sensor::Clamp: SetAndActivateSensor(Sensor::Voltage); break;
         }
+
+        StartMeasurements();
     }
 
     void StartNormalModeOperation() noexcept
@@ -208,6 +220,7 @@ class ClampMeterDriver {
         SetAndActivateSensor(Sensor::Voltage);
         for (auto &[sensor_id, sensor] : sensors) {
             sensor.SetMode(SensorController::Mode::Calibration);
+            sensor.SetMinGain();
         }
 
         calibrationTask.Resume();
@@ -221,8 +234,6 @@ class ClampMeterDriver {
     // test: debug functions
     void DisableAGC() noexcept
     {
-        auto [calibs, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
-
         messageBox->ShowMsg("AGC disabled for current sensor");
         sensors.at(activeSensor).DisableAGC();
     }
@@ -387,7 +398,7 @@ class ClampMeterDriver {
     }
     void InitializeSensors() noexcept
     {
-        using AGC          = AutomaticGainController<GainController, float>;
+        using AGC          = AutomaticGainController<GainController, ValueT>;
         using GainT        = GainController::GainLevelT;
         auto iq_controller = std::make_shared<SynchronousIQCalculator<float>>(sinus_table.size());
 
@@ -397,20 +408,9 @@ class ClampMeterDriver {
         auto [calibs, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
 
         // todo: clean after debug
-        CalibrationDataT cal{
-            calibs.GetVoltageSensorCalData(), calibs.GetShuntSensorCalData(1),  calibs.GetShuntSensorCalData(2),
-            calibs.GetShuntSensorCalData(3),  calibs.GetShuntSensorCalData(4),  calibs.GetShuntSensorCalData(5),
-            calibs.GetShuntSensorCalData(6),  calibs.GetShuntSensorCalData(7),  calibs.GetShuntSensorCalData(8),
-            calibs.GetShuntSensorCalData(9),  calibs.GetShuntSensorCalData(10), calibs.GetClampSensorCalData(1),
-            calibs.GetClampSensorCalData(2),  calibs.GetClampSensorCalData(3),  calibs.GetClampSensorCalData(4),
-            calibs.GetClampSensorCalData(5),  calibs.GetClampSensorCalData(6),  calibs.GetClampSensorCalData(7),
-            calibs.GetClampSensorCalData(8),  calibs.GetClampSensorCalData(9),  calibs.GetClampSensorCalData(10),
-        };
-
-        result = false;
 
         if (not result) {
-            cal          = reserve_calibration;
+            calibs       = res_cali;
             isCalibrated = false;
         }
         else {
@@ -423,7 +423,7 @@ class ClampMeterDriver {
             v_gain_controller->SetGainChangeFunctor(
               1,
               [this]() { adc.SetGain(MCP3462_driver::Gain::GAIN_1); },
-              cal.at(0));
+              calibs.GetVoltageSensorCalData());
             auto v_amplifier_controller        = std::make_unique<AmplifierController>(std::move(v_gain_controller));
             auto [_unused_, emplace_succeeded] = sensors.emplace(std::piecewise_construct,
                                                                  std::forward_as_tuple(Sensor::Voltage),
@@ -443,18 +443,18 @@ class ClampMeterDriver {
         {
             auto sh_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
-            sh_gain_controller->SetGainChangeFunctor(1, [this]() { shunt_sensor_set_gain(0);  adc.SetGain(AdcDriverT::Gain::GAIN_1V3);},  cal.at(1));
-            sh_gain_controller->SetGainChangeFunctor(2, [this]() { shunt_sensor_set_gain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  cal.at(2));
-            sh_gain_controller->SetGainChangeFunctor(3, [this]() { shunt_sensor_set_gain(1); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  cal.at(3));
-            sh_gain_controller->SetGainChangeFunctor(4, [this]() { shunt_sensor_set_gain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  cal.at(4));
-            sh_gain_controller->SetGainChangeFunctor(5, [this]() { shunt_sensor_set_gain(3); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  cal.at(5));
-            sh_gain_controller->SetGainChangeFunctor(6, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  cal.at(6));
-            sh_gain_controller->SetGainChangeFunctor(7, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  cal.at(7));
-            sh_gain_controller->SetGainChangeFunctor(8, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  cal.at(8));
-            sh_gain_controller->SetGainChangeFunctor(9, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  cal.at(9));
-            sh_gain_controller->SetGainChangeFunctor(10, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  cal.at(10));
+            sh_gain_controller->SetGainChangeFunctor(1, [this]() { shunt_sensor_set_gain(0);  adc.SetGain(AdcDriverT::Gain::GAIN_1V3);},  calibs.GetShuntSensorCalData(1));
+            sh_gain_controller->SetGainChangeFunctor(2, [this]() { shunt_sensor_set_gain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(2));
+            sh_gain_controller->SetGainChangeFunctor(3, [this]() { shunt_sensor_set_gain(1); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(3));
+            sh_gain_controller->SetGainChangeFunctor(4, [this]() { shunt_sensor_set_gain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(4));
+            sh_gain_controller->SetGainChangeFunctor(5, [this]() { shunt_sensor_set_gain(3); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(5));
+            sh_gain_controller->SetGainChangeFunctor(6, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(6));
+            sh_gain_controller->SetGainChangeFunctor(7, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  calibs.GetShuntSensorCalData(7));
+            sh_gain_controller->SetGainChangeFunctor(8, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  calibs.GetShuntSensorCalData(8));
+            sh_gain_controller->SetGainChangeFunctor(9, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  calibs.GetShuntSensorCalData(9));
+            sh_gain_controller->SetGainChangeFunctor(10, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  calibs.GetShuntSensorCalData(10));
             // clang-format on
-            auto sh_agc                  = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
+            auto sh_agc                  = std::make_unique<AGC>(1, 10, 1e5f, 3e6f, 50, 500);
             auto sh_amplifier_controller = std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
             sensors.emplace(std::piecewise_construct,
                             std::forward_as_tuple(Sensor::Shunt),
@@ -472,18 +472,18 @@ class ClampMeterDriver {
         {
             auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
-            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}, cal.at(11));
-            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , cal.at(12));
-            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(1);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , cal.at(13));
-            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {clamp_sensor_set_gain(2);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , cal.at(14));
-            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(3);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , cal.at(15));
-            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , cal.at(16));
-            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_2);}  , cal.at(17));
-            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_4);}  , cal.at(18));
-            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_8);}  , cal.at(19));
-            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_16);}, cal.at(20));
+            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}, calibs.GetClampSensorCalData(1));
+            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(2));
+            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(1);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(3));
+            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {clamp_sensor_set_gain(2);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(4));
+            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(3);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(5));
+            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(6));
+            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_2);}  , calibs.GetClampSensorCalData(7));
+            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_4);}  , calibs.GetClampSensorCalData(8));
+            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_8);}  , calibs.GetClampSensorCalData(9));
+            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_16);}, calibs.GetClampSensorCalData(10));
             // clang-format on
-            auto clamp_agc = std::make_unique<AGC>(1, 10, 100000UL, 3000000UL, 50, 500);
+            auto clamp_agc = std::make_unique<AGC>(1, 10, 1e5f, 4e6f, 50, 500);
             auto clamp_amplifier_controller =
               std::make_unique<AmplifierController>(clamp_gain_controller, std::move(clamp_agc), true);
             sensors.emplace(std::piecewise_construct,
@@ -557,16 +557,7 @@ class ClampMeterDriver {
         devdevCalc.PushBackAndCalculate(deviationCalc.GetRelativeStdDev());
         deviationOfDeviation = devdevCalc.GetStandardDeviation();
     }
-    void CalculateAppliedVoltage() noexcept
-    {
-        data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
-        data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
-        arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
-                     &data.AppliedVoltage);
-
-        data.AppliedVoltagePhi =
-          SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
-    }
+    void CalculateAppliedVoltage() noexcept;
     void CalculateVoltageSensor() noexcept
     {
         if (workMode == Mode::Calibration)
@@ -646,24 +637,47 @@ class ClampMeterDriver {
     void SetSensorCalibrationTargets(Sensor sensor, auto gain_level) noexcept
     {
         switch (sensor) {
-        case Sensor::Voltage: return;
-        case Sensor::Shunt:
-            sensors.at(sensor).SetTrueValuesForCalibration(
-              (data.voltageSensorData.GetAbsolute() / (calibrationResistances.at(gain_level - 1) + shuntResistorValue)) *
-                shuntResistorValue,
-              data.voltageSensorData.GetDegree(),
-              gain_level);
-            break;
+        case Sensor::Voltage:
+        configASSERT(0)   // todo implement;
+          case Sensor::Shunt : {
+            auto cal_targets = FindCalibrationTargetsForShunt(gain_level);
+            sensors.at(sensor).SetTrueValuesForCalibration(cal_targets.first, cal_targets.second, gain_level);
 
-        case Sensor::Clamp:
-            sensors.at(sensor).SetTrueValuesForCalibration(data.voltageSensorData.GetAbsolute() /
-                                                             (calibrationResistances.at(gain_level - 1) + shuntResistorValue),
-                                                           data.voltageSensorData.GetDegree(),
-                                                           gain_level);
+            messageBox->ShowMsg("Calibration target for shunt: mag=" + std::to_string(cal_targets.first) +
+                                " phi=" + std::to_string(cal_targets.second));
+
+            Task::DelayMs(4000);
+
             break;
         }
-    }
 
+        case Sensor::Clamp: {
+            auto cal_targets = FindCalibrationTargetsForClamp(gain_level);
+            sensors.at(sensor).SetTrueValuesForCalibration(cal_targets.first, cal_targets.second, gain_level);
+
+            messageBox->ShowMsg("Calibration target for clamp: mag=" + std::to_string(cal_targets.first) +
+                                " phi=" + std::to_string(cal_targets.second));
+
+            Task::DelayMs(4000);
+
+            break;
+        }
+        }
+    }
+    std::pair<ValueT, ValueT> FindCalibrationTargetsForShunt(auto gain_level) noexcept
+    {
+        auto magnitude = shuntResistorValue *
+                         (data.voltageSensorData.GetAbsolute() / (shuntResistorValue + calibrationResistances.at(gain_level - 1)));
+
+        return { magnitude, data.voltageSensorData.GetDegree() };
+    }
+    std::pair<ValueT, ValueT> FindCalibrationTargetsForClamp(auto gain_level) noexcept
+    {
+        auto circuit_current =
+          data.voltageSensorData.GetAbsolute() / (shuntResistorValue + calibrationResistances.at(gain_level - 1));
+
+        return { circuit_current, data.voltageSensorData.GetDegree() };
+    }
     std::pair<ValueT, ValueT> CalibrateSensor(Sensor sensor, int gain_level, ShuntCalibrationDataT &cal) noexcept
     {
         SetAndActivateSensor(sensor);
@@ -785,7 +799,9 @@ class ClampMeterDriver {
                     request_resistor_change_and_check_vout(gain_level);
 
                 cal_data.InsertShuntSensorData(gain_level, CalibrateSensor(Sensor::Shunt, gain_level, shunt_calibration_data));
+                sensors.at(Sensor::Shunt).SetMinGain();
                 cal_data.InsertClampSensorData(gain_level, CalibrateSensor(Sensor::Clamp, gain_level, clamp_calibration_data));
+                sensors.at(Sensor::Clamp).SetMinGain();
             }
 
             if (FlashController2::Store(cal_data, COEFFS_FLASH_START_ADDR)) {
@@ -798,10 +814,19 @@ class ClampMeterDriver {
     }
     [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
     {
+        bool constexpr ifdebug                = true;
+        size_t counter                        = 0;
+        size_t constexpr inform_every_n_ticks = 100;
+
+        std::array<char, 10> val1;
+        std::array<char, 10> val2;
+        std::array<char, 10> val3;
+
         while (true) {
             auto sensor_data = fromSensorDataQueue->Receive();
 
             CheckDataStability(sensor_data.GetI());
+
             if (workMode == Mode::Calibration) {
                 *value1 = sensor_data.GetI();
                 *value2 = deviationOfDeviation;
@@ -809,8 +834,23 @@ class ClampMeterDriver {
                 *value4 = sensor_data.GetDegree();
             }
             else {
-                *value4 = sensor_data.GetDegreeNocal();
+                *value4 = sensor_data.GetDegree();
             }
+
+            if (ifdebug) {
+                counter++;
+                if (counter >= inform_every_n_ticks) {
+                    gcvtf(sensor_data.GetGainValue(), 4, val1.data());
+                    gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
+                    gcvtf(data.AppliedVoltage, 4, val3.data());
+
+                    messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
+                                        " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
+
+                    counter = 0;
+                }
+            }
+
             switch (activeSensor) {
             case Sensor::Voltage:
                 data.voltageSensorData = sensor_data;

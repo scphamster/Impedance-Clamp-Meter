@@ -195,7 +195,8 @@ class MenuModelDrawer {
         dialogBox = std::move(new_dialog);
         dialogBox->SetIsShown(true);
 
-        RequestFullRedraw();
+//        RequestFullRedraw();
+        RequestMessageBoxRedraw();
     }
 
     [[nodiscard]] std::shared_ptr<MenuModelDialog> CreateAndGetDialog() noexcept
@@ -324,7 +325,7 @@ class MenuModelDrawer {
             item_index++;
         }
     }
-    void DrawMessageDialog() noexcept
+    void    DrawMessageDialog() noexcept
     {
         if (not dialogBox)
             return;
@@ -340,7 +341,7 @@ class MenuModelDrawer {
                        dialogBox->GetValue()->GetValue());
         }
 
-        if (dialogBox->HasBeenDrawn())
+        if (dialogBox->HasBeenDrawn() and (not messageBoxShouldBeRedrawn))
             return;
 
         drawer->DrawFiledRectangle(dialogSettings.usedArea, dialogSettings.background);
@@ -349,18 +350,18 @@ class MenuModelDrawer {
         drawer->Print(dialogBox->GetMessage(), dialogSettings.fontSize);
 
         dialogBox->SetHasBeenDrawnFlag(true);
+        messageBoxShouldBeRedrawn = false;
     }
     void RequestFullRedraw() noexcept
     {
-        // fixme: mutex should be used here :: reason:
-        //        drawnDynamicPageItems.clear();
-
         if (dialogBox)
             dialogBox->SetHasBeenDrawnFlag(false);
 
         fullRedraw = true;
     }
-
+    void RequestMessageBoxRedraw() noexcept {
+        messageBoxShouldBeRedrawn = true;
+    }
     // slots:
     void KeyboardMasterCallback(ButtonEvent event, ButtonName button) noexcept
     {
@@ -467,7 +468,7 @@ class MenuModelDrawer {
 
     bool staticPageItemsDrawn{ false };
     bool fullRedraw{ false };
-
+    bool messageBoxShouldBeRedrawn{ false };
     // todo: make more versatile
     // display sizes section
     struct DisplaySettings {

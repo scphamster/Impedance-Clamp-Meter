@@ -67,6 +67,9 @@ class MenuModelDialog {
     void SetMsg(MessageT &&new_msg) noexcept { message = std::move(new_msg); }
     void ShowMsg(MessageT &&new_msg) noexcept
     {
+        if (message == new_msg)
+            return;
+
         SetMsg(std::forward<MessageT>(new_msg));
         Show();
     }

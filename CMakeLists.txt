@@ -130,6 +130,8 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/static_string.hpp
 
+    ${SOURCES_DIRECTORY}/tests/agc_tests.hpp
+    ${SOURCES_DIRECTORY}/tests/amplifier_controller_tests.hpp
     )
 
 set(C_SOURCES
@@ -169,6 +171,8 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/queue
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/semaphore
+
+    ${SOURCES_DIRECTORY}/tests
 
     )
 

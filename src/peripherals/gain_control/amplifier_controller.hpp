@@ -26,7 +26,11 @@ class AmplifierController {
       : gainController{ std::move(new_gain_controller) }
     { }
 
-    void                  EnableAGC() noexcept { agcIsEnabled = true; }
+    void EnableAGC() noexcept
+    {
+        if (agc)
+            agcIsEnabled = true;
+    }
     void                  DisableAGC() noexcept { agcIsEnabled = false; }
     [[maybe_unused]] void SetAGC(std::unique_ptr<AGCType> &&new_agc, bool enable_agc = true) noexcept
     {
@@ -35,10 +39,13 @@ class AmplifierController {
         agcIsEnabled = enable_agc;
     }
     [[maybe_unused]] void ForceForwardAmplitudeValueToAGC(auto new_value) noexcept { agc->InspectSignalAmplitude(new_value); }
-    void ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
+    void                  ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
     {
-        if (agcIsEnabled)
+        if (agcIsEnabled) {
+
             agc->InspectSignalAmplitude(new_value);
+
+        }
     }
     void SetGain(GainLevelT new_gain) noexcept
     {
@@ -48,15 +55,18 @@ class AmplifierController {
     [[maybe_unused]] void                       ForceSetGain(GainLevelT new_gain) noexcept { gainController->SetGain(new_gain); }
     void                                        SetMinGain() noexcept { gainController->SetGain(gainController->GetMinGain()); }
     void                                        SetMaxGain() noexcept { gainController->SetGain(gainController->GetMaxGain()); }
-    [[maybe_unused]] [[nodiscard]] bool         AgcIsEnabled() const noexcept { return agcIsEnabled; }
+    [[nodiscard]] bool         AgcIsEnabled() const noexcept { return agcIsEnabled; }
     [[maybe_unused]] std::unique_ptr<AGCType> &&TakeAGC() noexcept
     {
         agcIsEnabled = false;
         return std::move(agc);
     };
     [[nodiscard]] GainValueT                      GetGainValue() const noexcept { return gainController->GetGainValue(); }
+    [[nodiscard]] GainLevelT                      GetGainLevel() const noexcept { return gainController->GetGainLevel(); }
     [[nodiscard]] PhaseShift                      GetPhaseShift() const noexcept { return gainController->GetPhaseShift(); }
     [[nodiscard]] std::shared_ptr<GainController> GetGainController() const noexcept { return gainController; }
+    [[nodiscard]] GainLevelT                      GetMaxGain() const noexcept { return gainController->GetMaxGain(); }
+    [[nodiscard]] GainLevelT                      GetMinGain() const noexcept { return gainController->GetMinGain(); }
 
   protected:
   private:
