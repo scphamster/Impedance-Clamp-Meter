@@ -38,10 +38,6 @@
 #include "external_periph_ctrl.h"
 #include "signal_conditioning.h"
 
-// test
-#include "agc_tests.hpp"
-#include "amplifier_controller_tests.hpp"
-
 [[noreturn]] void tasks_setup2();
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
@@ -55,18 +51,24 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     // fixme: make corrections of init order
     TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , drawerTask{ [this]() { this->DisplayTask(); },
-                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
-                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
-                    "display" }
-      , clampMeter{ valueOne, valueTwo, valueThree, valueFour, drawer.CreateAndGetDialog() }
       , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueThree{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
       , valueFour{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
+      , valueFive{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
+      , valueSix{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
+      , valueSeven{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
+      , valueEight{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
       , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
+      , drawerTask{ [this]() { this->DisplayTask(); },
+                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
+                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
+                    "display" }
+      , clampMeter{ valueOne,   valueTwo,   valueThree,
+                    valueFour,  valueFive,  valueSix,
+                    valueSeven, valueEight, drawer.CreateAndGetDialog() }
       , menu{ std::make_shared<Menu>() }
-//      , amplifierTest{ drawer.CreateAndGetDialog() }
+    //      , amplifierTest{ drawer.CreateAndGetDialog() }
     {
         InitializeMenu();
     }
@@ -118,6 +120,26 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         degree_nocall->SetData(valueFour);
         degree_nocall->SetIndex(3);
 
+        auto xOvrl = std::make_shared<Page>(menu);
+        xOvrl->SetName("X Overall");
+        xOvrl->SetData(valueFive);
+        xOvrl->SetIndex(4);
+
+        auto rOvrl = std::make_shared<Page>(menu);
+        rOvrl->SetName("R Overall");
+        rOvrl->SetData(valueSix);
+        rOvrl->SetIndex(5);
+
+        auto xClamp = std::make_shared<Page>(menu);
+        xClamp->SetName("X Clamp");
+        xClamp->SetData(valueSeven);
+        xClamp->SetIndex(6);
+
+        auto rClamp = std::make_shared<Page>(menu);
+        rClamp->SetName("R Clamp");
+        rClamp->SetData(valueEight);
+        rClamp->SetIndex(7);
+
         auto measurements_page = std::make_shared<Page>(menu);
         measurements_page->SetIndex(0);
         measurements_page->SetName("Measurement");
@@ -125,6 +147,10 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->InsertChild(z_overall);
         measurements_page->InsertChild(z_clamp);
         measurements_page->InsertChild(degree_nocall);
+        measurements_page->InsertChild(xOvrl);
+        measurements_page->InsertChild(rOvrl);
+        measurements_page->InsertChild(xClamp);
+        measurements_page->InsertChild(rClamp);
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartNormalModeOperation(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.Stop(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
@@ -189,6 +215,10 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     PageDataT valueTwo;
     PageDataT valueThree;
     PageDataT valueFour;
+    PageDataT valueFive;
+    PageDataT valueSix;
+    PageDataT valueSeven;
+    PageDataT valueEight;
 
     PageDataT        sensorPhi;
     Task             drawerTask;
@@ -197,5 +227,5 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     std::shared_ptr<MenuModel<Keyboard>> menu;
 
     //    AGCTests agcTest;
-//    AmplifierControllerTest amplifierTest;
+    //    AmplifierControllerTest amplifierTest;
 };

@@ -42,7 +42,7 @@
 #include "deviation_calculator.hpp"
 #include "flash_controller.hpp"
 
-#include "static_string.hpp"
+#include "string_converter.hpp"
 
 // todo: remove from here
 #include "signal_conditioning.h"
@@ -93,29 +93,29 @@ class CalibrationData {
     ClampDataT   clamp{};
 };
 
-CalibrationData<10> static constexpr res_cali{
-    CalibrationData<10>::VoltageDataT{ 60314.3242f, 161.143814f },
-    CalibrationData<10>::ShuntDataT{ CalibrationData<10>::ShuntDataT{ std::pair{ 53784.875f / 3, 90.9220352f },
-                                                                      std::pair{ 53784.875f, 90.9220352f },
-                                                                      std::pair{ 132666.203f, 90.9662323f },
-                                                                      std::pair{ 264311.406f, 91.0643845f },
-                                                                      std::pair{ 8696278.f, 90.829567f },
-                                                                      std::pair{ 17165270.f, 90.9678421f },
-                                                                      std::pair{ 17165270.f * 2, 90.9678421f },
-                                                                      std::pair{ 17165270.f * 4, 90.9678421f },
-                                                                      std::pair{ 17165270.f * 8, 90.9678421f },
-                                                                      std::pair{ 17165270.f * 16, 90.9678421f } } },
+CalibrationData<10> static constexpr reserve_calibrations{
+    CalibrationData<10>::VoltageDataT{ 60378.5f, 141.756561f },
+    CalibrationData<10>::ShuntDataT{ std::pair{ 18119.3613f, 211.836044f },
+                                     std::pair{ 53983.3125f, 211.87207f },
+                                     std::pair{ 134806.391f, 211.716782f },
+                                     std::pair{ 267293.906f, 211.763092f },
+                                     std::pair{ 8691632.f, 212.049988f },
+                                     std::pair{ 17133480.f, 212.030548f },
+                                     std::pair{ 34077676.f, 211.958069f },
+                                     std::pair{ 60054472.f, 211.976196f },
+                                     std::pair{ 65935656.f, 212.031769f },
+                                     std::pair{ 67758896.f, 212.305054f } },
 
-    CalibrationData<10>::ClampDataT{ CalibrationData<10>::ClampDataT{ std::pair{ 338750944.f / 3, 255.35321f },
-                                                                      std::pair{ 338750944.f, 255.35321f },
-                                                                      std::pair{ 645587648.f, 90.9662323f },
-                                                                      std::pair{ 955409024.f, 91.0643845f },
-                                                                      std::pair{ 1.53519985e+010f, 90.829567f },
-                                                                      std::pair{ 1.50437837e+010f, 90.9678421f },
-                                                                      std::pair{ 1.50437837e+010f * 2, 90.9678421f },
-                                                                      std::pair{ 1.50437837e+010f * 4, 90.9678421f },
-                                                                      std::pair{ 1.50437837e+010f * 8, 90.9678421f },
-                                                                      std::pair{ 1.50437837e+010f * 16, 90.9678421f } } }
+    CalibrationData<10>::ClampDataT{ std::pair{ 194050976.f, 48.4416809f },
+                                     std::pair{ 583724544.f, 51.1335754f },
+                                     std::pair{ 1.12981146e+009f, 44.1073303f },
+                                     std::pair{ 1.66808934e+009f, 40.8379211f },
+                                     std::pair{ 2.64954061e+010f, 35.2421265f },
+                                     std::pair{ 2.63934403e+010f, 34.6728821f },
+                                     std::pair{ 5.04917484e+010f, 33.9216614f },
+                                     std::pair{ 6.41723433e+010f, 34.8967896f },
+                                     std::pair{ 6.66922353e+010f, 34.6208801f },
+                                     std::pair{ 6.70647747e+010f, 34.6916504f } }
 
 };
 
@@ -160,15 +160,22 @@ class ClampMeterDriver {
                      std::shared_ptr<UniversalSafeType> shunt,
                      std::shared_ptr<UniversalSafeType> clamp,
                      std::shared_ptr<UniversalSafeType> v4,
+                     std::shared_ptr<UniversalSafeType> v5,
+                     std::shared_ptr<UniversalSafeType> v6,
+                     std::shared_ptr<UniversalSafeType> v7,
+                     std::shared_ptr<UniversalSafeType> v8,
                      std::shared_ptr<DialogT>           new_msg_box)
       : value1{ vout }
       , value2{ shunt }
       , value3{ clamp }
       , value4{ v4 }
+      , value5{ v5 }
+      , value6{ v6 }
+      , value7{ v7 }
+      , value8{ v8 }
       , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
-      , filterI{ std::make_shared<FilterT>() }
-      , filterQ{ std::make_shared<FilterT>() }
+
       , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength, "sensor") }
       , sensorDataManagerTask{ [this]() { this->ManageSensorsDataTask(); },
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
@@ -182,9 +189,7 @@ class ClampMeterDriver {
     {
         calibrationTask.Suspend();
 
-        InitializeFilters();
         InitializeSensors();
-
         SynchronizeAdcAndDac();
     }
 
@@ -274,7 +279,7 @@ class ClampMeterDriver {
     { /*sensors.at(activeSensor).SetMinGain();*/
     }
 
-    void InitializeFilters() noexcept
+    [[nodiscard]] std::pair<Filter, Filter> CreateDoubleFilter() noexcept
     {
         auto constexpr filter2_block_size = 100;
 
@@ -371,17 +376,21 @@ class ClampMeterDriver {
         auto cos_filter4 = std::make_unique<FirDecimatingFilter>(*sin_filter4);
         auto cos_filter5 = std::make_unique<BiquadCascadeDF2TFilter>(*sin_filter5);
 
+        auto filterI = std::make_shared<FilterT>();
         filterI->InsertFilter(std::move(sin_filter1));
         filterI->InsertFilter(std::move(sin_filter2));
         filterI->InsertFilter(std::move(sin_filter3));
         filterI->InsertFilter(std::move(sin_filter4));
         filterI->InsertFilter(std::move(sin_filter5));
 
+        auto filterQ = std::make_shared<FilterT>();
         filterQ->InsertFilter(std::move(cos_filter1));
         filterQ->InsertFilter(std::move(cos_filter2));
         filterQ->InsertFilter(std::move(cos_filter3));
         filterQ->InsertFilter(std::move(cos_filter4));
         filterQ->InsertFilter(std::move(cos_filter5));
+
+        return std::pair{ filterI, filterQ };
     }
     void InitializeIO() noexcept
     {
@@ -410,12 +419,14 @@ class ClampMeterDriver {
         // todo: clean after debug
 
         if (not result) {
-            calibs       = res_cali;
+            calibs       = reserve_calibrations;
             isCalibrated = false;
         }
         else {
             isCalibrated = true;
         }
+
+        auto [filterI, filterQ] = CreateDoubleFilter();
 
         // Voltage sensor
         {
@@ -502,7 +513,7 @@ class ClampMeterDriver {
     void StartMeasurements() noexcept
     {
         // todo: move this initialization from here
-        if (firstMeasurementsStart) {
+        if (firstStart) {
             // todo: make this procedure more pretty
             SetAndActivateSensor(Sensor::Voltage);
             adc.StartSynchronousMeasurements();
@@ -510,7 +521,7 @@ class ClampMeterDriver {
             adc.StopMeasurement();
             Task::DelayMs(200);
 
-            firstMeasurementsStart = false;
+            firstStart = false;
         }
 
         SetAndActivateSensor(activeSensor);
@@ -524,6 +535,8 @@ class ClampMeterDriver {
         Task::ResumeAll();
 
         peripherals.outputRelay.Activate();
+
+        isActive = true;
     }
     void StopMeasurements() noexcept
     {
@@ -536,26 +549,81 @@ class ClampMeterDriver {
         peripherals.outputRelay.Deactivate();
         peripherals.powerSupply.Deactivate();
         generator.StopGenerating();
+
+        Task::DelayMs(200);
+
+        isActive = false;
     }
     void SetAndActivateSensor(Sensor new_sensor) noexcept
     {
+        bool wasActive = isActive;
+
+        if (isActive) {
+            wasActive = true;
+            StopMeasurements();
+        }
+
         sensors.at(activeSensor).Disable();
         activeSensor = new_sensor;
         sensors.at(activeSensor).Enable();
+
+        if (wasActive) {
+            StartMeasurements();
+        }
     }
 
     void SynchronizeAdcAndDac() noexcept
     {
-        generator.SetFirstTimeInterruptCallback([this]() { adc.SynchronizationCallback(); });
+        generator.SetFirstInterruptCallback([this]() { adc.SynchronizationCallback(); });
     }
 
+    void WriteDebugInfo(SensorData const &sensor_data) noexcept
+    {
+        size_t static counter                        = 0;
+        size_t constexpr print_at_tick_counter_limit = 100;
+
+        counter++;
+
+        if (counter >= print_at_tick_counter_limit) {
+            std::array<char, 10> val1;
+            std::array<char, 10> val2;
+            std::array<char, 10> val3;
+
+            gcvtf(sensor_data.GetGainValue(), 4, val1.data());
+            gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
+            gcvtf(data.AppliedVoltage, 4, val3.data());
+
+            messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
+                                " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
+
+            counter = 0;
+        }
+    }
+    void ShowCalculationsInfo() noexcept
+    {
+        auto msg = std::string{ "sensor: " };
+
+        switch (activeSensor) {
+        case Sensor::Voltage: msg.append("Voltage "); break;
+        case Sensor::Shunt: msg.append("Shunt "); break;
+        case Sensor::Clamp: msg.append("Clamp "); break;
+        }
+
+        msg.append(" XOverall=" + StringConverter::ToString<3>(data.XOverall));
+        msg.append(" ROverall=" + StringConverter::ToString<3>(data.ROverall));
+        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
+        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
+        msg.append(" IClamp=" + StringConverter::ToString<3>(data.clampSensorData.GetAbsolute()));
+
+        messageBox->ShowMsg(std::move(msg));
+    }
     // task helpers
     void CheckDataStability(ValueT data) noexcept
     {
-        deviationCalc.PushBackAndCalculate(data);
-        devValue = deviationCalc.GetRelativeStdDev();
-        devdevCalc.PushBackAndCalculate(deviationCalc.GetRelativeStdDev());
-        deviationOfDeviation = devdevCalc.GetStandardDeviation();
+        deviationCalculator.PushBackAndCalculate(data);
+        deviation = deviationCalculator.GetRelativeStdDev();
+        deviation2Calculator.PushBackAndCalculate(deviationCalculator.GetRelativeStdDev());
+        deviationOfDeviation = deviation2Calculator.GetStandardDeviation();
     }
     void CalculateAppliedVoltage() noexcept;
     void CalculateVoltageSensor() noexcept
@@ -577,6 +645,12 @@ class ClampMeterDriver {
 
         auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
 
+        // test
+        data.ovrlSin      = sin;
+        data.ovrlCos      = cos;
+        data.admitancePhi = admitance_phi;
+        // test
+
         auto conductance = admitance_mag * cos;
         auto susceptance = admitance_mag * sin;
 
@@ -586,6 +660,8 @@ class ClampMeterDriver {
         data.ZOverallPhi = admitance_phi;
 
         *value2 = data.ZOverall;
+        *value5= data.XOverall;
+        *value6 = data.ROverall;
     }
     void CalculateClampSensor() noexcept
     {
@@ -602,6 +678,8 @@ class ClampMeterDriver {
         data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
 
         *value3 = data.ZClamp;
+        *value7 = data.XClamp;
+        *value8 = data.RClamp;
     }
 
     void WaitForStableData(ValueT max_deviation) noexcept
@@ -725,7 +803,6 @@ class ClampMeterDriver {
 
         return { true_gain, true_phase_shift };
     }
-
     // tasks
     [[noreturn]] void CalibrationTask() noexcept
     {
@@ -814,16 +891,11 @@ class ClampMeterDriver {
     }
     [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
     {
-        bool constexpr ifdebug                = true;
-        size_t counter                        = 0;
-        size_t constexpr inform_every_n_ticks = 100;
-
-        std::array<char, 10> val1;
-        std::array<char, 10> val2;
-        std::array<char, 10> val3;
-
         while (true) {
             auto sensor_data = fromSensorDataQueue->Receive();
+
+            if (writeDebugInfo)
+                WriteDebugInfo(sensor_data);
 
             CheckDataStability(sensor_data.GetI());
 
@@ -835,20 +907,6 @@ class ClampMeterDriver {
             }
             else {
                 *value4 = sensor_data.GetDegree();
-            }
-
-            if (ifdebug) {
-                counter++;
-                if (counter >= inform_every_n_ticks) {
-                    gcvtf(sensor_data.GetGainValue(), 4, val1.data());
-                    gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
-                    gcvtf(data.AppliedVoltage, 4, val3.data());
-
-                    messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
-                                        " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
-
-                    counter = 0;
-                }
             }
 
             switch (activeSensor) {
@@ -864,6 +922,10 @@ class ClampMeterDriver {
                 data.clampSensorData = sensor_data;
                 CalculateClampSensor();
                 break;
+            }
+
+            if (workMode == Mode::Normal) {
+//                ShowCalculationsInfo();
             }
         }
     }
@@ -888,50 +950,78 @@ class ClampMeterDriver {
         ValueT ZClamp;
         ValueT RClamp;
         ValueT XClamp;
+        // test
+        ValueT ovrlSin;
+        ValueT ovrlCos;
+        ValueT admitancePhi;
     };
-
-    auto constexpr static firstBufferSize        = 100;
-    auto constexpr static lastBufferSize         = 1;
-    auto constexpr static dataStabilityBufferLen = 10;
 
     // todo: compress
     std::shared_ptr<UniversalSafeType> value1;
     std::shared_ptr<UniversalSafeType> value2;
     std::shared_ptr<UniversalSafeType> value3;
     std::shared_ptr<UniversalSafeType> value4;
+    std::shared_ptr<UniversalSafeType> value5;
+    std::shared_ptr<UniversalSafeType> value6;
+    std::shared_ptr<UniversalSafeType> value7;
+    std::shared_ptr<UniversalSafeType> value8;
 
     PeripheralsController peripherals;
     OutputGenerator       generator;
     AdcDriverT            adc;   // todo: make type independent
 
-    bool firstMeasurementsStart = true;
-    Mode workMode               = Mode::Normal;
+    bool firstStart = true;
+    bool isCalibrated{ false };
+    bool isActive{ false };
+    bool writeDebugInfo{ false };
+    Mode workMode = Mode::Normal;
 
     Semaphore universalSemaphore;
 
-    // todo: take this from here
-    std::shared_ptr<SuperFilterNoTask<ValueT>> filterI;
-    std::shared_ptr<SuperFilterNoTask<ValueT>> filterQ;
-
-    DeviationCalculator<ValueT, 100> deviationCalc;
-    DeviationCalculator<ValueT, 100> devdevCalc;
+    DeviationCalculator<ValueT, 100> deviationCalculator;
+    DeviationCalculator<ValueT, 100> deviation2Calculator;
     ValueT                           deviationOfDeviation;
-    ValueT                           devValue;
+    ValueT                           deviation;
 
-    std::map<Sensor, SensorController>         sensors;
-    Sensor                                     activeSensor;
-    ClampMeterData                             data;
-    std::array<ValueT, dataStabilityBufferLen> stabilityCheckBuffer;
+    // todo: make CompositeSensorsController sensorsController;
 
-    std::shared_ptr<FromSensorQueueT> fromSensorDataQueue;
+    class CompositeSensorsController {
+      private:
+        std::map<Sensor, SensorController> sensors;
+        Sensor                             activeSensor{ Sensor::Voltage };
+        ClampMeterData                     data;
+        std::shared_ptr<FromSensorQueueT>  fromSensorDataQueue;
+
+        std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
+            std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },
+            std::pair{ MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1 },
+            std::pair{ MCP3462_driver::Reference::CH4, MCP3462_driver::Reference::CH5 }
+        };
+
+        std::array<ValueT, 10> static constexpr calibrationResistances{
+            8.15e3f, 8.15e3f, 55.4e3f, 55.4e3f, 465e3f, 465e3f, 465e3f, 465e3f, 465e3f, 465e3f,
+        };
+        std::array<ValueT, 10> static constexpr clampCalibrationDeviationTargets{ 9e-7f, 1e-6f, 5e-5f, 5e-5f, 1e-4f,
+                                                                                  1e-4,  1e-4,  1e-4,  1e-4,  1e-4 };
+
+        std::array<ValueT, 10> static constexpr shuntSensorDeviationTargets{ 1e-7f, 1e-7f, 3e-7f, 3e-7f, 3e-7f,
+                                                                             3e-7f, 3e-7f, 3e-7f, 3e-7f, 3e-7f };
+
+        ValueT static constexpr voltageSensorDeviationTarget = 7e-8;
+        auto static constexpr gainLevelsQuantity             = 10;
+        ValueT static constexpr shuntResistorValue           = 1000.f;
+    };
+
+    std::map<Sensor, SensorController> sensors;
+    Sensor                             activeSensor;
+    ClampMeterData                     data;
+    std::shared_ptr<FromSensorQueueT>  fromSensorDataQueue;
 
     Task                     sensorDataManagerTask;
     Task                     calibrationTask;
     std::shared_ptr<DialogT> messageBox;
 
-    bool isCalibrated{ false };
-
-    // todo: take this from here
+    // todo: this should go to composite sensors controller
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },
         std::pair{ MCP3462_driver::Reference::CH0, MCP3462_driver::Reference::CH1 },
@@ -947,8 +1037,7 @@ class ClampMeterDriver {
     std::array<ValueT, 10> static constexpr shuntSensorDeviationTargets{ 1e-7f, 1e-7f, 3e-7f, 3e-7f, 3e-7f,
                                                                          3e-7f, 3e-7f, 3e-7f, 3e-7f, 3e-7f };
 
-    ValueT voltageSensorDeviationTarget      = 7e-8;
-    auto static constexpr gainLevelsQuantity = 10;
-
-    ValueT static constexpr shuntResistorValue = 1000.f;
+    ValueT static constexpr voltageSensorDeviationTarget = 7e-8;
+    auto static constexpr gainLevelsQuantity             = 10;
+    ValueT static constexpr shuntResistorValue           = 1000.f;
 };

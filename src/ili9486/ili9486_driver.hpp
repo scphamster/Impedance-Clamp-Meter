@@ -30,10 +30,10 @@ class ILI9486Driver {
     struct Rect {
         constexpr Rect() = default;
         constexpr Rect(Point topLeft, Point botRight)
-          : top{ topLeft.y }
-          , bot{ botRight.y }
-          , left{ topLeft.x }
+          : left{ topLeft.x }
+          , top{ topLeft.y }
           , right{ botRight.x }
+          , bot{ botRight.y }
         { }
         constexpr Rect(ScreenSizeT new_left, ScreenSizeT new_top, ScreenSizeT new_right, ScreenSizeT new_bot)
           : left{ new_left }

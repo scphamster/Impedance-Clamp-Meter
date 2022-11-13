@@ -42,7 +42,7 @@ class OutputGenerator {
     void StopGenerating() noexcept;
     void RecalculateSineTableForNewAmplitude() noexcept;
     void SetAmplitude(AmplitudeT new_amplitude_volts) noexcept;
-    void SetFirstTimeInterruptCallback(FirstInterruptCallback &&callback)  noexcept {
+    void SetFirstInterruptCallback(FirstInterruptCallback &&callback)  noexcept {
         firstInterruptCallback = std::move(callback);
     }
     void InterruptHandler()

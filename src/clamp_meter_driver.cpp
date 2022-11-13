@@ -13,5 +13,5 @@ void ClampMeterDriver::CalculateAppliedVoltage() noexcept
                  &data.AppliedVoltage);
 
     data.AppliedVoltagePhi =
-      SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageI, data.AppliedVoltageQ, data.AppliedVoltage);
+      SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageQ, data.AppliedVoltageI, data.AppliedVoltage);
 }

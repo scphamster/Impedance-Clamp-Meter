@@ -59,6 +59,7 @@ class MenuModelDialog {
         switch (key) {
         case Key::Enter: ButtonPressed(Button::OK); break;
         case Key::Back: ButtonPressed(Button::Cancel); break;
+        default: break;
         }
     }
 
