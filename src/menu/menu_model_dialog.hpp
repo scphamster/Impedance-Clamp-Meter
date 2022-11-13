@@ -65,6 +65,11 @@ class MenuModelDialog {
     void SetOkCallback(ButtonCallback &&callback) noexcept { okCallback = std::move(callback); }
     void SetBackCallback(ButtonCallback &&callback) noexcept { backCallback = std::move(callback); }
     void SetMsg(MessageT &&new_msg) noexcept { message = std::move(new_msg); }
+    void ShowMsg(MessageT &&new_msg) noexcept
+    {
+        SetMsg(std::forward<MessageT>(new_msg));
+        Show();
+    }
     void SetValue(std::shared_ptr<ValueT> new_value) noexcept
     {
         value    = std::move(new_value);
@@ -88,8 +93,13 @@ class MenuModelDialog {
         else
             return false;
     }
-    bool                                  HasValue() const noexcept { return hasValue; }
-    bool                                  WaitForUserReaction() noexcept { return decisionMadeSemaphore->TakeBlockInfinitely(); }
+    bool HasValue() const noexcept { return hasValue; }
+    void WaitForUserReaction() noexcept
+    {
+        isWaitingForUserInput = true;
+        decisionMadeSemaphore->TakeBlockInfinitely();
+        isWaitingForUserInput = false;
+    }
     [[nodiscard]] MessageT                GetMessage() const noexcept { return message; }
     [[nodiscard]] bool                    HasBeenDrawn() const noexcept { return hasBeenDrawn; }
     [[nodiscard]] bool                    IsShown() const noexcept { return isShown; }
@@ -101,6 +111,7 @@ class MenuModelDialog {
             std::terminate();   // todo: implement better exception handling
     }
     [[nodiscard]] DialogType GetDialogType() const noexcept { return type; }
+    [[nodiscard]] bool       IsWaitingForUserInput() const noexcept { return isWaitingForUserInput; }
 
   protected:
     // slots
@@ -133,7 +144,8 @@ class MenuModelDialog {
     DialogType type{ DialogType::Informational };
 
     // drawing section
-    bool hasBeenDrawn = true;
-    bool isShown      = false;
-    bool hasValue     = false;
+    bool hasBeenDrawn{ true };
+    bool isShown{ false };
+    bool hasValue{ false };
+    bool isWaitingForUserInput{ false };
 };

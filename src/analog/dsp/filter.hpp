@@ -40,7 +40,7 @@ class AbstractFilter {
     virtual ~AbstractFilter()        = 0;
     virtual void DoFilter() noexcept = 0;
 
-    virtual void InputBufferIsReadyCallback() = 0;
+    virtual void InputBufferIsReadyCallback() { DoFilter(); }
     void SetOutputDataReadyCallback(OutputReadyCallbackT &&new_callback) noexcept { outputReadyCallback = std::move(new_callback); }
     virtual void PushData(ValueT new_data) = 0;
 
@@ -144,7 +144,7 @@ class FirDecimatingFilter : public AbstractFilter {
 
         manualInsertionIterator = inputBuffer->begin();
     }
-    void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
+    //    void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
 
     [[nodiscard]] InputBufferT CreateAndSetNewInputBuffer() noexcept override
     {
@@ -220,7 +220,6 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
         arm_biquad_cascade_df2T_f32(&filter_instance, inputBuffer->data(), outputBuffer->data(), blockSize);
         AbstractFilter::outputReadyCallback();
     }
-    void InputBufferIsReadyCallback() noexcept override { DoFilter(); }
     void PushData(ValueT new_value) noexcept override
     {
         *manualInsertionIterator = new_value;
@@ -272,6 +271,93 @@ class BiquadCascadeDF2TFilter : public AbstractFilter {
     auto constexpr static coefficients_per_stage    = 5;
     auto constexpr static state_variables_per_stage = 2;
     auto constexpr static minimal_block_size        = 1;
+};
+
+class IntegratingFilter : public AbstractFilter {
+  public:
+    using AbstractFilter::ValueT;
+    using AbstractFilter::BufferT;
+    using AbstractFilter::InputBufferT;
+    using AbstractFilter::OutputBufferT;
+    using AbstractFilter::CoefficientT;
+    using AbstractFilter::CoefficientsPack;
+
+    explicit IntegratingFilter(size_t input_block_size, size_t output_block_size)
+      : inputBlockSize{ input_block_size }
+      , outputBlockSize{ output_block_size }
+    {
+        inputBuffer             = std::make_shared<BufferT>(inputBlockSize);
+        manualInsertionIterator = inputBuffer->begin();
+
+        outputBuffer   = std::make_shared<BufferT>(output_block_size);
+        outputIterator = outputBuffer->begin();
+    }
+
+    void DoFilter() noexcept override
+    {
+        ValueT sum{ 0 };
+
+        for (auto const &value : *inputBuffer) {
+            sum += value;
+        }
+
+        *outputIterator = sum / static_cast<ValueT>(inputBlockSize);
+        outputIterator++;
+
+        if (outputIterator == outputBuffer->end()) {
+            outputIterator = outputBuffer->begin();
+            AbstractFilter::outputReadyCallback();
+        }
+    }
+    void PushData(ValueT new_value) noexcept override
+    {
+        *manualInsertionIterator = new_value;
+        manualInsertionIterator++;
+
+        if (manualInsertionIterator == inputBuffer->end()) {
+            DoFilter();
+            manualInsertionIterator = inputBuffer->begin();
+        }
+    }
+    void SetOutputBuffer(OutputBufferT new_output_buffer) noexcept override
+    {
+        configASSERT(new_output_buffer->size() == inputBlockSize);
+        outputBuffer = new_output_buffer;
+    }
+    void SetInputBuffer(InputBufferT new_input_buffer) noexcept override
+    {
+        //        configASSERT(new_input_buffer->size() == blockSize);
+        inputBuffer    = new_input_buffer;
+        inputBlockSize = inputBuffer->size();
+
+        if (outputBuffer->size() != inputBuffer->size()) {
+            auto dummy = CreateAndSetNewOutputBuffer();
+        }
+
+        manualInsertionIterator = inputBuffer->begin();
+    }
+
+    [[nodiscard]] InputBufferT CreateAndSetNewInputBuffer() noexcept override
+    {
+        inputBuffer             = std::make_shared<BufferT>(inputBlockSize);
+        manualInsertionIterator = inputBuffer->begin();
+        return inputBuffer;
+    }
+    [[nodiscard]] OutputBufferT CreateAndSetNewOutputBuffer() noexcept override
+    {
+        outputBuffer   = std::make_shared<BufferT>(outputBlockSize);
+        outputIterator = outputBuffer->begin();
+        return outputBuffer;
+    }
+    [[nodiscard]] bool   InputBufferShouldBeOfSpecificSize() const noexcept override { return false; }
+    [[nodiscard]] bool   OutputBufferShouldBeOfSpecificSize() const noexcept override { return false; }
+    [[nodiscard]] size_t GetDesiredInputBufferSize() const noexcept override { return inputBlockSize; }
+    [[nodiscard]] size_t GetDesiredOutputBufferSize() const noexcept override { return outputBlockSize; }
+
+  private:
+    size_t                        inputBlockSize;
+    size_t                        outputBlockSize;
+    std::vector<ValueT>::iterator outputIterator;
 };
 
 template<typename ValueT>

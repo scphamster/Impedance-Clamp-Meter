@@ -8,7 +8,7 @@
 class AmplifierController {
   public:
     using AGCType    = AutomaticGainController<GainController, float>;
-    using GainT      = typename GainController::GainLevelT;
+    using GainLevelT = typename GainController::GainLevelT;
     using GainValueT = GainController::GainValueT;
     using PhaseShift = GainController::PhaseShift;
 
@@ -35,17 +35,17 @@ class AmplifierController {
         agcIsEnabled = enable_agc;
     }
     [[maybe_unused]] void ForceForwardAmplitudeValueToAGC(auto new_value) noexcept { agc->InspectSignalAmplitude(new_value); }
-    [[maybe_unused]] void ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
+    void ForwardAmplitudeValueToAGCIfEnabled(auto new_value)
     {
         if (agcIsEnabled)
             agc->InspectSignalAmplitude(new_value);
     }
-    void SetGain(GainT new_gain) noexcept
+    void SetGain(GainLevelT new_gain) noexcept
     {
         if (not agcIsEnabled)
             gainController->SetGain(new_gain);
     };
-    [[maybe_unused]] void                       ForceSetGain(GainT new_gain) noexcept { gainController->SetGain(new_gain); }
+    [[maybe_unused]] void                       ForceSetGain(GainLevelT new_gain) noexcept { gainController->SetGain(new_gain); }
     void                                        SetMinGain() noexcept { gainController->SetGain(gainController->GetMinGain()); }
     void                                        SetMaxGain() noexcept { gainController->SetGain(gainController->GetMaxGain()); }
     [[maybe_unused]] [[nodiscard]] bool         AgcIsEnabled() const noexcept { return agcIsEnabled; }

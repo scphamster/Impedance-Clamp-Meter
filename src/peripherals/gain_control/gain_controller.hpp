@@ -19,23 +19,34 @@ class GainController {
 
     void SetGain(GainLevelT new_gain) noexcept
     {
-        if (new_gain > maxGain)
-            new_gain = maxGain;
+        configASSERT(new_gain <= maxGain and new_gain >= minGain);
 
-        if (new_gain == gain)
-            return;
+        // todo: reimplement
+        //         if (new_gain == gain)
+        //             return;
 
-        if (gainChangeFunctors.contains(new_gain)) {
-            gainChangeFunctors.at(new_gain)();
-            gain = new_gain;
-        }
+        configASSERT(gainChangeFunctors.contains(new_gain));
+
+        gainChangeFunctors.at(new_gain)();
+        gain = new_gain;
     }
-    void IncreaseGain() noexcept { SetGain(gain + 1); }
-    void DecreaseGain() noexcept { SetGain(gain - 1); }
+    void SetGainForce(GainLevelT new_gain) noexcept
+    {
+        // todo implement
+    }
+    void IncreaseGain() noexcept
+    {
+        if (gain < maxGain)
+            SetGain(gain + 1);
+    }
+    void DecreaseGain() noexcept
+    {
+        if (gain > minGain)
+            SetGain(gain - 1);
+    }
     void SetGainChangeFunctor(GainLevelT for_gain_level, GainChangeFunctor &&new_functor, GainAndPhaseShift gain_and_phase)
     {
-        if (for_gain_level > maxGain)
-            return;
+        configASSERT(for_gain_level <= maxGain and for_gain_level >= minGain);
 
         gainChangeFunctors[for_gain_level] = std::move(new_functor);
         gainLevelData[for_gain_level]      = { gain_and_phase.first, gain_and_phase.second };
@@ -45,11 +56,17 @@ class GainController {
         gainLevelData.at(for_level).gainValue  = gainValue;
         gainLevelData.at(for_level).phaseShift = phaseShift;
     }
+    void SetGainValueAndPhaseShift(GainLevelT for_level, GainAndPhaseShift new_data) noexcept
+    {
+        gainLevelData.at(for_level).gainValue  = new_data.first;
+        gainLevelData.at(for_level).phaseShift = new_data.second;
+    }
 
     [[nodiscard]] GainLevelT GetMaxGain() const noexcept { return maxGain; }
     [[nodiscard]] GainLevelT GetMinGain() const noexcept { return minGain; }
     [[nodiscard]] GainValueT GetGainValue() const noexcept { return gainLevelData.at(gain).gainValue; }
     [[nodiscard]] PhaseShift GetPhaseShift() const noexcept { return gainLevelData.at(gain).phaseShift; }
+    [[nodiscard]] GainLevelT GetGainLevel() const noexcept { return gain; }
 
   private:
     GainLevelT maxGain = 0;

@@ -109,7 +109,7 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         z_clamp->SetIndex(2);
 
         auto degree_nocall = std::make_shared<Page>(menu);
-        degree_nocall->SetName("degree nocal");
+        degree_nocall->SetName("Degree");
         degree_nocall->SetData(valueFour);
         degree_nocall->SetIndex(3);
 
@@ -123,7 +123,9 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F1, [this]() { clampMeter.StartNormalModeOperation(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F2, [this]() { clampMeter.Stop(); });
         measurements_page->SetKeyCallback(Keyboard::ButtonName::F3, [this]() { clampMeter.SwitchToNextSensor(); });
-
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::F4, [this]() { clampMeter.DisableAGC(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::Left, [this]() { clampMeter.DecreaseGain(); });
+        measurements_page->SetKeyCallback(Keyboard::ButtonName::Down, [this]() { clampMeter.IncreaseGain(); });
         // calibration menu
 
         auto start_calibration = std::make_shared<Page>(menu);

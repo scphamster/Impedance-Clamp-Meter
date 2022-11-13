@@ -19,7 +19,6 @@
 #include "clamp_meter_concepts.hpp"
 #include "queue.hpp"
 
-
 // todo: try to make data transfer more c++ish, to make class not SINGLETONE
 class MCP3462_driver {
   public:
@@ -208,15 +207,15 @@ class MCP3462_driver {
     void StopMeasurement() noexcept;
     void SetMeasurementMode(MeasurementMode new_mode) noexcept;   // todo implement
     void SetOutputStreamBuffer(std::shared_ptr<OutputStreamBuffer> new_sb) noexcept { outputSB = new_sb; }
-    void StartSynchronousMeasurements() noexcept {
-        if (not outputSB) std::terminate();
+    void StartSynchronousMeasurements() noexcept
+    {
+        if (not outputSB)
+            std::terminate();
 
         EnableInterrupt(false);
         EnableClock();
     }
-    void SynchronizationCallback() noexcept {
-        EnableInterrupt(false);
-    }
+    void SynchronizationCallback() noexcept { EnableInterrupt(false); }
 
     ValueT         SingleShotMeasurement() noexcept;   // todo implement
     ValueT         Read() noexcept;
@@ -225,6 +224,7 @@ class MCP3462_driver {
     {
         return std::make_shared<OutputStreamBuffer>(streamBufferCapacity, streamBufferTriggeringSize);
     }
+    std::underlying_type_t<Gain> GetGainLevel() const noexcept { return static_cast<std::underlying_type_t<Gain>>(gain); }
 
   protected:
     void EnableInterrupt(bool if_enable = true) noexcept;
@@ -257,7 +257,7 @@ class MCP3462_driver {
     std::shared_ptr<OutputStreamBuffer> outputSB;
 
     size_t streamBufferCapacity;
-    size_t  streamBufferTriggeringSize;
+    size_t streamBufferTriggeringSize;
 
     bool clockIsEnabled = false;
 

@@ -245,10 +245,11 @@ class MenuModelDrawer {
             back_color = nonSelectedItemBackground;
         }
 
-        drawer->DrawFiledRectangle(Point{ itemsSettings.valuePos, itemsSettings.usedArea.top + item_index * itemsSettings.fontHeight },
-                                   itemsSettings.valueFieldWidth,
-                                   itemsSettings.fontHeight,
-                                   back_color);
+        drawer->DrawFiledRectangle(
+          Point{ itemsSettings.valuePos, itemsSettings.usedArea.top + item_index * itemsSettings.fontHeight },
+          itemsSettings.valueFieldWidth,
+          itemsSettings.fontHeight,
+          back_color);
         drawer->SetCursor({ itemsSettings.valuePos, itemsSettings.usedArea.top + item_index * itemsSettings.fontHeight });
         drawer->SetTextColor(itemsSettings.valueColor, back_color);
         std::visit([this](auto &&printable_data) { drawer->Print(printable_data, itemsSettings.fontSize); }, value);
@@ -367,7 +368,7 @@ class MenuModelDrawer {
             return;
 
         if (dialogBox)
-            if (dialogBox->IsShown()) {
+            if (dialogBox->IsWaitingForUserInput()) {
                 DialogBoxKeyboardHandler(event, button);
                 return;
             }

@@ -1,7 +1,7 @@
 #pragma once
 #ifdef min
 #undef min
-#endif   // max
+#endif   // min
 #ifdef max
 #undef max
 #endif   // max
@@ -99,12 +99,11 @@ class SensorController {
                    ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::SensorInput),
                    ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::SensorInput),
                    "s_input" }
+      , dataReadySemaphore{ xSemaphoreCreateBinary() }
       , inputSB{ std::move(new_input_stream_buffer) }
-      , outputQueue{ toMasterQueue }
+      , outputQueue{ std::move(toMasterQueue) }
       , filterI{ std::move(new_filter_I) }
       , filterQ{ std::move(new_filter_Q) }
-
-      , dataReadySemaphore{ xSemaphoreCreateBinary() }
       , amplifierController{ std::forward<decltype(new_amplifier_controller)>(new_amplifier_controller) }
       , iqCalculator{ std::move(new_iq_calculator) }
     {
@@ -142,7 +141,16 @@ class SensorController {
 
         isActivated = false;
     }
-    void SetMode(Mode newmode) noexcept { mode = newmode; }
+    void SetMode(Mode newmode) noexcept
+    {
+        mode = newmode;
+        if (mode == Mode::Normal) {
+            EnableAGC();
+        }
+        else if (mode == Mode::Calibration) {
+            DisableAGC();
+        }
+    }
     void SetTrueValuesForCalibration(ValueT magnitude, ValueT phi_degree, GainLevelT for_gain_level) noexcept
     {
         calibrationTargets.magnitude      = magnitude;
@@ -157,7 +165,7 @@ class SensorController {
     {
         deactivationCallback = std::forward<decltype(new_callback)>(new_callback);
     }
-    void                  SetGain(GainT new_gain) noexcept { amplifierController->SetGain(new_gain); }
+    void                  SetGain(GainLevelT new_gain) noexcept { amplifierController->SetGain(new_gain); }
     void                  SetMinGain() noexcept { amplifierController->SetMinGain(); }
     void                  EnableAGC() noexcept { amplifierController->EnableAGC(); }
     void                  DisableAGC() noexcept { amplifierController->DisableAGC(); }
@@ -165,15 +173,12 @@ class SensorController {
     void                  SuspendTasks() noexcept { inputTask.Suspend(); }
     void                  ResumeTasks() noexcept { inputTask.Resume(); }
 
-    [[nodiscard]] decltype(auto)                  GetInputStreamBuffer() const noexcept { return inputSB; }
-    [[nodiscard]] SemaphoreT                      GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] std::pair<ValueT, ValueT>       GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
-    [[maybe_unused]] [[nodiscard]] bool           IsActivated() const noexcept { return isActivated; }
-    [[nodiscard]] Mode                            GetMode() const noexcept { return mode; }
-    [[nodiscard]] std::shared_ptr<GainController> GetGainController() const noexcept
-    {
-        return amplifierController->GetGainController();
-    }
+    [[nodiscard]] decltype(auto)            GetInputStreamBuffer() const noexcept { return inputSB; }
+    [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
+    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
+    [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
+    [[nodiscard]] Mode                      GetMode() const noexcept { return mode; }
+    std::shared_ptr<GainController>         GetGainController() const noexcept { return amplifierController->GetGainController(); }
 
   protected:
     // tasks
@@ -199,11 +204,14 @@ class SensorController {
 
             // measurement task // use calibration
             if (mode == Mode::Normal) {
-                auto gain                     = amplifierController->GetGainValue();
-                auto Ival_nocal               = filterI->DoFilter() / gain;
+                auto gain = amplifierController->GetGainValue();
+
+                auto ival = filterI->DoFilter();
+
+                auto Ival_nocal               = ival / gain;
                 auto Qval_nocal               = filterQ->DoFilter() / gain;
                 auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(Ival_nocal, Qval_nocal);
-                data.DegreeNocal              = degree;
+                data.DegreeNocal              = ival;
                 data.degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
                 data.AbsoluteValue            = absolute_value;
 
@@ -214,9 +222,9 @@ class SensorController {
 
             // calibration task
             else if (mode == Calibration) {
-                //test
-                auto dataI=   filterI->DoFilter();
-                auto dataQ = filterQ->DoFilter();
+                // test
+                auto dataI         = filterI->DoFilter();
+                auto dataQ         = filterQ->DoFilter();
                 auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(dataI, dataQ);
 
                 data.DegreeNocal = degree;
@@ -237,10 +245,10 @@ class SensorController {
     SensorData         data;
     CalibrationTargets calibrationTargets;
 
+    Task       inputTask;
     SemaphoreT dataReadySemaphore;
-    Mode       mode{ Mode::Normal };
 
-    Task                                inputTask;
+    Mode                                mode{ Mode::Normal };
     std::shared_ptr<InputStreamBufferr> inputSB;
     std::shared_ptr<ToMasterQueue>      outputQueue;
 

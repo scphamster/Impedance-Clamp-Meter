@@ -384,4 +384,6 @@ MCP3462_driver::SetGain(MCP3462_driver::Gain new_gain) noexcept
 
     spi_write(SPI, (initWord << 8) | config2Word, 0, 0);
     spi_set_lastxfer(SPI);
+
+    gain = new_gain;
 }

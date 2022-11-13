@@ -128,6 +128,8 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/semaphore/semaphore.hpp
 
+    ${SOURCES_DIRECTORY}/static_string.hpp
+
     )
 
 set(C_SOURCES
