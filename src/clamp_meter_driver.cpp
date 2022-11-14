@@ -7,14 +7,6 @@ int error_counter;
 
 void ClampMeterDriver::CalculateAppliedVoltage() noexcept
 {
-
-
-
-    data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
-    data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
-    arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,
-                 &data.AppliedVoltage);
-
-    data.AppliedVoltagePhi =
-      SynchronousIQCalculator<ValueT>::FindAngle(data.AppliedVoltageQ, data.AppliedVoltageI, data.AppliedVoltage);
+    data.appliedVoltage = data.voltageSensorData.GetValue() - data.shuntSensorData.GetValue();
+    data.AppliedVoltage = std::abs(data.appliedVoltage);
 }

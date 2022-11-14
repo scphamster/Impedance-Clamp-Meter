@@ -41,34 +41,34 @@ class SensorData {
   public:
     using ValueT                  = float;
     using QueueT [[maybe_unused]] = QueueHandle_t;
-    using ComplexT = std::complex<ValueT>;
+    using ComplexT                = std::complex<ValueT>;
 
-    void SetI(ValueT new_true_value_i) noexcept { Value_I = new_true_value_i; }
-    void SetQ(ValueT new_true_value_q) noexcept { Value_Q = new_true_value_q; }
+    void SetI(ValueT new_true_value_i) noexcept { value.real(new_true_value_i); }
+    void SetQ(ValueT new_true_value_q) noexcept { value.imag(new_true_value_q); }
+    void Set(ComplexT new_value) noexcept { value = new_value; }
     void SetAbsolute(ValueT new_true_absolutevalue) noexcept { AbsoluteValue = new_true_absolutevalue; }
     void SetDegree(ValueT new_true_degree) noexcept { degree = new_true_degree; }
+    void SetDegreeFromRad(ValueT new_degree) noexcept { degree = new_degree * 180.f / PI; }
 
-    [[nodiscard]] ValueT  GetI() const noexcept { return Value_I; }
-    [[nodiscard]] ValueT  GetQ() const noexcept { return Value_Q; }
-    [[nodiscard]] ValueT  GetAbsolute() const noexcept { return AbsoluteValue; }
-    [[nodiscard]] ValueT  GetDegree() const noexcept { return degree; }
-    [[nodiscard]] ValueT  GetDegreeNocal() const noexcept { return DegreeNocal; }
-    [[nodiscard]] ValueT  GetGainValue() const noexcept { return gainValue; }
-    [[nodiscard]] auto    GetGainLevel() const noexcept { return gainLevel; }
-    [[nodiscard]] ValueT  GetRawAbsolute() const noexcept { return rawAbsolute; }
-    [[nodiscard]] bool    AgcIsEnabled() const noexcept { return agcIsEnabled; }
-    [[nodiscard]] int32_t GetAdcMax() const noexcept { return adcMax; }
-    [[nodiscard]] int32_t GetAdcMin() const noexcept { return adcMin; }
+    [[nodiscard]] ValueT   GetI() const noexcept { return value.real(); }
+    [[nodiscard]] ValueT   GetQ() const noexcept { return value.imag(); }
+    [[nodiscard]] ComplexT GetValue() const noexcept { return value; }
+    [[nodiscard]] ValueT   GetAbsolute() const noexcept { return AbsoluteValue; }
+    [[nodiscard]] ValueT   GetDegree() const noexcept { return degree; }
+    [[nodiscard]] ValueT   GetDegreeNocal() const noexcept { return DegreeNocal; }
+    [[nodiscard]] ValueT   GetGainValue() const noexcept { return gainValue; }
+    [[nodiscard]] auto     GetGainLevel() const noexcept { return gainLevel; }
+    [[nodiscard]] ValueT   GetRawAbsolute() const noexcept { return rawAbsolute; }
+    [[nodiscard]] bool     AgcIsEnabled() const noexcept { return agcIsEnabled; }
+    [[nodiscard]] int32_t  GetAdcMax() const noexcept { return adcMax; }
+    [[nodiscard]] int32_t  GetAdcMin() const noexcept { return adcMin; }
 
   private:
     friend class SensorController;
 
-//    ComplexT value;
-
-    ValueT Value_I{};
-    ValueT Value_Q{};
-    ValueT AbsoluteValue{};
-    ValueT degree{};
+    ComplexT value;
+    ValueT   AbsoluteValue{};
+    ValueT   degree{};
 
     // test
     ValueT DegreeNocal{};
@@ -97,7 +97,7 @@ class SensorController {
     using FilterT              = SuperFilterNoTask<ValueT>;
     using Filter               = std::shared_ptr<FilterT>;
     using ToMasterQueue        = Queue<SensorData>;
-
+    using ComplexT             = SensorData::ComplexT;
     enum Configs {
         SendTimeout    = 0,
         ReceiveTimeout = portMAX_DELAY
@@ -193,12 +193,11 @@ class SensorController {
     void                  SuspendTasks() noexcept { inputTask.Suspend(); }
     void                  ResumeTasks() noexcept { inputTask.Resume(); }
 
-    [[nodiscard]] decltype(auto)            GetInputStreamBuffer() const noexcept { return inputSB; }
-    [[nodiscard]] SemaphoreT                GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
-    [[nodiscard]] std::pair<ValueT, ValueT> GetValue() const noexcept { return { data.Value_I, data.Value_Q }; }
-    [[maybe_unused]] [[nodiscard]] bool     IsActivated() const noexcept { return isActivated; }
-    [[nodiscard]] Mode                      GetMode() const noexcept { return mode; }
-    std::shared_ptr<GainController>         GetGainController() const noexcept { return amplifierController->GetGainController(); }
+    [[nodiscard]] decltype(auto)        GetInputStreamBuffer() const noexcept { return inputSB; }
+    [[nodiscard]] SemaphoreT            GetDataReadySemaphore() const noexcept { return dataReadySemaphore; }
+    [[maybe_unused]] [[nodiscard]] bool IsActivated() const noexcept { return isActivated; }
+    [[nodiscard]] Mode                  GetMode() const noexcept { return mode; }
+    std::shared_ptr<GainController>     GetGainController() const noexcept { return amplifierController->GetGainController(); }
 
   protected:
     // tasks
@@ -211,15 +210,8 @@ class SensorController {
         while (true) {
             inputBuffer = inputSB->Receive<ProjectConfigs::SensorFirstFilterBufferSize>(ReceiveTimeout);
 
-            data.adcMax = 0;
-            data.adcMin = 0;
-
             for (auto counter{ 0 }; auto const abs_value : inputBuffer) {
                 amplifierController->ForwardAmplitudeValueToAGCIfEnabled(static_cast<ValueT>(abs_value));
-                if (abs_value > data.adcMax)
-                    data.adcMax = abs_value;
-                if (abs_value < data.adcMin)
-                    data.adcMin = abs_value;
 
                 auto [I, Q]                       = iqCalculator->GetSynchronousIQ(static_cast<ValueT>(abs_value));
                 filterI_input_buffer->at(counter) = I;
@@ -230,18 +222,15 @@ class SensorController {
 
             // measurement task // use calibration
             if (mode == Mode::Normal) {
-                auto gain      = amplifierController->GetGainValue();
-                data.gainValue = gain;
-                data.gainLevel = amplifierController->GetGainLevel();
+                ComplexT from_filter{ filterI->DoFilter(), filterQ->DoFilter() };
 
-                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(), filterQ->DoFilter());
-                data.rawAbsolute              = absolute_value;
-                data.AbsoluteValue            = absolute_value / gain;
-                data.degree                   = iqCalculator->NormalizeAngle(degree - amplifierController->GetPhaseShift());
+                //                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(),
+                //                filterQ->DoFilter());
 
-                auto [I, Q]  = iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.degree);
-                data.Value_I = I;
-                data.Value_Q = Q;
+                data.SetAbsolute(std::abs(from_filter) / amplifierController->GetGainValue());
+                data.SetDegree(
+                  iqCalculator->NormalizeAngle(std::arg(from_filter) * 180.f / PI - amplifierController->GetPhaseShift()));
+                data.Set(iqCalculator->GetIQFromAmplitudeAndPhase(data.AbsoluteValue, data.degree));
             }
 
             // calibration task
@@ -251,9 +240,10 @@ class SensorController {
                 auto dataQ         = filterQ->DoFilter();
                 auto [abs, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(dataI, dataQ);
 
-                data.DegreeNocal = degree;
                 data.SetAbsolute(abs / calibrationTargets.magnitude);
                 data.SetDegree(iqCalculator->NormalizeAngle(degree - calibrationTargets.phi));
+
+                // todo: remove
                 data.SetI(abs);
             }
 

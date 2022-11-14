@@ -613,10 +613,10 @@ class ClampMeterDriver {
         case Sensor::Clamp: msg.append("Clamp "); break;
         }
 
-        msg.append(" XOverall=" + StringConverter::ToString<3>(data.XOverall));
-        msg.append(" ROverall=" + StringConverter::ToString<3>(data.ROverall));
-        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
-        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
+        //        msg.append(" XOverall=" + StringConverter::ToString<3>(data.XOverall));
+        //        msg.append(" ROverall=" + StringConverter::ToString<3>(data.ROverall));
+//        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
+//        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
         msg.append(" IClamp=" + StringConverter::ToString<3>(data.clampSensorData.GetAbsolute()));
 
         messageBox->ShowMsg(std::move(msg));
@@ -636,6 +636,7 @@ class ClampMeterDriver {
             return;
 
         *value1 = data.voltageSensorData.GetAbsolute();
+        *value4 = data.voltageSensorData.GetDegree();
     }
     void CalculateShuntSensor() noexcept
     {
@@ -644,51 +645,30 @@ class ClampMeterDriver {
 
         CalculateAppliedVoltage();
 
-        auto admitance_mag = data.shuntSensorData.GetAbsolute() / (shuntResistorValue * data.AppliedVoltage);
-        auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
-        data.shuntSensorData.SetDegree(admitance_phi);
+        auto admitance = (data.shuntSensorData.GetValue() / shuntResistorValue) / data.appliedVoltage;
+        data.ZOverall.SetFromAdmitance(admitance);
 
-        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
-
-        // test
-        data.ovrlSin      = sin;
-        data.ovrlCos      = cos;
-        data.admitancePhi = admitance_phi;
-        // test
-
-        auto conductance = admitance_mag * cos;
-        auto susceptance = admitance_mag * sin;
-
-        data.ROverall    = 1 / conductance;
-        data.XOverall    = -1 / susceptance;
-        data.ZOverall    = 1 / admitance_mag;
-        data.ZOverallPhi = admitance_phi;
-
-        *value2 = data.ZOverall;
-        *value4 = data.shuntSensorData.GetDegree();
-        *value5 = data.XOverall;
-        *value6 = data.ROverall;
+        *value2 = data.ZOverall.GetZAbs();
+        *value4 = data.ZOverall.GetDegree();
+        *value5 = data.ZOverall.GetX();
+        *value6 = data.ZOverall.GetR();
     }
     void CalculateClampSensor() noexcept
     {
         if (workMode == Mode::Calibration)
             return;
 
-        data.ZClamp = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
-        data.clampSensorData.SetDegree(IQCalcT::NormalizeAngle(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi));
+        //        data.ZClamp = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
 
-        std::complex<ValueT> v{ data.AppliedVoltageI, data.AppliedVoltageQ };
-        std::complex<ValueT> i{ data.clampSensorData.GetI(), data.clampSensorData.GetQ() };
+        auto q = data.clampSensorData.GetValue() / data.appliedVoltage;
+        data.clamp.SetFromAdmitance(q);
+        //        data.RClamp = 1 / q.real();
+        //        data.XClamp = -1 / q.imag();
 
-        auto q = i / v;
-
-        data.RClamp = 1 / q.real();
-        data.XClamp = -1 / q.imag();
-
-        *value3 = data.ZClamp;
-        *value4 = data.clampSensorData.GetDegree();
-        *value7 = data.XClamp;
-        *value8 = data.RClamp;
+        *value3 = data.clamp.GetZAbs();
+        *value4 = data.clamp.GetDegree();
+        *value7 = data.clamp.GetX();
+        *value8 = data.clamp.GetR();
     }
 
     void WaitForStableData(ValueT max_deviation) noexcept
@@ -914,9 +894,6 @@ class ClampMeterDriver {
                 *value3 = sensor_data.GetAbsolute();
                 *value4 = sensor_data.GetDegree();
             }
-            else {
-                *value4 = sensor_data.GetDegree();
-            }
 
             switch (activeSensor) {
             case Sensor::Voltage:
@@ -940,31 +917,49 @@ class ClampMeterDriver {
     }
 
   private:
+    class Impedance {
+      public:
+        static ValueT FindRFromAdmitance(ComplexT admitance) noexcept { return 1 / admitance.real(); }
+        static ValueT FindXFromAdmitance(ComplexT admitance) noexcept { return -1 / admitance.imag(); }
+
+        [[nodiscard]] ValueT   GetDegree() const noexcept { return std::arg(z) * rad2deg; }
+        [[nodiscard]] ValueT   GetRadians() const noexcept { return std::arg(z); }
+        [[nodiscard]] ValueT   GetZAbs() const noexcept { return std::abs(z); }
+        [[nodiscard]] ComplexT GetZ() const noexcept { return z; }
+        [[nodiscard]] ValueT   GetR() const noexcept { return r; }
+        [[nodiscard]] ValueT   GetX() const noexcept { return x; }
+
+        void SetFromAdmitance(ComplexT admitance) noexcept
+        {
+            z = 1 / std::abs(admitance);
+            r = FindRFromAdmitance(admitance);
+            x = FindXFromAdmitance(admitance);
+            z = { r, x };
+        }
+        void SetZ(ValueT new_z) noexcept { z = new_z; }
+        void SetR(ValueT new_r) noexcept { r = new_r; }
+        void SetX(ValueT new_x) noexcept { x = new_x; }
+
+      private:
+        ComplexT z;
+        ValueT   r;
+        ValueT   x;
+
+        auto static constexpr rad2deg = 180.f / PI;
+    };
+
     struct ClampMeterData {
       public:
         SensorData voltageSensorData;
         SensorData shuntSensorData;
         SensorData clampSensorData;
 
-        ComplexT AppliedVoltage_c;
+        ComplexT appliedVoltage;
+        ValueT   AppliedVoltage{};
 
-        ValueT AppliedVoltageI{};
-        ValueT AppliedVoltageQ{};
-        ValueT AppliedVoltage{};
-        ValueT AppliedVoltagePhi{};
-
-        ValueT ZOverall;
-        ValueT ROverall;
-        ValueT XOverall;
-        ValueT ZOverallPhi;
-
-        ValueT ZClamp;
-        ValueT RClamp;
-        ValueT XClamp;
         // test
-        ValueT ovrlSin;
-        ValueT ovrlCos;
-        ValueT admitancePhi;
+        Impedance ZOverall;
+        Impedance clamp;
     };
 
     // todo: compress

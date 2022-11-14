@@ -1,6 +1,8 @@
 #pragma once
 #include "compiler_compatibility_workaround.hpp"
 #include <memory>
+#include <complex>
+
 #include "dsp_resources.hpp"
 #include "arm_math.h"
 
@@ -9,6 +11,7 @@ class SynchronousIQCalculator {
   public:
     using IValueT = ValueT;
     using QValueT = ValueT;
+    using ComplexT = std::complex<ValueT>;
 
     SynchronousIQCalculator(int reset_tick_counter_at_number_of_ticks)
       : tickCounterResetTriggeringLimit{ reset_tick_counter_at_number_of_ticks }
@@ -26,13 +29,13 @@ class SynchronousIQCalculator {
         return retval;
     }
 
-    static std::pair<IValueT, QValueT> GetIQFromAmplitudeAndPhase(ValueT amplitude, ValueT phase_degree)
+    static ComplexT GetIQFromAmplitudeAndPhase(ValueT amplitude, ValueT phase_degree)
     {
         ValueT sine, cosine;
 
         arm_sin_cos_f32(phase_degree, &sine, &cosine);
 
-        return std::pair{ amplitude * cosine, amplitude * sine };
+        return ComplexT{ amplitude * cosine, amplitude * sine };
     }
 
     static std::pair<ValueT, ValueT> GetAbsoluteAndDegreeFromIQ(ValueT Ival, ValueT Qval) noexcept
