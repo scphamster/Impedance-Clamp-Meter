@@ -7,6 +7,9 @@ int error_counter;
 
 void ClampMeterDriver::CalculateAppliedVoltage() noexcept
 {
+
+
+
     data.AppliedVoltageI = data.voltageSensorData.GetI() - data.shuntSensorData.GetI();
     data.AppliedVoltageQ = data.voltageSensorData.GetQ() - data.shuntSensorData.GetQ();
     arm_sqrt_f32(data.AppliedVoltageI * data.AppliedVoltageI + data.AppliedVoltageQ * data.AppliedVoltageQ,

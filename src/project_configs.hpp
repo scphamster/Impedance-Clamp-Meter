@@ -18,7 +18,7 @@ enum class TaskStackSize {
 #else
 enum class TaskStackSize {
     Display                = 350,
-    ClampDriverSensor      = 500,
+    ClampDriverSensor      = 550,
     ClampDriverCalibration = 500,
     SensorInput            = 400,
     SensorFromFilter       = configMINIMAL_STACK_SIZE,

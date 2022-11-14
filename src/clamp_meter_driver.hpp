@@ -12,6 +12,8 @@
 #include <memory>
 #include <functional>
 #include <utility>
+#include <complex>
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -132,6 +134,8 @@ class ClampMeterDriver {
     using Filter                        = std::shared_ptr<FilterT>;
     using FromSensorQueueT              = Queue<SensorData>;
     using DialogT                       = MenuModelDialog;
+    using ComplexT                      = std::complex<ValueT>;
+    using IQCalcT                       = SynchronousIQCalculator<ValueT>;
 
     using CalibrationDataT      = std::array<std::pair<ValueT, ValueT>, 21>;
     using ShuntCalibrationDataT = std::array<std::pair<ValueT, ValueT>, 10>;
@@ -642,6 +646,7 @@ class ClampMeterDriver {
 
         auto admitance_mag = data.shuntSensorData.GetAbsolute() / (shuntResistorValue * data.AppliedVoltage);
         auto admitance_phi = data.shuntSensorData.GetDegree() - data.AppliedVoltagePhi;
+        data.shuntSensorData.SetDegree(admitance_phi);
 
         auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(admitance_phi);
 
@@ -655,12 +660,13 @@ class ClampMeterDriver {
         auto susceptance = admitance_mag * sin;
 
         data.ROverall    = 1 / conductance;
-        data.XOverall    = 1 / susceptance;
+        data.XOverall    = -1 / susceptance;
         data.ZOverall    = 1 / admitance_mag;
         data.ZOverallPhi = admitance_phi;
 
         *value2 = data.ZOverall;
-        *value5= data.XOverall;
+        *value4 = data.shuntSensorData.GetDegree();
+        *value5 = data.XOverall;
         *value6 = data.ROverall;
     }
     void CalculateClampSensor() noexcept
@@ -668,16 +674,19 @@ class ClampMeterDriver {
         if (workMode == Mode::Calibration)
             return;
 
-        data.clampSensorData.SetDegree(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi -
-                                       data.voltageSensorData.GetDegree());
+        data.ZClamp = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
+        data.clampSensorData.SetDegree(IQCalcT::NormalizeAngle(data.clampSensorData.GetDegree() - data.AppliedVoltagePhi));
 
-        data.ZClamp     = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
-        auto [sin, cos] = SynchronousIQCalculator<ValueT>::GetSinCosFromAngle(data.clampSensorData.GetDegree());
+        std::complex<ValueT> v{ data.AppliedVoltageI, data.AppliedVoltageQ };
+        std::complex<ValueT> i{ data.clampSensorData.GetI(), data.clampSensorData.GetQ() };
 
-        data.RClamp = data.AppliedVoltage / (data.clampSensorData.GetI() * cos);
-        data.XClamp = data.AppliedVoltage / (data.clampSensorData.GetQ() * sin);
+        auto q = i / v;
+
+        data.RClamp = 1 / q.real();
+        data.XClamp = -1 / q.imag();
 
         *value3 = data.ZClamp;
+        *value4 = data.clampSensorData.GetDegree();
         *value7 = data.XClamp;
         *value8 = data.RClamp;
     }
@@ -925,7 +934,7 @@ class ClampMeterDriver {
             }
 
             if (workMode == Mode::Normal) {
-//                ShowCalculationsInfo();
+                //                ShowCalculationsInfo();
             }
         }
     }
@@ -936,6 +945,8 @@ class ClampMeterDriver {
         SensorData voltageSensorData;
         SensorData shuntSensorData;
         SensorData clampSensorData;
+
+        ComplexT AppliedVoltage_c;
 
         ValueT AppliedVoltageI{};
         ValueT AppliedVoltageQ{};

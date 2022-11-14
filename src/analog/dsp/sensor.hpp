@@ -15,6 +15,7 @@
 #include <mutex>
 #include <utility>
 #include <algorithm>
+#include <complex>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -40,6 +41,7 @@ class SensorData {
   public:
     using ValueT                  = float;
     using QueueT [[maybe_unused]] = QueueHandle_t;
+    using ComplexT = std::complex<ValueT>;
 
     void SetI(ValueT new_true_value_i) noexcept { Value_I = new_true_value_i; }
     void SetQ(ValueT new_true_value_q) noexcept { Value_Q = new_true_value_q; }
@@ -60,6 +62,8 @@ class SensorData {
 
   private:
     friend class SensorController;
+
+//    ComplexT value;
 
     ValueT Value_I{};
     ValueT Value_Q{};
