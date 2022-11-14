@@ -615,8 +615,8 @@ class ClampMeterDriver {
 
         //        msg.append(" XOverall=" + StringConverter::ToString<3>(data.XOverall));
         //        msg.append(" ROverall=" + StringConverter::ToString<3>(data.ROverall));
-//        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
-//        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
+        //        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
+        //        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
         msg.append(" IClamp=" + StringConverter::ToString<3>(data.clampSensorData.GetAbsolute()));
 
         messageBox->ShowMsg(std::move(msg));
@@ -886,6 +886,13 @@ class ClampMeterDriver {
             if (writeDebugInfo)
                 WriteDebugInfo(sensor_data);
 
+            static bool showOnce = true;
+
+            if (showOnce) {
+                messageBox->ShowMsg("std::arg(1,0)=" + std::to_string(std::arg(ComplexT{ 1, 0 })));
+                showOnce = false;
+            }
+
             CheckDataStability(sensor_data.GetI());
 
             if (workMode == Mode::Calibration) {
@@ -919,6 +926,9 @@ class ClampMeterDriver {
   private:
     class Impedance {
       public:
+        // fixme: degree should be calculated as for current not for actual Z (if no X is attached to circuit (X value is very high)
+        // angle should be 0 not 90)
+
         static ValueT FindRFromAdmitance(ComplexT admitance) noexcept { return 1 / admitance.real(); }
         static ValueT FindXFromAdmitance(ComplexT admitance) noexcept { return -1 / admitance.imag(); }
 
@@ -926,24 +936,16 @@ class ClampMeterDriver {
         [[nodiscard]] ValueT   GetRadians() const noexcept { return std::arg(z); }
         [[nodiscard]] ValueT   GetZAbs() const noexcept { return std::abs(z); }
         [[nodiscard]] ComplexT GetZ() const noexcept { return z; }
-        [[nodiscard]] ValueT   GetR() const noexcept { return r; }
-        [[nodiscard]] ValueT   GetX() const noexcept { return x; }
+        [[nodiscard]] ValueT   GetR() const noexcept { return z.real(); }
+        [[nodiscard]] ValueT   GetX() const noexcept { return z.imag(); }
 
-        void SetFromAdmitance(ComplexT admitance) noexcept
-        {
-            z = 1 / std::abs(admitance);
-            r = FindRFromAdmitance(admitance);
-            x = FindXFromAdmitance(admitance);
-            z = { r, x };
-        }
+        void SetFromAdmitance(ComplexT admitance) noexcept { z = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) }; }
         void SetZ(ValueT new_z) noexcept { z = new_z; }
-        void SetR(ValueT new_r) noexcept { r = new_r; }
-        void SetX(ValueT new_x) noexcept { x = new_x; }
+        void SetR(ValueT new_r) noexcept { z.real(new_r); }
+        void SetX(ValueT new_x) noexcept { z.imag(new_x); }
 
       private:
         ComplexT z;
-        ValueT   r;
-        ValueT   x;
 
         auto static constexpr rad2deg = 180.f / PI;
     };
