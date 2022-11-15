@@ -32,7 +32,7 @@ else ()
 endif ()
 
 ################# COMPILER FLAGS ####################
-set(C_CXX_COMPILER_OPTIONS_DEBUG "-O0 -g3 -DDEBUG")
+set(C_CXX_COMPILER_OPTIONS_DEBUG "-Og -g3 -DDEBUG")
 set(C_CXX_COMPILER_OPTIONS_RELEASE "-Ofast")
 set(CXX_COMPILER_OPTIONS_RELEASE "-fno-rtti")
 set(COMPILER_WARNINGS_SETTINGS "-Wall -Werror=return-type -Wreturn-local-addr -Wno-volatile -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs ")

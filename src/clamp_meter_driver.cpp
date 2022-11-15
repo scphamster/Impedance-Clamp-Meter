@@ -8,5 +8,5 @@ int error_counter;
 void ClampMeterDriver::CalculateAppliedVoltage() noexcept
 {
     data.appliedVoltage = data.voltageSensorData.GetValue() - data.shuntSensorData.GetValue();
-    data.AppliedVoltage = std::abs(data.appliedVoltage);
+//    data.AppliedVoltage = std::abs(data.appliedVoltage);
 }

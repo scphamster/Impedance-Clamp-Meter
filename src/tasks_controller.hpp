@@ -38,6 +38,9 @@
 #include "external_periph_ctrl.h"
 #include "signal_conditioning.h"
 
+// test
+#include "buzzer.hpp"
+
 [[noreturn]] void tasks_setup2();
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
@@ -90,6 +93,12 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     [[noreturn]] void DisplayTask() noexcept
     {
         size_t counter = 0;
+
+        auto bzer = Buzzer::Get();
+        bzer->Init();
+        bzer->Enable();
+        // bzer->SetFrequency(1e-4f);
+
         while (true) {
             drawer.DrawerTask();
             Task::DelayMsUntil(ProjectConfigs::DisplayDrawingDrawingPeriodMs);

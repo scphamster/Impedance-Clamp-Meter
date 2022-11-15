@@ -50,11 +50,11 @@
 #include <stdint.h>
 
 extern uint32_t SystemCoreClock;
-extern uint32_t g_100us;
+extern uint32_t freertos_perfmon_timer_T100us;
 
-void freertos_timestat_timer_init(void);
+void freertos_perfmon_timer_init(void);
 
-#define WithTrace
+//#define WithTrace
 
 #ifndef WithTrace
 #define configUSE_PREEMPTION                    1
@@ -107,8 +107,8 @@ void freertos_timestat_timer_init(void);
 #define configRECORD_STACK_HIGH_ADDRESS 1
 #define configQUEUE_REGISTRY_SIZE       10
 
-#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() freertos_timestat_timer_init();
-#define portGET_RUN_TIME_COUNTER_VALUE()         g_100us;
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() freertos_perfmon_timer_init();
+#define portGET_RUN_TIME_COUNTER_VALUE()         freertos_perfmon_timer_T100us;
 #endif
 
 /* Co-routine definitions. */

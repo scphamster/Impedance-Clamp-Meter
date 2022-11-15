@@ -943,7 +943,7 @@ class ClampMeterDriver {
         void SetFromAdmitance(ComplexT admitance) noexcept
         {
             z                 = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) };
-            degreeParalelForm = std::arg(admitance) * rad2deg;
+            degreeParalelForm = - std::arg(admitance) * rad2deg;
         }
         void SetZ(ValueT new_z) noexcept { z = new_z; }
         void SetR(ValueT new_r) noexcept { z.real(new_r); }

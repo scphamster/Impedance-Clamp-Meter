@@ -181,7 +181,7 @@ ten_milliseconds_timer_init(void)
     tc_enable_interrupt(TC0, 0, (1 << 4));   // enable rc compare interrupt
 
     NVIC_ClearPendingIRQ(TC0_IRQn);
-    NVIC_SetPriority(TC0_IRQn, MY_TIMER_PRIO);
+    NVIC_SetPriority(TC0_IRQn, PERFMON_TIMER_INT_PRIO);
     NVIC_EnableIRQ(TC0_IRQn);
 
     tc_start(TC0, 0);

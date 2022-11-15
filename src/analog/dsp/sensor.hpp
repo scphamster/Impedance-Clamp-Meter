@@ -220,12 +220,8 @@ class SensorController {
                 counter++;
             }
 
-            // measurement task // use calibration
             if (mode == Mode::Normal) {
                 ComplexT from_filter{ filterI->DoFilter(), filterQ->DoFilter() };
-
-                //                auto [absolute_value, degree] = iqCalculator->GetAbsoluteAndDegreeFromIQ(filterI->DoFilter(),
-                //                filterQ->DoFilter());
 
                 data.SetAbsolute(std::abs(from_filter) / amplifierController->GetGainValue());
                 data.SetDegree(
