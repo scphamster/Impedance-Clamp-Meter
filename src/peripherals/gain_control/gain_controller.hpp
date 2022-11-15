@@ -4,6 +4,8 @@
 #include <memory>
 #include <map>
 
+#include "flash_controller.hpp"
+
 class GainController {
   public:
     using GainLevelT        = int;
@@ -81,4 +83,7 @@ class GainController {
 
     std::map<GainLevelT, GainChangeFunctor> gainChangeFunctors;
     std::map<GainLevelT, GainLevelData>     gainLevelData;
+
+
+
 };

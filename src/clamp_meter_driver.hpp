@@ -595,7 +595,7 @@ class ClampMeterDriver {
 
             gcvtf(sensor_data.GetGainValue(), 4, val1.data());
             gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
-            gcvtf(data.AppliedVoltage, 4, val3.data());
+//            gcvtf(data.AppliedVoltage, 4, val3.data());
 
             messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
                                 " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
@@ -649,7 +649,7 @@ class ClampMeterDriver {
         data.ZOverall.SetFromAdmitance(admitance);
 
         *value2 = data.ZOverall.GetZAbs();
-        *value4 = data.ZOverall.GetDegree();
+        *value4 = data.ZOverall.GetDegreeParalel();
         *value5 = data.ZOverall.GetX();
         *value6 = data.ZOverall.GetR();
     }
@@ -666,7 +666,7 @@ class ClampMeterDriver {
         //        data.XClamp = -1 / q.imag();
 
         *value3 = data.clamp.GetZAbs();
-        *value4 = data.clamp.GetDegree();
+        *value4 = data.clamp.GetDegreeParalel();
         *value7 = data.clamp.GetX();
         *value8 = data.clamp.GetR();
     }
@@ -938,14 +938,20 @@ class ClampMeterDriver {
         [[nodiscard]] ComplexT GetZ() const noexcept { return z; }
         [[nodiscard]] ValueT   GetR() const noexcept { return z.real(); }
         [[nodiscard]] ValueT   GetX() const noexcept { return z.imag(); }
+        [[nodiscard]] ValueT   GetDegreeParalel() const noexcept { return degreeParalelForm; };
 
-        void SetFromAdmitance(ComplexT admitance) noexcept { z = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) }; }
+        void SetFromAdmitance(ComplexT admitance) noexcept
+        {
+            z                 = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) };
+            degreeParalelForm = std::arg(admitance) * rad2deg;
+        }
         void SetZ(ValueT new_z) noexcept { z = new_z; }
         void SetR(ValueT new_r) noexcept { z.real(new_r); }
         void SetX(ValueT new_x) noexcept { z.imag(new_x); }
 
       private:
         ComplexT z;
+        ValueT   degreeParalelForm;
 
         auto static constexpr rad2deg = 180.f / PI;
     };
@@ -957,9 +963,7 @@ class ClampMeterDriver {
         SensorData clampSensorData;
 
         ComplexT appliedVoltage;
-        ValueT   AppliedVoltage{};
 
-        // test
         Impedance ZOverall;
         Impedance clamp;
     };

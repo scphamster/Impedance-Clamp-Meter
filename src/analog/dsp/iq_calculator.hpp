@@ -17,8 +17,14 @@ class SynchronousIQCalculator {
       : tickCounterResetTriggeringLimit{ reset_tick_counter_at_number_of_ticks }
     { }
 
+
+    // ComplexT
     std::pair<IValueT, QValueT> GetSynchronousIQ(ValueT fromValue)
     {
+        //todo: implement
+        //        return sincos_table * fromValue;
+
+
         auto retval = std::pair{ sinus_table.at(tickCounter) * fromValue, cosine_table.at(tickCounter) * fromValue };
         tickCounter++;
 
@@ -49,7 +55,7 @@ class SynchronousIQCalculator {
     void ResetTickCounter() noexcept { tickCounter = 0; }
 
     static ValueT FindAngle(ValueT Qval, ValueT Ival, ValueT absolute_val) noexcept
-    {   // todo: use arm_atan_f32
+    {
         ValueT static constexpr rad2deg_conv_coeff = 180.f / PI;
 
         auto qAbs = Absolute(Qval);
@@ -73,6 +79,10 @@ class SynchronousIQCalculator {
 
         return degree;
     }
+    static ValueT FindAngle(ComplexT value) noexcept {
+        return std::arg(value) * rad2deg;
+    }
+
     static ValueT NormalizeAngle(ValueT degree) noexcept
     {
         if (degree > 360.f or degree < -360.f) {
@@ -96,4 +106,6 @@ class SynchronousIQCalculator {
   private:
     int tickCounter                     = 0;
     int tickCounterResetTriggeringLimit = 0;
+
+    ValueT static constexpr rad2deg = 180.f / PI;
 };
