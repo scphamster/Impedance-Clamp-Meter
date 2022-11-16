@@ -39,7 +39,7 @@
 #include "signal_conditioning.h"
 
 // test
-#include "buzzer_with_task.hpp"
+#include "buzzer.hpp"
 
 [[noreturn]] void tasks_setup2();
 
@@ -71,7 +71,6 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
                     valueFour,  valueFive,  valueSix,
                     valueSeven, valueEight, drawer.CreateAndGetDialog() }
       , menu{ std::make_shared<Menu>() }
-      , buzzer{ 64 + 12 - 1, 500 }
     //      , amplifierTest{ drawer.CreateAndGetDialog() }
     {
         InitializeMenu();
@@ -95,10 +94,8 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     {
         size_t counter = 0;
 
-//        auto bzer = Buzzer::Get();
-//        bzer->Init();
-//        bzer->Enable();
-        // bzer->SetFrequency(1e-4f);
+        auto bzer = Buzzer::Get();
+        bzer->Init();
 
         while (true) {
             drawer.DrawerTask();
@@ -235,7 +232,6 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     ClampMeterDriver clampMeter;
 
     std::shared_ptr<MenuModel<Keyboard>> menu;
-    BuzzerTask                           buzzer;
     //    AGCTests agcTest;
     //    AmplifierControllerTest amplifierTest;
 };

@@ -5,10 +5,10 @@
 
 #include "task.hpp"
 
-
 class Buzzer {
   public:
     using RegisterSubtype = uint32_t;
+    using FreqT = float;
 
     static std::shared_ptr<Buzzer> Get() noexcept;
 
@@ -16,29 +16,18 @@ class Buzzer {
     Buzzer &operator=(Buzzer const &other) = delete;
 
     void Init() noexcept;
-    void SetFrequency(float current) noexcept;
-    void Enable() noexcept;
-    void Disable() noexcept;
-    void OnInterruptCallback() noexcept;
+    void SetFrequency(float tone_frequency, float modulation_frequency) noexcept;
+    void Enable() const noexcept;
+    void Disable() const noexcept;
+
 
   protected:
-    void TogglePin() noexcept {
-
-    }
-
-    void BuzzerTask() noexcept {
-        while(true) {
-
-            TogglePin();
-            Task::DelayMsUntil(2);
-
-        }
-    }
-
+    RegisterSubtype FindRCFromFrequency(float frequency) noexcept;
+    void            SetChanelFrequency(int channel, FreqT frequency) noexcept;
   private:
     static std::shared_ptr<Buzzer> _this;
 
-//    Task task;
+    //    Task task;
 
     Buzzer() = default;
 
@@ -47,12 +36,18 @@ class Buzzer {
     int  frequency     = 0;
 
     struct TimerInternals {
-        RegisterSubtype rc{ 0 };
+        RegisterSubtype mainToneRC{ 0 };
+        RegisterSubtype modulatorRC{ 0 };
 
         RegisterSubtype min{};
         RegisterSubtype max{};
 
-        int channel;
+        RegisterSubtype modulatorMax;
+        RegisterSubtype modulatorMin;
+
+
+        int mainToneChannel;
+        int modulatorChannel;
     };
 
     TimerInternals timerInternals;
@@ -60,6 +55,13 @@ class Buzzer {
     float static constexpr k     = 372.5246f;
     float static constexpr offst = 6.6439f;
 
-    auto static constexpr usedPinNumber = 64 + 12;
-};
+    FreqT maxToneFrequency;
+    FreqT minToneFrequency;
+    FreqT minModulationFrequency;
+    FreqT maxModulationFrequency;
 
+    FreqT minimalPeriod;
+    TickType_t lastEntry{};
+    TickType_t delayBetweenFrequencyChangesMs = 100;
+    auto static constexpr usedPinNumber = 26;
+};

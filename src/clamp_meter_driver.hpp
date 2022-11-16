@@ -46,6 +46,8 @@
 
 #include "string_converter.hpp"
 
+#include "buzzer.hpp"
+
 // todo: remove from here
 #include "signal_conditioning.h"
 // todo: cleanup
@@ -190,6 +192,7 @@ class ClampMeterDriver {
                          ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverCalibration),
                          "calibration" }
       , messageBox{ std::move(new_msg_box) }
+      , buzzer{ Buzzer::Get() }
     {
         calibrationTask.Suspend();
 
@@ -509,8 +512,15 @@ class ClampMeterDriver {
                                                   fromSensorDataQueue,
                                                   filterI,
                                                   filterQ));
-            sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() { this->StandardSensorOnEnableCallback(); });
-            sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() { this->StandardSensorOnDisableCallback(); });
+            sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() {
+                this->StandardSensorOnEnableCallback();
+                if (workMode == Mode::Normal)
+                    buzzer->Enable();
+            });
+            sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() {
+                this->StandardSensorOnDisableCallback();
+                buzzer->Disable();
+            });
         }
     }
 
@@ -595,7 +605,7 @@ class ClampMeterDriver {
 
             gcvtf(sensor_data.GetGainValue(), 4, val1.data());
             gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
-//            gcvtf(data.AppliedVoltage, 4, val3.data());
+            //            gcvtf(data.AppliedVoltage, 4, val3.data());
 
             messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
                                 " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
@@ -669,6 +679,14 @@ class ClampMeterDriver {
         *value4 = data.clamp.GetDegreeParalel();
         *value7 = data.clamp.GetX();
         *value8 = data.clamp.GetR();
+
+        static TickType_t lastentry{0};
+        auto new_f = (13.8155f + log2f(data.clampSensorData.GetAbsolute()))* 716.f + 50;
+        auto new_modF=  (abs(log2f(data.clampSensorData.GetI() / log2f(data.clampSensorData.GetQ()))) + 4.6052f) * 2.0991f + 1;
+        buzzer->SetFrequency(new_f, new_modF);
+
+
+
     }
 
     void WaitForStableData(ValueT max_deviation) noexcept
@@ -943,7 +961,7 @@ class ClampMeterDriver {
         void SetFromAdmitance(ComplexT admitance) noexcept
         {
             z                 = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) };
-            degreeParalelForm = - std::arg(admitance) * rad2deg;
+            degreeParalelForm = -std::arg(admitance) * rad2deg;
         }
         void SetZ(ValueT new_z) noexcept { z = new_z; }
         void SetR(ValueT new_r) noexcept { z.real(new_r); }
@@ -1032,7 +1050,7 @@ class ClampMeterDriver {
     Task                     sensorDataManagerTask;
     Task                     calibrationTask;
     std::shared_ptr<DialogT> messageBox;
-
+    std::shared_ptr<Buzzer>  buzzer;
     // todo: this should go to composite sensors controller
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },

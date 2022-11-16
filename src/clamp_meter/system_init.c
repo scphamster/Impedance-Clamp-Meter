@@ -219,7 +219,7 @@ dacc_init(void)
     dacc_set_channel_selection(DACC, DACC_CHANNELUSED);
     dacc_set_analog_control(DACC, DACC_ACR_VAL);
     dacc_enable_channel(DACC, DACC_CHANNELUSED);
-    pio_set_peripheral(PIOA, PIO_PERIPH_C, DATRG_PIN);
+    m_set_peripheral(PIOA, PIO_PERIPH_C, DATRG_PIN);
 }
 
 void
