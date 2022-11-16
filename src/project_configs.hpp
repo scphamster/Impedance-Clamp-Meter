@@ -13,7 +13,8 @@ enum class TaskStackSize {
     SensorInput            = 400,
     SensorFromFilter       = configMINIMAL_STACK_SIZE,
     Filter                 = configMINIMAL_STACK_SIZE,
-    MCP23016               = configMINIMAL_STACK_SIZE
+    MCP23016               = configMINIMAL_STACK_SIZE,
+    Buzzer                 = configMINIMAL_STACK_SIZE,
 };
 #else
 enum class TaskStackSize {
@@ -23,7 +24,8 @@ enum class TaskStackSize {
     SensorInput            = 400,
     SensorFromFilter       = configMINIMAL_STACK_SIZE,
     Filter                 = configMINIMAL_STACK_SIZE,
-    MCP23016               = configMINIMAL_STACK_SIZE
+    MCP23016               = configMINIMAL_STACK_SIZE,
+    Buzzer                 = configMINIMAL_STACK_SIZE,
 };
 #endif
 enum class TaskPriority {
@@ -34,7 +36,8 @@ enum class TaskPriority {
     SensorInput            = 4,
     SensorFromFilter       = 4,
     Filter                 = 3,
-    MCP23016               = 2
+    MCP23016               = 2,
+    Buzzer                 = 2,
 };
 
 enum class QueueSize {
@@ -73,7 +76,8 @@ enum class Tasks {
     SensorInput,
     SensorFromFilter,
     Filter,
-    MCP23016
+    MCP23016,
+    Buzzer
 };
 
 template<typename EnumClassType>
@@ -97,6 +101,7 @@ GetTaskStackSize(Tasks task)
     case Tasks::SensorFromFilter: return static_cast<UnderType>(EnumClassOfInterest::SensorFromFilter);
     case Tasks::Filter: return static_cast<UnderType>(EnumClassOfInterest::Filter);
     case Tasks::MCP23016: return static_cast<UnderType>(EnumClassOfInterest::MCP23016);
+    case Tasks::Buzzer: return static_cast<UnderType>(EnumClassOfInterest::Buzzer);
     default: return -1;
     }
 }
@@ -116,6 +121,7 @@ GetTaskPriority(Tasks task)
     case Tasks::SensorFromFilter: return static_cast<UnderType>(EnumClassOfInterest::SensorFromFilter);
     case Tasks::Filter: return static_cast<UnderType>(EnumClassOfInterest::Filter);
     case Tasks::MCP23016: return static_cast<UnderType>(EnumClassOfInterest::MCP23016);
+    case Tasks::Buzzer: return static_cast<UnderType>(EnumClassOfInterest::Buzzer);
     default: return -1;
     }
 }

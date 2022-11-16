@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <memory>
 
+#include "task.hpp"
+
+
 class Buzzer {
   public:
     using RegisterSubtype = uint32_t;
@@ -15,11 +18,27 @@ class Buzzer {
     void Init() noexcept;
     void SetFrequency(float current) noexcept;
     void Enable() noexcept;
-
     void Disable() noexcept;
+    void OnInterruptCallback() noexcept;
+
+  protected:
+    void TogglePin() noexcept {
+
+    }
+
+    void BuzzerTask() noexcept {
+        while(true) {
+
+            TogglePin();
+            Task::DelayMsUntil(2);
+
+        }
+    }
 
   private:
     static std::shared_ptr<Buzzer> _this;
+
+//    Task task;
 
     Buzzer() = default;
 
@@ -41,6 +60,6 @@ class Buzzer {
     float static constexpr k     = 372.5246f;
     float static constexpr offst = 6.6439f;
 
-    auto static constexpr usedPinNumber = 26;
+    auto static constexpr usedPinNumber = 64 + 12;
 };
 

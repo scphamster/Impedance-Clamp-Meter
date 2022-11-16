@@ -84,6 +84,7 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/buzzer/buzzer.cpp
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/buzzer/buzzer.hpp
+    ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/buzzer/buzzer_with_task.hpp
 
     ${SOURCES_DIRECTORY}/peripherals/analog_switch/analog_switch.hpp
     ${SOURCES_DIRECTORY}/peripherals/gain_control/amplifier_controller.hpp
@@ -134,7 +135,9 @@ set(INCLUDE_DIRECTORIES
 
     ${SOURCES_DIRECTORY}/peripherals
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442
+
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/buzzer
+
     ${SOURCES_DIRECTORY}/peripherals/analog_switch
     ${SOURCES_DIRECTORY}/peripherals/gain_control
 

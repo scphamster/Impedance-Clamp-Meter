@@ -6,8 +6,14 @@
 #include "pio.h"
 
 #define BUZZER_TIMER TC0
-
+#define BUZZER_TIMER_ID ID_TC0
 std::shared_ptr<Buzzer> Buzzer::_this = nullptr;
+
+extern "C" void TC1_Handler(void) {
+    auto buzzer = Buzzer::Get();
+
+    buzzer->OnInterruptCallback();
+}
 
 void
 Buzzer::Init() noexcept
@@ -27,12 +33,14 @@ Buzzer::Init() noexcept
     uint32_t wavemode     = (1 << 15);
     uint32_t ACPC_val     = (3 << 18);
 //    uint32_t burst        = (3 << 4);   // burst with xc2
-    uint32_t block        = (3 << 4);   // TIOA1 connected to XC2
+//    uint32_t block        = (3 << 4);   // TIOA1 connected to XC2
 
-    pmc_enable_periph_clk(ID_TC0);
+    pmc_enable_periph_clk(BUZZER_TIMER_ID);
 //    pio_configure_pin(usedPinNumber, )
-    tc_init(TC0, timerInternals.channel, clock_source | /*burst |*/ wavsel | wavemode | ACPC_val);
-    tc_write_rc(TC0, timerInternals.channel, 5000);
+    tc_init(BUZZER_TIMER, timerInternals.channel, clock_source | /*burst |*/ wavsel | wavemode /*| ACPC_val*/);
+    tc_write_rc(BUZZER_TIMER, timerInternals.channel, 5000);
+    pio_configure_pin(usedPinNumber, PIO_TYPE_PIO_OUTPUT_0 bitor PIO_DEFAULT);
+
 
     isInitialized = true;
 }
@@ -76,4 +84,9 @@ Buzzer::Disable() noexcept
     pio_set_input(PIOA, (1 << usedPinNumber), 0);
     tc_stop(BUZZER_TIMER, timerInternals.channel);
 }
+void
+Buzzer::OnInterruptCallback() noexcept
+{
+    pio_toggle_pin(usedPinNumber);
 
+}
