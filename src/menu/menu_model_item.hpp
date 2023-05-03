@@ -45,7 +45,7 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     };
     using EventCallbacks = std::map<Event, EventCallback>;
 
-    MenuModelPage(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
+    explicit MenuModelPage(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
       : model{ belongs_to_model }
     { }
 
@@ -128,7 +128,7 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     DataT                                       data;
     std::vector<std::shared_ptr<MenuModelPage>> childItems{};
     bool                                        isEditable{ false };
+    bool                                        isSelectable{ false };
     SpecialKeyboardCallbacks                    specialKeyCallbacks;
     EventCallbacks                              eventCallbacks;
-    //    std::map<std::string, Event> events;
 };

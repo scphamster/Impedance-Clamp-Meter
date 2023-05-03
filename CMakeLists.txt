@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 include(cmake_sources.cmake)
 include(configs.cmake)
 
+############### PROJECT ###################################
 project("ClampMeter" LANGUAGES C CXX)
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 

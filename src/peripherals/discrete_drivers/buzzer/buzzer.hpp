@@ -8,7 +8,7 @@
 class Buzzer {
   public:
     using RegisterSubtype = uint32_t;
-    using FreqT = float;
+    using FreqT           = float;
 
     static std::shared_ptr<Buzzer> Get() noexcept;
 
@@ -16,14 +16,16 @@ class Buzzer {
     Buzzer &operator=(Buzzer const &other) = delete;
 
     void Init() noexcept;
-    void SetFrequency(float tone_frequency, float modulation_frequency) noexcept;
+    bool SetFrequency(float tone_frequency, float modulation_frequency) noexcept;
     void Enable() const noexcept;
     void Disable() const noexcept;
 
+    [[nodiscard]] std::pair<FreqT, FreqT> GetFrequencies() const noexcept;
 
   protected:
     RegisterSubtype FindRCFromFrequency(float frequency) noexcept;
     void            SetChanelFrequency(int channel, FreqT frequency) noexcept;
+
   private:
     static std::shared_ptr<Buzzer> _this;
 
@@ -33,7 +35,9 @@ class Buzzer {
 
     bool isInitialized = false;
     bool isEnabled     = false;
-    int  frequency     = 0;
+
+    FreqT toneFrequency       = 0;
+    FreqT modulationFrequency = 0;
 
     struct TimerInternals {
         RegisterSubtype mainToneRC{ 0 };
@@ -44,7 +48,6 @@ class Buzzer {
 
         RegisterSubtype modulatorMax;
         RegisterSubtype modulatorMin;
-
 
         int mainToneChannel;
         int modulatorChannel;
@@ -60,8 +63,9 @@ class Buzzer {
     FreqT minModulationFrequency;
     FreqT maxModulationFrequency;
 
-    FreqT minimalPeriod;
+    FreqT      minimalPeriod;
     TickType_t lastEntry{};
     TickType_t delayBetweenFrequencyChangesMs = 100;
-    auto static constexpr usedPinNumber = 26;
+    auto static constexpr usedPinNumber       = 26;
+    auto static constexpr timerPeriodChangeMargin = 15;
 };

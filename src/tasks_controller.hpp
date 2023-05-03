@@ -1,7 +1,7 @@
 #pragma once
 #ifdef min
 #undef min
-#endif   // max
+#endif   // min
 #ifdef max
 #undef max
 #endif   // max
@@ -10,12 +10,7 @@
 #endif
 
 #include <memory>
-#include <mutex>
 #include <cstdint>
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
 
 #include "mutex/semaphore.hpp"
 #include "clamp_meter_drawing.hpp"
@@ -34,13 +29,6 @@
 #include "mcp23016_driver_fast.hpp"
 #include "keyboard_fast.hpp"
 
-// todo refactor headers below into statics
-#include "external_periph_ctrl.h"
-#include "signal_conditioning.h"
-
-// test
-#include "buzzer.hpp"
-
 [[noreturn]] void tasks_setup2();
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
@@ -51,7 +39,6 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     using PageDataT = std::shared_ptr<UniversalSafeType>;
     using Drawer    = std::unique_ptr<DrawerT>;
 
-    // fixme: make corrections of init order
     TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
@@ -62,7 +49,6 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
       , valueSix{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueSeven{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
       , valueEight{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
-      , sensorPhi{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
       , drawerTask{ [this]() { this->DisplayTask(); },
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
@@ -71,32 +57,17 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
                     valueFour,  valueFive,  valueSix,
                     valueSeven, valueEight, drawer.CreateAndGetDialog() }
       , menu{ std::make_shared<Menu>() }
-    //      , amplifierTest{ drawer.CreateAndGetDialog() }
     {
         InitializeMenu();
     }
-    TasksControllerImplementation(TasksControllerImplementation &&other)          = default;
-    TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs) = default;
+    TasksControllerImplementation(TasksControllerImplementation &&other)           noexcept = default;
+    TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs)  noexcept = default;
     ~TasksControllerImplementation()                                              = default;
 
-    void ShowMessage(std::string                    message,
-                     std::shared_ptr<UniversalType> value,
-                     std::shared_ptr<bool>          decision,
-                     std::shared_ptr<Semaphore>     decision_made) noexcept
-    {
-        auto new_dialog = std::make_shared<MenuModelDialog>(message, value, decision, decision_made);
-        drawer.ShowDialog(std::move(new_dialog));
-    }
-
   protected:
-    // tasks
+    ////////// tasks ////////////
     [[noreturn]] void DisplayTask() noexcept
     {
-        size_t counter = 0;
-
-        auto bzer = Buzzer::Get();
-        bzer->Init();
-
         while (true) {
             drawer.DrawerTask();
             Task::DelayMsUntil(ProjectConfigs::DisplayDrawingDrawingPeriodMs);
@@ -227,11 +198,8 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     PageDataT valueSeven;
     PageDataT valueEight;
 
-    PageDataT        sensorPhi;
     Task             drawerTask;
     ClampMeterDriver clampMeter;
 
     std::shared_ptr<MenuModel<Keyboard>> menu;
-    //    AGCTests agcTest;
-    //    AmplifierControllerTest amplifierTest;
 };

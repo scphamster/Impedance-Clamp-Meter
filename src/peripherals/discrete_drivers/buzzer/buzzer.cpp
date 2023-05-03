@@ -55,11 +55,11 @@ Buzzer::Init() noexcept
     isInitialized = true;
 }
 
-void
+bool
 Buzzer::SetFrequency(float tone_frequency, float modulation_frequency) noexcept
 {
     if ((xTaskGetTickCount() - lastEntry) < pdMS_TO_TICKS(delayBetweenFrequencyChangesMs))
-        return;
+        return false;
     else
         lastEntry = xTaskGetTickCount();
 
@@ -75,6 +75,11 @@ Buzzer::SetFrequency(float tone_frequency, float modulation_frequency) noexcept
 
     SetChanelFrequency(timerInternals.mainToneChannel, tone_frequency);
     SetChanelFrequency(timerInternals.modulatorChannel, modulation_frequency);
+
+    toneFrequency       = tone_frequency;
+    modulationFrequency = modulation_frequency;
+
+    return true;
 }
 std::shared_ptr<Buzzer>
 Buzzer::Get() noexcept
@@ -109,6 +114,18 @@ void
 Buzzer::SetChanelFrequency(int channel, FreqT frequency) noexcept
 {
     configASSERT(channel == timerInternals.modulatorChannel or channel == timerInternals.mainToneChannel);
-    tc_write_rc(BUZZER_TIMER, channel, FindRCFromFrequency(frequency));
-    tc_start(BUZZER_TIMER, channel);
+    auto new_rc  = FindRCFromFrequency(frequency);
+
+    if (new_rc - tc_read_cv(BUZZER_TIMER, channel) < timerPeriodChangeMargin) {
+        tc_write_rc(BUZZER_TIMER, channel, new_rc);
+        tc_start(BUZZER_TIMER, channel);
+    }
+    else
+        tc_write_rc(BUZZER_TIMER, channel, new_rc);
+}
+
+std::pair<Buzzer::FreqT, Buzzer::FreqT>
+Buzzer::GetFrequencies() const noexcept
+{
+    return std::pair<FreqT, FreqT>{ toneFrequency, modulationFrequency };
 }

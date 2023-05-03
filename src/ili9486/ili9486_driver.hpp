@@ -124,27 +124,6 @@ class ILI9486Driver {
     auto constexpr static landscape     = 0x28;
     auto constexpr static portrait_rev  = 0x98;
     auto constexpr static landscape_rev = 0xF4;
-    // driver commands;
-    //    auto constexpr static tft_nop            = 0x00;
-    //    auto constexpr static tft_swrst          = 0x01;
-    //    auto constexpr static tft_caset          = 0x2A;
-    //    auto constexpr static tft_paset          = 0x2B;
-    //    auto constexpr static tft_ramwr          = 0x2C;
-    //    auto constexpr static tft_ramrd          = 0x2E;
-    //    auto constexpr static tft_madctl         = 0x36;
-    //    auto constexpr static tft_mad_my         = 0x80;
-    //    auto constexpr static tft_mad_mx         = 0x40;
-    //    auto constexpr static tft_mad_mv         = 0x20;
-    //    auto constexpr static tft_mad_ml         = 0x10;
-    //    auto constexpr static tft_mad_bgr        = 0x08;
-    //    auto constexpr static tft_mad_mh         = 0x04;
-    //    auto constexpr static tft_mad_ss         = 0x02;
-    //    auto constexpr static tft_mad_gs         = 0x01;
-    //    auto constexpr static tft_mad_rgb        = 0x00;
-    //    auto constexpr static tft_invoff         = 0x20;
-    //    auto constexpr static tft_invon          = 0x21;
-    //    auto constexpr static tft_str_m_nobackgr = 0x01;
-    //    auto constexpr static tft_str_m_backgr   = 0x00;
 
     // orientations;
     auto constexpr static tft_portrait      = 0;

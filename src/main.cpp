@@ -17,6 +17,7 @@
 
 #include "system_init.h"
 #include "tasks_controller.hpp"
+#include "io.h"
 
 int
 main()

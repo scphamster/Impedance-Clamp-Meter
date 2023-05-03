@@ -83,7 +83,7 @@ class PageCursor {
     };
 
     ValueCursor        &GetValueCursor() noexcept { return valueCursor; }
-    ItemCursor         &GetItemCursor() noexcept { return itemCursor; }
+    ItemCursor         &GetPageCursor() noexcept { return itemCursor; }
     [[nodiscard]] State GetState() const noexcept
     {
         if (itemCursor.IsActive()) {
@@ -170,9 +170,9 @@ class MenuModelDrawer {
     // todo: make this function a real freertos task, not just a function called from outside
     void DrawerTask() noexcept
     {
-        if (currentPage != model->GetCurrentItem() or fullRedraw) {
+        if (currentPage != model->GetCurrentPage() or fullRedraw) {
             staticPageItemsDrawn = false;
-            currentPage          = model->GetCurrentItem();
+            currentPage          = model->GetCurrentPage();
 
             DrawStaticPageItems();
             staticPageItemsDrawn = true;
@@ -195,7 +195,7 @@ class MenuModelDrawer {
         dialogBox = std::move(new_dialog);
         dialogBox->SetIsShown(true);
 
-//        RequestFullRedraw();
+        //        RequestFullRedraw();
         RequestMessageBoxRedraw();
     }
 
@@ -222,7 +222,7 @@ class MenuModelDrawer {
     void DrawPageItemName(auto item_index, const auto &name) noexcept
     {
         ColorT back_color;
-        if (cursor.GetState() == PageCursor::State::ItemLevel and cursor.GetItemCursor().GetPos() == item_index) {
+        if (cursor.GetState() == PageCursor::State::ItemLevel and cursor.GetPageCursor().GetPos() == item_index) {
             back_color = selectedItemBackground;
         }
         else {
@@ -238,7 +238,7 @@ class MenuModelDrawer {
     {
         using State = typename PageCursor::State;
         ColorT back_color{};
-        if (cursor.GetItemCursor().GetPos() == item_index and
+        if (cursor.GetPageCursor().GetPos() == item_index and
             (cursor.GetState() == State::ItemLevel or cursor.GetState() == State::ValueLevel)) {
             back_color = selectedItemBackground;
         }
@@ -260,7 +260,7 @@ class MenuModelDrawer {
         if (mode == PageItemDrawingMode::WholeItem) {
             ColorT back_color{};
 
-            if (cursor.GetState() == PageCursor::State::ItemLevel and cursor.GetItemCursor().GetPos() == item_index) {
+            if (cursor.GetState() == PageCursor::State::ItemLevel and cursor.GetPageCursor().GetPos() == item_index) {
                 back_color = selectedItemBackground;
             }
             else {
@@ -274,14 +274,14 @@ class MenuModelDrawer {
         }
 
         if (mode == PageItemDrawingMode::WholeItem or mode == PageItemDrawingMode::OnlyName) {
-            DrawPageItemName(item_index, model->GetCurrentItem()->GetChild(item_index)->GetName());
+            DrawPageItemName(item_index, model->GetCurrentPage()->GetChild(item_index)->GetName());
         }
 
         if (mode == PageItemDrawingMode::WholeItem or mode == PageItemDrawingMode::OnlyValue) {
-            if (model->GetCurrentItem()->GetChild(item_index)->IsValueless())
+            if (model->GetCurrentPage()->GetChild(item_index)->IsValueless())
                 return;
 
-            DrawPageItemValue(item_index, model->GetCurrentItem()->GetChild(item_index)->GetData()->GetValue());
+            DrawPageItemValue(item_index, model->GetCurrentPage()->GetChild(item_index)->GetData()->GetValue());
         }
     }
     void DrawStaticPageItems() const noexcept
@@ -295,21 +295,21 @@ class MenuModelDrawer {
     }
     void DrawDynamicPageItems() noexcept
     {
-        if (drawnDynamicPageItems.size() != model->GetCurrentItem()->GetChildren().size())
-            drawnDynamicPageItems.resize(model->GetCurrentItem()->GetChildren().size());
+        if (drawnDynamicPageItems.size() != model->GetCurrentPage()->GetChildren().size())
+            drawnDynamicPageItems.resize(model->GetCurrentPage()->GetChildren().size());
 
         if (prevCursor != cursor) {
             if (cursor.GetState() != prevCursor.GetState()) {
-                DrawSinglePageItem(cursor.GetItemCursor().GetPos(), PageItemDrawingMode::WholeItem);
+                DrawSinglePageItem(cursor.GetPageCursor().GetPos(), PageItemDrawingMode::WholeItem);
             }
-            else if (cursor.GetItemCursor().GetPos() != prevCursor.GetItemCursor().GetPos()) {
-                DrawSinglePageItem(cursor.GetItemCursor().GetPos(), PageItemDrawingMode::WholeItem);
-                DrawSinglePageItem(prevCursor.GetItemCursor().GetPos(), PageItemDrawingMode::WholeItem);
+            else if (cursor.GetPageCursor().GetPos() != prevCursor.GetPageCursor().GetPos()) {
+                DrawSinglePageItem(cursor.GetPageCursor().GetPos(), PageItemDrawingMode::WholeItem);
+                DrawSinglePageItem(prevCursor.GetPageCursor().GetPos(), PageItemDrawingMode::WholeItem);
             }
             prevCursor = cursor;
         }
 
-        for (auto item_index = 0; const auto &child_page : model->GetCurrentItem()->GetChildren()) {
+        for (auto item_index = 0; const auto &child_page : model->GetCurrentPage()->GetChildren()) {
             if (drawnDynamicPageItems.at(item_index).GetName() != child_page->GetName()) {
                 drawnDynamicPageItems.at(item_index).SetName(child_page->GetName());
                 DrawPageItemName(item_index, drawnDynamicPageItems.at(item_index).GetName());
@@ -325,7 +325,7 @@ class MenuModelDrawer {
             item_index++;
         }
     }
-    void    DrawMessageDialog() noexcept
+    void DrawMessageDialog() noexcept
     {
         if (not dialogBox)
             return;
@@ -359,9 +359,7 @@ class MenuModelDrawer {
 
         fullRedraw = true;
     }
-    void RequestMessageBoxRedraw() noexcept {
-        messageBoxShouldBeRedrawn = true;
-    }
+    void RequestMessageBoxRedraw() noexcept { messageBoxShouldBeRedrawn = true; }
     // slots:
     void KeyboardMasterCallback(ButtonEvent event, ButtonName button) noexcept
     {
@@ -374,7 +372,7 @@ class MenuModelDrawer {
                 return;
             }
 
-        model->GetCurrentItem()->InvokeSpecialKeyboardCallback(button);
+        model->GetCurrentPage()->InvokeSpecialKeyboardCallback(button);
 
         switch (button) {
         case ButtonName::Enter: EnterButtonPushEvent(); break;
@@ -394,39 +392,39 @@ class MenuModelDrawer {
     }
     void EnterButtonPushEvent() noexcept
     {
-        if (cursor.GetItemCursor().IsActive()) {
+        if (cursor.GetPageCursor().IsActive()) {
             if (cursor.GetValueCursor().IsActive()) {
                 cursor.GetValueCursor().Activate(false);
             }
             else {
-                // check if item is editable
-                if (model->GetCurrentItem()->GetChild(cursor.GetItemCursor().GetPos())->IsEditable())
+                // if item is editable
+                if (model->GetCurrentPage()->GetChild(cursor.GetPageCursor().GetPos())->IsEditable())
                     cursor.GetValueCursor().Activate();
                 else {
-                    if (model->GetCurrentItem()->HasChild()) {
-                        model->SetCurrentItem(model->GetCurrentItem()->GetChild(cursor.GetItemCursor().GetPos()));
+                    if (model->GetCurrentPage()->HasChild()) {
+                        model->SetCurrentItem(model->GetCurrentPage()->GetChild(cursor.GetPageCursor().GetPos()));
                         ModelCurrentItemChangedEvent();
                     }
                 }
             }
         }
         else {
-            cursor.GetItemCursor().Activate();
+            cursor.GetPageCursor().Activate();
         }
     }
     void BackButtonPushEvent() noexcept
     {
-        if (cursor.GetItemCursor().IsActive()) {
+        if (cursor.GetPageCursor().IsActive()) {
             if (cursor.GetValueCursor().IsActive()) {
                 // save changes
                 cursor.GetValueCursor().Activate(false);
             }
             else {
-                cursor.GetItemCursor().Activate(false);
+                cursor.GetPageCursor().Activate(false);
             }
         }
         else {
-            model->SetCurrentItem(model->GetCurrentItem()->GetParent());
+            model->SetCurrentItem(model->GetCurrentPage()->GetParent());
             ModelCurrentItemChangedEvent();
         }
     }
@@ -437,17 +435,17 @@ class MenuModelDrawer {
     void RightButtonReleaseEvent() noexcept { }
     void UpButtonReleaseEvent() noexcept
     {
-        if (cursor.GetItemCursor().IsActive()) {
+        if (cursor.GetPageCursor().IsActive()) {
             if (cursor.GetValueCursor().IsActive()) { }
             else {
-                cursor.GetItemCursor().Decrement();
+                cursor.GetPageCursor().Decrement();
             }
         }
     }
     void ModelCurrentItemChangedEvent() noexcept
     {
         cursor.Reset();
-        cursor.GetItemCursor().SetMinMax(0, model->GetCurrentItem()->GetChildCount() - 1);
+        cursor.GetPageCursor().SetMinMax(0, model->GetCurrentPage()->GetChildCount() - 1);
     }
 
   private:
@@ -563,8 +561,8 @@ MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 {
     drawnDynamicPageItems.clear();
 
-    std::for_each(model->GetCurrentItem()->GetChildren().begin(),
-                  model->GetCurrentItem()->GetChildren()->end(),
+    std::for_each(model->GetCurrentPage()->GetChildren().begin(),
+                  model->GetCurrentPage()->GetChildren()->end(),
                   [&storage = this->drawnDynamicPageItems](const auto &page_item) { storage.emplace_back(page_item); });
 }
 

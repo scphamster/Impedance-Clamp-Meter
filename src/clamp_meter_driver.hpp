@@ -33,11 +33,10 @@
 #include "menu_model_item.hpp"
 #include "iq_calculator.hpp"
 #include "task.hpp"
-#include "project_configs.hpp"
 #include "freertos_handlers.h"
 
-#include "DG442.hpp"
-#include "analog_switch.hpp"
+// #include "DG442.hpp"
+// #include "analog_switch.hpp"
 #include "dsp_resources.hpp"
 #include "menu_model_dialog.hpp"
 #include "semaphore/semaphore.hpp"
@@ -47,6 +46,7 @@
 #include "string_converter.hpp"
 
 #include "buzzer.hpp"
+#include "buzzer_with_task.hpp"
 
 // todo: remove from here
 #include "signal_conditioning.h"
@@ -192,7 +192,7 @@ class ClampMeterDriver {
                          ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverCalibration),
                          "calibration" }
       , messageBox{ std::move(new_msg_box) }
-      , buzzer{ Buzzer::Get() }
+    //      , buzzer{ Buzzer::Get() }
     {
         calibrationTask.Suspend();
 
@@ -515,11 +515,13 @@ class ClampMeterDriver {
             sensors.at(Sensor::Clamp).SetOnEnableCallback([this]() {
                 this->StandardSensorOnEnableCallback();
                 if (workMode == Mode::Normal)
-                    buzzer->Enable();
+                    //                    buzzer->Enable();
+                    buzz.Start();
             });
             sensors.at(Sensor::Clamp).SetOnDisableCallback([this]() {
                 this->StandardSensorOnDisableCallback();
-                buzzer->Disable();
+                //                buzzer->Disable();
+                buzz.Stop();
             });
         }
     }
@@ -631,7 +633,20 @@ class ClampMeterDriver {
 
         messageBox->ShowMsg(std::move(msg));
     }
-    // task helpers
+
+    /////////////////////// task helpers //////////////////////////////
+    void SetBuzzerFreq() noexcept
+    {
+        auto constexpr modulation_k    = 0.9772f;
+        auto constexpr modulation_zero = 5.5f;
+        auto constexpr tone_k          = 716.f;
+        auto constexpr tone_zero       = 9950.f;
+
+        auto tone_freq = (log2f(data.clampSensorData.GetAbsolute())) * tone_k + tone_zero;
+        auto modulation_freq =
+          log2f(abs(data.clampSensorData.GetI() / data.clampSensorData.GetQ())) * modulation_k + modulation_zero;
+        buzz.SetFrequency(tone_freq, modulation_freq);
+    }
     void CheckDataStability(ValueT data) noexcept
     {
         deviationCalculator.PushBackAndCalculate(data);
@@ -656,9 +671,9 @@ class ClampMeterDriver {
         CalculateAppliedVoltage();
 
         auto admitance = (data.shuntSensorData.GetValue() / shuntResistorValue) / data.appliedVoltage;
-        data.ZOverall.SetFromAdmitance(admitance);
+        data.ZOverall.CalculateFromAdmitance(admitance);
 
-        *value2 = data.ZOverall.GetZAbs();
+        *value2 = data.ZOverall.GetZParallel();
         *value4 = data.ZOverall.GetDegreeParalel();
         *value5 = data.ZOverall.GetX();
         *value6 = data.ZOverall.GetR();
@@ -668,25 +683,14 @@ class ClampMeterDriver {
         if (workMode == Mode::Calibration)
             return;
 
-        //        data.ZClamp = data.AppliedVoltage / data.clampSensorData.GetAbsolute();
-
         auto q = data.clampSensorData.GetValue() / data.appliedVoltage;
-        data.clamp.SetFromAdmitance(q);
-        //        data.RClamp = 1 / q.real();
-        //        data.XClamp = -1 / q.imag();
+        data.clamp.CalculateFromAdmitance(q);
 
-        *value3 = data.clamp.GetZAbs();
+        *value3 = data.clamp.GetZParallel();
         *value4 = data.clamp.GetDegreeParalel();
         *value7 = data.clamp.GetX();
         *value8 = data.clamp.GetR();
-
-        static TickType_t lastentry{0};
-        auto new_f = (13.8155f + log2f(data.clampSensorData.GetAbsolute()))* 716.f + 50;
-        auto new_modF=  (abs(log2f(data.clampSensorData.GetI() / log2f(data.clampSensorData.GetQ()))) + 4.6052f) * 2.0991f + 1;
-        buzzer->SetFrequency(new_f, new_modF);
-
-
-
+        SetBuzzerFreq();
     }
 
     void WaitForStableData(ValueT max_deviation) noexcept
@@ -904,13 +908,6 @@ class ClampMeterDriver {
             if (writeDebugInfo)
                 WriteDebugInfo(sensor_data);
 
-            static bool showOnce = true;
-
-            if (showOnce) {
-                messageBox->ShowMsg("std::arg(1,0)=" + std::to_string(std::arg(ComplexT{ 1, 0 })));
-                showOnce = false;
-            }
-
             CheckDataStability(sensor_data.GetI());
 
             if (workMode == Mode::Calibration) {
@@ -944,24 +941,23 @@ class ClampMeterDriver {
   private:
     class Impedance {
       public:
-        // fixme: degree should be calculated as for current not for actual Z (if no X is attached to circuit (X value is very high)
-        // angle should be 0 not 90)
-
         static ValueT FindRFromAdmitance(ComplexT admitance) noexcept { return 1 / admitance.real(); }
         static ValueT FindXFromAdmitance(ComplexT admitance) noexcept { return -1 / admitance.imag(); }
 
         [[nodiscard]] ValueT   GetDegree() const noexcept { return std::arg(z) * rad2deg; }
         [[nodiscard]] ValueT   GetRadians() const noexcept { return std::arg(z); }
         [[nodiscard]] ValueT   GetZAbs() const noexcept { return std::abs(z); }
+        [[nodiscard]] ValueT   GetZParallel() const noexcept { return zParallel; }
         [[nodiscard]] ComplexT GetZ() const noexcept { return z; }
         [[nodiscard]] ValueT   GetR() const noexcept { return z.real(); }
         [[nodiscard]] ValueT   GetX() const noexcept { return z.imag(); }
-        [[nodiscard]] ValueT   GetDegreeParalel() const noexcept { return degreeParalelForm; };
+        [[nodiscard]] ValueT   GetDegreeParalel() const noexcept { return degreeParallelForm; };
 
-        void SetFromAdmitance(ComplexT admitance) noexcept
+        void CalculateFromAdmitance(ComplexT admitance) noexcept
         {
-            z                 = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) };
-            degreeParalelForm = -std::arg(admitance) * rad2deg;
+            z                  = { FindRFromAdmitance(admitance), FindXFromAdmitance(admitance) };
+            zParallel          = abs(1 / abs(admitance));
+            degreeParallelForm = -std::arg(admitance) * rad2deg;
         }
         void SetZ(ValueT new_z) noexcept { z = new_z; }
         void SetR(ValueT new_r) noexcept { z.real(new_r); }
@@ -969,7 +965,8 @@ class ClampMeterDriver {
 
       private:
         ComplexT z;
-        ValueT   degreeParalelForm;
+        ValueT   degreeParallelForm{};
+        ValueT   zParallel{};
 
         auto static constexpr rad2deg = 180.f / PI;
     };
@@ -1013,8 +1010,7 @@ class ClampMeterDriver {
     ValueT                           deviationOfDeviation;
     ValueT                           deviation;
 
-    // todo: make CompositeSensorsController sensorsController;
-
+    // todo: use this class
     class CompositeSensorsController {
       private:
         std::map<Sensor, SensorController> sensors;
@@ -1050,7 +1046,8 @@ class ClampMeterDriver {
     Task                     sensorDataManagerTask;
     Task                     calibrationTask;
     std::shared_ptr<DialogT> messageBox;
-    std::shared_ptr<Buzzer>  buzzer;
+    BuzzerTask buzz;
+
     // todo: this should go to composite sensors controller
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{
         std::pair{ MCP3462_driver::Reference::CH2, MCP3462_driver::Reference::CH3 },

@@ -27,7 +27,7 @@ class MenuModel {
     MenuModel() = default;
 
     [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return topLevelItem; }
-    [[nodiscard]] std::shared_ptr<Item> GetCurrentItem() const noexcept { return currentItem; }
+    [[nodiscard]] std::shared_ptr<Item> GetCurrentPage() const noexcept { return currentItem; }
 
     void SetTopLevelItem(std::shared_ptr<Item> top_item) noexcept
     {

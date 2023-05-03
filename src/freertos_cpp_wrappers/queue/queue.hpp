@@ -20,7 +20,9 @@ class Queue {
         configASSERT(handle != nullptr);
     }
 
-    explicit Queue(size_t queue_length, std::string queue_debug_name) : Queue{queue_length} {
+    explicit Queue(size_t queue_length, std::string queue_debug_name)
+      : Queue{ queue_length }
+    {
         vQueueAddToRegistry(handle, queue_debug_name.c_str());
     }
 
@@ -62,6 +64,7 @@ class Deque {
     std::deque<ItemType> queue;
 };
 
+// implementation is based on modified freertos streambuffer, find modification by searching "mymodification" in stream_buffer.c
 template<typename ItemType>
 class StreamBuffer {
   public:
