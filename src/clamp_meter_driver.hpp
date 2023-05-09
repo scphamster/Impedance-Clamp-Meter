@@ -33,7 +33,6 @@
 #include "menu_model_item.hpp"
 #include "iq_calculator.hpp"
 #include "task.hpp"
-#include "freertos_handlers.h"
 
 // #include "DG442.hpp"
 // #include "analog_switch.hpp"
@@ -211,6 +210,11 @@ class ClampMeterDriver {
         }
 
         StartMeasurements();
+    }
+
+    void CalculateAppliedVoltage() noexcept
+    {
+        data.appliedVoltage = data.voltageSensorData.GetValue() - data.shuntSensorData.GetValue();
     }
 
     void StartNormalModeOperation() noexcept
@@ -607,7 +611,6 @@ class ClampMeterDriver {
 
             gcvtf(sensor_data.GetGainValue(), 4, val1.data());
             gcvtf(sensor_data.GetRawAbsolute(), 4, val2.data());
-            //            gcvtf(data.AppliedVoltage, 4, val3.data());
 
             messageBox->ShowMsg("glvl=" + std::to_string(sensor_data.GetGainLevel()) + " gval=" + std::string(val1.data()) +
                                 " raw=" + std::string(val2.data()) + " vApl=" + std::string(val3.data()));
@@ -654,7 +657,6 @@ class ClampMeterDriver {
         deviation2Calculator.PushBackAndCalculate(deviationCalculator.GetRelativeStdDev());
         deviationOfDeviation = deviation2Calculator.GetStandardDeviation();
     }
-    void CalculateAppliedVoltage() noexcept;
     void CalculateVoltageSensor() noexcept
     {
         if (workMode == Mode::Calibration)

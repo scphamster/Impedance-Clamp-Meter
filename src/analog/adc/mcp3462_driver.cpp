@@ -1,22 +1,10 @@
-#ifdef min
-#undef min
-#endif   // max
-#ifdef max
-#undef max
-#endif   // max
-#ifdef printf
-#undef printf
-#endif
-
+#include "compiler_compatibility_workaround.hpp"
 #include "pio.h"
 #include "pio_handler.h"
 #include "pmc.h"
 #include "spi.h"
 #include "FreeRTOS.h"
-#include "queue.h"
-#include "message_buffer.h"
 
-#include "freertos_handlers.h"
 #include "project_configs.hpp"
 
 #include "mcp3462_driver.hpp"

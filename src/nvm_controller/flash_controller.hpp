@@ -1,5 +1,4 @@
 #pragma once
-
 #include "compiler_compatibility_workaround.hpp"
 #include "compiler.h"
 #include <cstdlib>
@@ -7,8 +6,6 @@
 #include <concepts>
 #include "FreeRTOS.h"
 #include "flash_efc.h"
-
-extern int error_counter;
 
 template<std::regular ValueT, typename AddressT>
 class FlashController {
@@ -36,27 +33,18 @@ class FlashController {
         uint32_t constexpr erase_first_flag{ 0 };
 
         portDISABLE_INTERRUPTS();
-        error_counter = 0;
-
-        error_counter++;
 
         zero_if_ok = flash_unlock(at_address, at_address + sizeof(SafeStorage) - 1, nullptr, nullptr);
         if (zero_if_ok != 0)
             goto failed;
 
-        error_counter++;
-
         zero_if_ok = flash_erase_page(at_address, 1);
         if (zero_if_ok != 0)
             goto failed;
 
-        error_counter++;
-
         zero_if_ok = flash_write(at_address, &data_to_be_saved, sizeof(data_to_be_saved), erase_first_flag);
         if (zero_if_ok != 0)
             goto failed;
-
-        error_counter++;
 
         zero_if_ok = flash_lock(at_address, at_address + sizeof(SafeStorage) - 1, nullptr, nullptr);
         if (zero_if_ok != 0)

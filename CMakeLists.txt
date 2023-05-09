@@ -16,7 +16,6 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/tasks_controller.hpp
 
     ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
-    ${SOURCES_DIRECTORY}/clamp_meter_driver.cpp
 
     ${SOURCES_DIRECTORY}/mutex/semaphore.hpp
     ${SOURCES_DIRECTORY}/mutex/semaphore.cpp
@@ -100,17 +99,12 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/semaphore/semaphore.hpp
 
-    ${SOURCES_DIRECTORY}/static_string.hpp
-
     ${SOURCES_DIRECTORY}/tests/agc_tests.hpp
     ${SOURCES_DIRECTORY}/tests/amplifier_controller_tests.hpp
     )
 
 set(C_SOURCES
-    src/main_blinky.c
-    src/main_blinky.h
     src/freertos_handlers.c
-    src/freertos_handlers.h
     src/exception_handlers.c
     src/main_task/cmaintask.c
     src/main_task/cmaintask.h

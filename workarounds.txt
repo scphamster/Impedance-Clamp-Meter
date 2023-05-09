@@ -1,0 +1,8 @@
+#1
+    If You encounter error such as:
+        "
+        error: 'printf' has not been declared in '::'
+          127 |   using ::printf;
+        "
+     than You should probably include "compiler_compatibility_workaround.h" at the most top of your source file.
+#end 1
