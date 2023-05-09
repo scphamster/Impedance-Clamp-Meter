@@ -1,13 +1,5 @@
 #pragma once
-#ifdef min
-#undef min
-#endif   // min
-#ifdef max
-#undef max
-#endif   // max
-#ifdef printf
-#undef printf
-#endif
+#include "compiler_compatibility_workaround.hpp"
 
 #include <memory>
 #include <cstdint>
@@ -24,7 +16,6 @@
 #include "task.hpp"
 #include "semaphore/semaphore.hpp"
 
-// todo: cleanup
 #include "timer.hpp"
 #include "mcp23016_driver_fast.hpp"
 #include "keyboard_fast.hpp"
