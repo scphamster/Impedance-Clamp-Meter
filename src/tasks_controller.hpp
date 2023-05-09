@@ -29,7 +29,7 @@
 #include "mcp23016_driver_fast.hpp"
 #include "keyboard_fast.hpp"
 
-[[noreturn]] void tasks_setup2();
+[[noreturn]] void tasks_setup();
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class TasksControllerImplementation : public std::enable_shared_from_this<TasksControllerImplementation<DrawerT, Keyboard>> {

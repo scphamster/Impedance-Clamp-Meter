@@ -11,5 +11,5 @@ int
 main()
 {
     system_init();
-    tasks_setup2();
+    tasks_setup();
 }

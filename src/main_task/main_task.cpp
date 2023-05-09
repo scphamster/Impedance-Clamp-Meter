@@ -1,12 +1,3 @@
-#ifdef min
-#undef min
-#endif   // max
-#ifdef max
-#undef max
-#endif   // max
-#ifdef printf
-#undef printf
-#endif
 #include "tasks_controller.hpp"
 #include "main_task.hpp"
 
@@ -20,14 +11,12 @@ using KeyboardT                   = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP
 bool ILI9486Driver::isInitialized = false;
 
 [[noreturn]] void
-tasks_setup2()
+tasks_setup()
 {
-
     static volatile auto clamp_meter =
       Clamp{ std::make_unique<DisplayDrawer<ILI9486Driver>>(std::make_shared<ILI9486Driver>()),
              std::make_unique<KeyboardT>() };
 
-    //    measurement_start();
     vTaskStartScheduler();
     while (true) { }
 }
