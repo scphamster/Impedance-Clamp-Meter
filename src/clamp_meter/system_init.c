@@ -278,7 +278,7 @@ system_init(void)
 //    ten_milliseconds_timer_init();
 //    buzzer_timer_init();
 
-    delay_ms(100);
+//    delay_ms(100);
 
 //    keyboard_init();
 //    LCD_init();
@@ -289,7 +289,7 @@ system_init(void)
 //    dsp_init();
 
     //inserted new
-    recall_coeffs_from_flash_struct();
+//    recall_coeffs_from_flash_struct();
 
 }
 
