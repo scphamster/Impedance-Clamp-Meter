@@ -18,5 +18,7 @@ tasks_setup()
              std::make_unique<KeyboardT>() };
 
     vTaskStartScheduler();
+
+    //should never get here
     while (true) { }
 }

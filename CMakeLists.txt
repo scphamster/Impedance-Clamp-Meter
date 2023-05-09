@@ -106,8 +106,6 @@ set(CXX_SOURCES
 set(C_SOURCES
     src/freertos_handlers.c
     src/exception_handlers.c
-    src/main_task/cmaintask.c
-    src/main_task/cmaintask.h
     )
 
 set(INCLUDE_DIRECTORIES
