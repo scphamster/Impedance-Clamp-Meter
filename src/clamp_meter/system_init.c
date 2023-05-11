@@ -1,11 +1,6 @@
 #include "asf.h"
 #include "system_init.h"
 #include "system.h"
-#include "twi_pdc.h"
-#include "keyboard.h"
-#include "DSP_functions.h"
-#include "external_periph_ctrl.h"
-#include "signal_conditioning.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,60 +107,7 @@ buzzer_disable(void)
     tc_stop(BUZZER_TIMER, BUZZER_TIMER_CH);
 }
 
-void
-buzzer_set_freq(float32_t current)
-{
-    static uint32_t  current_rc_val  = 0;
-    static float32_t k               = 372.5246f;
-    static float32_t offst           = 6.6439;
-    static uint32_t  last_entry      = 0;
-    static uint8_t   lf_buzzer_mode  = 0;
-    static uint32_t  lf_buzzer_rcval = 0;
 
-    if (g_ten_millis - last_entry < BUZZER_REFRESH_DELAY)
-        return;
-
-    uint32_t  new_rc_val;
-    uint32_t  new_lf_rc_val;
-    float32_t rc_val_f;
-    float32_t rc_lf_val_f;
-    float32_t clamp_I_i;
-
-    if (clamp_measurements_result.I_clamp_I < 0)
-        clamp_I_i = -clamp_measurements_result.I_clamp_I;
-    else
-        clamp_I_i = clamp_measurements_result.I_clamp_I;
-
-    rc_val_f    = 50 + k * (-log2f(current) - offst);
-    rc_lf_val_f = 10000 + 90e3 * (-log2f(clamp_I_i) - 9.95f);
-
-    if (rc_val_f > BUZZER_FREQ_RC_MAX)
-        rc_val_f = BUZZER_FREQ_RC_MAX;
-    if (rc_val_f < BUZZER_FREQ_RC_MIN)
-        rc_val_f = BUZZER_FREQ_RC_MIN;
-
-    new_rc_val = (uint32_t)rc_val_f;
-
-    if (new_rc_val != current_rc_val) {
-        tc_write_rc(BUZZER_TIMER, BUZZER_TIMER_CH, new_rc_val);
-        tc_start(BUZZER_TIMER, BUZZER_TIMER_CH);
-        current_rc_val = new_rc_val;
-        last_entry     = g_ten_millis;
-    }
-
-    if (rc_lf_val_f > 100000)
-        rc_lf_val_f = 100000;
-    if (rc_lf_val_f < 10000)
-        rc_lf_val_f = 10000;
-
-    new_lf_rc_val = (uint32_t)rc_lf_val_f;
-
-    if (new_lf_rc_val != lf_buzzer_rcval) {
-        tc_write_rc(BUZZER_TIMER, 1, new_lf_rc_val);
-        tc_start(BUZZER_TIMER, 1);
-        lf_buzzer_rcval = new_lf_rc_val;
-    }
-}
 
 void
 ten_milliseconds_timer_init(void)
@@ -194,32 +136,6 @@ system_tick_init(void)
 {
     SysTick->LOAD = 0xffffff;
     SysTick->CTRL = (1 << 0) | (1 << 2);   // enable, clock source = prcsr clock
-}
-
-void
-dacc_set_divider(Dacc *p_dacc, bool set_divider)
-{
-    uint32_t mr = p_dacc->DACC_MR & (~DACC_MR_CLKDIV);
-
-    if (set_divider)
-        mr |= DACC_MR_CLKDIV;
-
-    p_dacc->DACC_MR = mr;
-}
-
-void
-dacc_init(void)
-{
-    pmc_enable_periph_clk(ID_DACC);
-    dacc_reset(DACC);
-    dacc_set_transfer_mode(DACC, DACC_TRASNSMODE);
-    dacc_set_trigger(DACC, DACC_TRGSEL);
-    dacc_set_timing(DACC, 0, 63);
-    dacc_set_divider(DACC, true);
-    dacc_set_channel_selection(DACC, DACC_CHANNELUSED);
-    dacc_set_analog_control(DACC, DACC_ACR_VAL);
-    dacc_enable_channel(DACC, DACC_CHANNELUSED);
-    m_set_peripheral(PIOA, PIO_PERIPH_C, DATRG_PIN);
 }
 
 void
@@ -268,12 +184,10 @@ system_init(void)
 
 //    external_periph_ctrl_init();
 //    system_tick_init();
-    keyboard_encoder_init();
 
 //    dacc_init();
     spi_init();
     twi_init();
-    twiPdc_init();
 
 //    ten_milliseconds_timer_init();
 //    buzzer_timer_init();

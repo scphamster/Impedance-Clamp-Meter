@@ -8,9 +8,9 @@
 #include "asf.h"
 #include "keyboard.h"
 #include "twi_pdc.h"
-#include "menu.h"
+//#include "menu.h"
 #include "system.h"
-#include "DSP_functions.h"
+//#include "DSP_functions.h"
 #include "MCP23016.h"
 
 #define ENC_STATE_L_ARM (1 << 0)
