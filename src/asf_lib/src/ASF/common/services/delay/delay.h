@@ -83,7 +83,7 @@ extern "C" {
 /**
  * @def delay_init
  *
- * @brief Initialize the delay driver.
+ * @brief Init the delay driver.
  * @param fcpu_hz CPU frequency in Hz
  *
  * @deprecated

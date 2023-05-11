@@ -293,7 +293,7 @@ static void compute_lock_range(uint32_t ul_start, uint32_t ul_end,
 }
 
 /**
- * \brief Initialize the flash service.
+ * \brief Init the flash service.
  *
  * \param ul_mode FLASH_ACCESS_MODE_128 or FLASH_ACCESS_MODE_64.
  * \param ul_fws The number of wait states in cycle (no shift).

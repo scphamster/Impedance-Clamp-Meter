@@ -150,7 +150,7 @@
  * -# Ensure that \ref conf_spi_master.h is present for the driver.
  *  - \note This file is only for the driver and should not be included by the
  * user. In this example the file can be left empty.
- * -# Initialize the pins used by the SPI interface (this initialization is for
+ * -# Init the pins used by the SPI interface (this initialization is for
  * the ATxmega32A4U device).
  *  -# Set the pin used for slave select as output high:
  *    \code
@@ -175,7 +175,7 @@
 	    .id = IOPORT_CREATE_PIN(PORTD, 1)
 	};
 \endcode
- * -# Initialize the SPI module, in this case SPI on PORTD has been chosen:
+ * -# Init the SPI module, in this case SPI on PORTD has been chosen:
  *  - \code
 	spi_master_init(&SPID);
 \endcode

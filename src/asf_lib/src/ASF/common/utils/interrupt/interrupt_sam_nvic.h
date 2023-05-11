@@ -78,7 +78,7 @@ extern "C" {
 	void func (void)
 
 /**
- * \brief Initialize interrupt vectors
+ * \brief Init interrupt vectors
  *
  * For NVIC the interrupt vectors are put in vector table. So nothing
  * to do to initialize them, except defined the vector function with

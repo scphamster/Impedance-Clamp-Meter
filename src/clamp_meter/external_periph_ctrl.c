@@ -14,26 +14,26 @@ void hv_ctrl_io_init(void);
 void vout_ctrl_io_init(void);
 void gain_ctrl_io_init(void);
 
-External_periph_status_t External_periph_status;
+//External_periph_status_t External_periph_status;
 
-void hv_ctrl_io_init(void)
-{
-	if (!(pmc_is_periph_clk_enabled(HV_EN_PIN_PORT_ID)))
-		pmc_enable_periph_clk(HV_EN_PIN_PORT_ID);
-
-	pio_set_output(HV_EN_PIN_PORT, (1 << HV_EN_PIN), 0, 0, 0);
-	External_periph_status.hi_voltage_is_enabled = false;
-}
-
-void vout_ctrl_io_init(void)
-{
-	if (!(pmc_is_periph_clk_enabled(VOUT_CTRL_PIN_PORT_ID)))
-		pmc_enable_periph_clk(VOUT_CTRL_PIN_PORT_ID);
-
-	pio_set_output(VOUT_CTRL_PIN_PORT, (1 << VOUT_CTRL_PIN), (1 << VOUT_CTRL_PIN),
-	               0, 0);
-	External_periph_status.output_is_enabled = false;
-}
+//void hv_ctrl_io_init(void)
+//{
+//	if (!(pmc_is_periph_clk_enabled(HV_EN_PIN_PORT_ID)))
+//		pmc_enable_periph_clk(HV_EN_PIN_PORT_ID);
+//
+//	pio_set_output(HV_EN_PIN_PORT, (1 << HV_EN_PIN), 0, 0, 0);
+//	External_periph_status.hi_voltage_is_enabled = false;
+//}
+//
+//void vout_ctrl_io_init(void)
+//{
+//	if (!(pmc_is_periph_clk_enabled(VOUT_CTRL_PIN_PORT_ID)))
+//		pmc_enable_periph_clk(VOUT_CTRL_PIN_PORT_ID);
+//
+//	pio_set_output(VOUT_CTRL_PIN_PORT, (1 << VOUT_CTRL_PIN), (1 << VOUT_CTRL_PIN),
+//	               0, 0);
+//	External_periph_status.output_is_enabled = false;
+//}
 
 void gain_ctrl_io_init(void)
 {

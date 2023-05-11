@@ -60,7 +60,7 @@
  */
 #define DEFAULT_CHIP_ID 0
 
-/** \brief Initialize the SPI in master mode.
+/** \brief Init the SPI in master mode.
  *
  * \param p_spi  Base address of the SPI instance.
  *

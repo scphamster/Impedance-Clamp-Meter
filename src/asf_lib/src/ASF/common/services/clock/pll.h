@@ -193,7 +193,7 @@
 /**
  * \fn void pll_config_init(struct pll_config *cfg,
  *              enum pll_source src, unsigned int div, unsigned int mul)
- * \brief Initialize PLL configuration from standard parameters.
+ * \brief Init PLL configuration from standard parameters.
  *
  * \note This function may be defined inline because it is assumed to be
  * called very few times, and usually with constant parameters. Inlining
@@ -209,7 +209,7 @@
  */
 /**
  * \def pll_config_defaults(cfg, pll_id)
- * \brief Initialize PLL configuration using default parameters.
+ * \brief Init PLL configuration using default parameters.
  *
  * After this function returns, \a cfg will contain a configuration
  * which will make the PLL run at (CONFIG_PLLx_MUL / CONFIG_PLLx_DIV)

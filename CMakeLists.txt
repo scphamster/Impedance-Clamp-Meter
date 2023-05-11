@@ -69,6 +69,7 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.cpp
     ${SOURCES_DIRECTORY}/analog/sensor/sensor_preamp.hpp
+    ${SOURCES_DIRECTORY}/analog/sensor/calibrations.hpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.hpp
     ${SOURCES_DIRECTORY}/analog/generator/output_generator.cpp
 
@@ -78,6 +79,11 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/peripherals/HVPowerSupply.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.cpp
     ${SOURCES_DIRECTORY}/peripherals/OutputRelay.hpp
+    ${SOURCES_DIRECTORY}/peripherals/clamp/clamp_sensor.hpp
+    ${SOURCES_DIRECTORY}/peripherals/clamp/clamp_sensor.cpp
+    ${SOURCES_DIRECTORY}/peripherals/shunt/shunt_sensor.cpp
+    ${SOURCES_DIRECTORY}/peripherals/shunt/shunt_sensor.hpp
+
 
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442/DG442.hpp
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442/DG442.cpp
@@ -128,11 +134,11 @@ set(INCLUDE_DIRECTORIES
 
     ${SOURCES_DIRECTORY}/peripherals
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442
-
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/buzzer
-
     ${SOURCES_DIRECTORY}/peripherals/analog_switch
     ${SOURCES_DIRECTORY}/peripherals/gain_control
+    ${SOURCES_DIRECTORY}/peripherals/shunt
+    ${SOURCES_DIRECTORY}/peripherals/clamp
 
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers
     ${SOURCES_DIRECTORY}/freertos_cpp_wrappers/task

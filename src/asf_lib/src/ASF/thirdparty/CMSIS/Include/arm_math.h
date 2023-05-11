@@ -133,11 +133,11 @@
    *
    * - __FPU_PRESENT:
    *
-   * Initialize macro __FPU_PRESENT = 1 when building on FPU supported Targets. Enable this macro for floating point libraries.
+   * Init macro __FPU_PRESENT = 1 when building on FPU supported Targets. Enable this macro for floating point libraries.
    *
    * - __DSP_PRESENT:
    *
-   * Initialize macro __DSP_PRESENT = 1 when Armv8-M Mainline core supports DSP instructions.
+   * Init macro __DSP_PRESENT = 1 when Armv8-M Mainline core supports DSP instructions.
    *
    * <hr>
    * CMSIS-DSP in ARM::CMSIS Pack

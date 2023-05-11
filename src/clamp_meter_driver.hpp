@@ -26,8 +26,10 @@
 #include "OutputRelay.hpp"
 #include "output_generator.hpp"
 #include "sensor_preamp.hpp"
+#include "shunt_sensor.hpp"
+#include "clamp_sensor.hpp"
+
 #include "filter.hpp"
-#include "external_periph_ctrl.h"
 #include "sensor.hpp"
 #include "menu_model_item.hpp"
 #include "iq_calculator.hpp"
@@ -46,6 +48,7 @@
 
 // todo: remove from here
 #include "signal_conditioning.h"
+#include "calibrations.hpp"
 // todo: cleanup
 
 extern "C" char *gcvtf(float, int, char *);
@@ -177,7 +180,6 @@ class ClampMeterDriver {
       , value8{ v8 }
       , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
-
       , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength, "sensor") }
       , sensorDataManagerTask{ [this]() { this->ManageSensorsDataTask(); },
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
@@ -400,19 +402,19 @@ class ClampMeterDriver {
 
         return std::pair{ filterI, filterQ };
     }
-    void InitializeIO() noexcept
-    {
-        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, 0);
-
-        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
-
-        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
-
-        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
-
-        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
-        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
-    }
+//    void InitializeIO() noexcept
+//    {
+//        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, 0);
+//
+//        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
+//
+//        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
+//
+//        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
+//
+//        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
+//        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
+//    }
     void InitializeSensors() noexcept
     {
         using AGC          = AutomaticGainController<GainController, ValueT>;
@@ -420,7 +422,7 @@ class ClampMeterDriver {
         auto iq_controller = std::make_shared<SynchronousIQCalculator<float>>(sinus_table.size());
 
         // todo: make this initializer part of gain controllers
-        InitializeIO();
+//        InitializeIO();
 
         auto [calibs, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
 
@@ -471,7 +473,7 @@ class ClampMeterDriver {
             sh_gain_controller->SetGainChangeFunctor(7, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  calibs.GetShuntSensorCalData(7));
             sh_gain_controller->SetGainChangeFunctor(8, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  calibs.GetShuntSensorCalData(8));
             sh_gain_controller->SetGainChangeFunctor(9, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  calibs.GetShuntSensorCalData(9));
-            sh_gain_controller->SetGainChangeFunctor(10, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  calibs.GetShuntSensorCalData(10));
+            sh_gain_controller->SetGainChangeFunctor(10, [this](){ shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  calibs.GetShuntSensorCalData(10));
             // clang-format on
             auto sh_agc                  = std::make_unique<AGC>(1, 10, 1e5f, 3e6f, 50, 500);
             auto sh_amplifier_controller = std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
@@ -1042,10 +1044,14 @@ class ClampMeterDriver {
     ClampMeterData                     data;
     std::shared_ptr<FromSensorQueueT>  fromSensorDataQueue;
 
-    Task                     sensorDataManagerTask;
-    Task                     calibrationTask;
+//    std::shared_ptr<ShuntSensor> shuntSensor{ ShuntSensor::Get() };
+//    std::shared_ptr<ClampSensor> clampSensor{ ClampSensor::Get() };
+
+    Task sensorDataManagerTask;
+    Task calibrationTask;
+
     std::shared_ptr<DialogT> messageBox;
-    BuzzerTask buzz;
+    BuzzerTask               buzz;
 
     // todo: this should go to composite sensors controller
     std::array<std::pair<MCP3462_driver::Reference, MCP3462_driver::Reference>, 3> static constexpr adcChannelsMuxSettings{

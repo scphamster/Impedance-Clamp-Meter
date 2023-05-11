@@ -108,7 +108,7 @@ void twi_disable_master_mode(Twi *p_twi)
 }
 
 /**
- * \brief Initialize TWI master mode.
+ * \brief Init TWI master mode.
  *
  * \param p_twi Pointer to a TWI instance.
  * \param p_opt Options for initializing the TWI module (see \ref twi_options_t).
@@ -505,7 +505,7 @@ void twi_disable_slave_mode(Twi *p_twi)
 }
 
 /**
- * \brief Initialize TWI slave mode.
+ * \brief Init TWI slave mode.
  *
  * \param p_twi Pointer to a TWI instance.
  * \param ul_device_addr Device address of the SAM slave device on the I2C bus.

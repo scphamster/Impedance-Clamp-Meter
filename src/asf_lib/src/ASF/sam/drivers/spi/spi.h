@@ -603,7 +603,7 @@ uint32_t spi_get_writeprotect_status(Spi *p_spi);
 \endcode
  *
  * \subsection spi_basic_use_case_setup_flow Workflow
- * -# Initialize the SPI in master mode:
+ * -# Init the SPI in master mode:
  *   - \code
 	void spi_master_init(SPI_EXAMPLE);
 \endcode

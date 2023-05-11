@@ -122,7 +122,7 @@
 /**
  * \fn void genclk_config_defaults(struct genclk_config *cfg,
  *              unsigned int id)
- * \brief Initialize \a cfg to the default configuration for the clock
+ * \brief Init \a cfg to the default configuration for the clock
  * identified by \a id.
  */
 /**

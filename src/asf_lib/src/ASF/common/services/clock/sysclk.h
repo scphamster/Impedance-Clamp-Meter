@@ -158,7 +158,7 @@
 //@{
 /**
  * \fn void sysclk_init(void)
- * \brief Initialize the synchronous clock system.
+ * \brief Init the synchronous clock system.
  *
  * This function will initialize the system clock and its source. This
  * includes:

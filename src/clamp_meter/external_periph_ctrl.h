@@ -30,27 +30,27 @@
 extern "C" {
 #endif
 
-typedef enum {
-	EXTERNAL_PERIPH_ERROR_1,
-	EXTERNAL_PERIPH_ERROR_2,
-	EXTERNAL_PERIPH_ERROR_3
-}periph_error_code_type_t;
+//typedef enum {
+//	EXTERNAL_PERIPH_ERROR_1,
+//	EXTERNAL_PERIPH_ERROR_2,
+//	EXTERNAL_PERIPH_ERROR_3
+//}periph_error_code_type_t;
+//
+//typedef struct {
+//	bool output_is_enabled :1;
+//	bool hi_voltage_is_enabled :1;
+//
+//	bool error_occured :1;
+//	periph_error_code_type_t error_code;
+//}External_periph_status_t;
+//
+//extern External_periph_status_t External_periph_status;
 
-typedef struct {
-	bool output_is_enabled :1;
-	bool hi_voltage_is_enabled :1;
-	
-	bool error_occured :1;
-	periph_error_code_type_t error_code;
-}External_periph_status_t;
-
-extern External_periph_status_t External_periph_status;
-
-void external_periph_ctrl_init(void);
-void hi_voltage_enable (void);
-void hi_voltage_disable (void);
-void output_enable (void);
-void output_disable (void);
+//void external_periph_ctrl_init(void);
+//void hi_voltage_enable (void);
+//void hi_voltage_disable (void);
+//void output_enable (void);
+//void output_disable (void);
 
 #ifdef __cplusplus
 }

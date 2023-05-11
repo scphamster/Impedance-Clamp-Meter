@@ -90,7 +90,7 @@ uint32_t wdt_get_timeout_value(uint32_t ul_us, uint32_t ul_sclk)
 }
 
 /**
- * \brief Initialize watchdog timer with the given mode.
+ * \brief Init watchdog timer with the given mode.
  *
  * \param p_wdt Pointer to a WDT instance.
  * \param ul_mode Bitmask of watchdog timer mode.

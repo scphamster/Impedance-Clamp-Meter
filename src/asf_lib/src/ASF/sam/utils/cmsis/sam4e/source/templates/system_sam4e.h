@@ -52,7 +52,7 @@ extern uint32_t SystemCoreClock; /* System Clock Frequency (Core Clock) */
 
 /**
  * @brief Setup the microcontroller system.
- * Initialize the System and update the SystemCoreClock variable.
+ * Init the System and update the SystemCoreClock variable.
  */
 void SystemInit(void);
 
@@ -63,7 +63,7 @@ void SystemInit(void);
 void SystemCoreClockUpdate(void);
 
 /**
- * Initialize flash.
+ * Init flash.
  */
 void system_init_flash(uint32_t dw_clk);
 

@@ -5,7 +5,7 @@
  *  Author: malygosstationar
  */
 #include "asf.h"
-#include "signal_conditioning.h"
+//#include "signal_conditioning.h"
 //#include "MCP3462.h"
 //#include "DSP_functions.h"
 #include "system_init.h"

@@ -2826,7 +2826,7 @@ void vTaskSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNCTION;
  *  TickType_t xTicksToWait = MAX_TIME_TO_WAIT;
  *  TimeOut_t xTimeOut;
  *
- *      // Initialize xTimeOut.  This records the time at which this function
+ *      // Init xTimeOut.  This records the time at which this function
  *      // was entered.
  *      vTaskSetTimeOutState( &xTimeOut );
  *

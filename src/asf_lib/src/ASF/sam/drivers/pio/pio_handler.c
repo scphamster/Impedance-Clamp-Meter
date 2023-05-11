@@ -265,7 +265,7 @@ void PIOF_Handler(void)
 #endif
 
 /**
- * \brief Initialize PIO interrupt management logic.
+ * \brief Init PIO interrupt management logic.
  *
  * \param p_pio PIO controller base address.
  * \param ul_irqn NVIC line number.

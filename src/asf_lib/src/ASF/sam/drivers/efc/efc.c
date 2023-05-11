@@ -99,7 +99,7 @@ extern void efc_write_fmr(Efc *p_efc, uint32_t ul_fmr);
 extern uint32_t efc_perform_fcr(Efc *p_efc, uint32_t ul_fcr);
 
 /**
- * \brief Initialize the EFC controller.
+ * \brief Init the EFC controller.
  *
  * \param ul_access_mode 0 for 128-bit, EEFC_FMR_FAM for 64-bit.
  * \param ul_fws The number of wait states in cycle (no shift).

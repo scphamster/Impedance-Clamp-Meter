@@ -354,7 +354,7 @@ uint32_t tc_get_version(Tc *p_tc);
  *
  * -# Enable the TC module's capture pin:
  * \snippet tc_capture_waveform_example.c tc_capture_gpio
- * -# Initialize the capture channel to the following:
+ * -# Init the capture channel to the following:
  *   - Load RA on the rising edge of TIOA
  *   - Load RB on the falling edge of TIOA
  *   - Set the external trigger to TIOA
@@ -437,7 +437,7 @@ uint32_t tc_get_version(Tc *p_tc);
  *
  * -# Enable the TC module's waveform pin:
  * \snippet tc_capture_waveform_example.c tc_waveform_gpio
- * -# Initialize the waveform channel to the following:
+ * -# Init the waveform channel to the following:
  *   - Output frequency of 178Hz, with a duty-cycle of 30%
  *   - Use TC_CMR_TCCLKS_TIMER_CLOCK4, with a divisor of 128
  * \snippet tc_capture_waveform_example.c tc_waveform_init_call

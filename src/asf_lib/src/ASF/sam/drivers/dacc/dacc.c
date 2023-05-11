@@ -59,7 +59,7 @@ extern "C" {
  * -# Reset DACC with \ref dacc_reset().
  * -# If DACC can be enabled/disabled, uses \ref dacc_enable() and
  *    \ref dacc_disable().
- * -# Initialize DACC timing with \ref dacc_set_timing() (different DAC
+ * -# Init DACC timing with \ref dacc_set_timing() (different DAC
  *    peripheral may require different parameters).
  * -# Write conversion data with \ref dacc_write_conversion_data().
  * -# Configure trigger with \ref dacc_set_trigger()

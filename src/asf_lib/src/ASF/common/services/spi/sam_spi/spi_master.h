@@ -122,7 +122,7 @@ struct spi_device {
 	board_spi_select_id_t id;
 };
 
-/** \brief Initialize the SPI in master mode.
+/** \brief Init the SPI in master mode.
  *
  * \param p_spi Base address of the SPI instance.
  *
