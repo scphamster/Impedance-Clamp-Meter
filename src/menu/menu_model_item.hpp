@@ -17,13 +17,19 @@
 #include <string>
 #include <utility>
 #include <functional>
-// #include <shared_ptr>
 #include "universal_type.hpp"
 #include "clamp_meter_concepts.hpp"
 #include "menu_model.hpp"
 
 using MenuModelIndex = size_t;
 
+/**
+ * @brief Page is item of Menu, MenuModelPage may be a child and may have one or more children
+ * @def Each page has its name and also may have a value to display, page may also have a child (another page). Pages
+ * in the context of hierarchy have references (shared_ptr) to their parent and children. Value displayed by page may be of Int,
+ * Float and String types.
+ * @tparam Keyboard
+ */
 template<KeyboardC Keyboard>
 class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard>> {
   public:
@@ -43,7 +49,7 @@ class MenuModelPage : public std::enable_shared_from_this<MenuModelPage<Keyboard
     enum class Event {
         Entrance
     };
-    using EventCallbacks = std::map<Event, EventCallback>;
+    using EventCallbacks = std::unordered_map<Event, EventCallback>;
 
     explicit MenuModelPage(std::shared_ptr<MenuModel<Keyboard>> belongs_to_model) noexcept
       : model{ belongs_to_model }

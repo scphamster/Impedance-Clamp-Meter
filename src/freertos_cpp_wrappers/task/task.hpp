@@ -1,5 +1,5 @@
 #pragma once
-#include "compiler_compatibility_workaround.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <functional>

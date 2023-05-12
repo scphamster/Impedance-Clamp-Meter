@@ -1,5 +1,5 @@
 #pragma once
-#include "compiler_compatibility_workaround.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
 
 #include <memory>
 #include <cstdint>
@@ -10,7 +10,7 @@
 
 #include "menu_model.hpp"
 #include "menu_model_item.hpp"
-#include "menu_model_drawer.hpp"
+#include "menu_model_handler.hpp"
 
 #include "clamp_meter_driver.hpp"
 #include "task.hpp"
@@ -20,17 +20,15 @@
 #include "mcp23016_driver_fast.hpp"
 #include "keyboard_fast.hpp"
 
-[[noreturn]] void tasks_setup();
-
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
-class TasksControllerImplementation : public std::enable_shared_from_this<TasksControllerImplementation<DrawerT, Keyboard>> {
+class AppController : public std::enable_shared_from_this<AppController<DrawerT, Keyboard>> {
   public:
     using Page      = MenuModelPage<Keyboard>;
     using Menu      = MenuModel<Keyboard>;
     using PageDataT = std::shared_ptr<UniversalSafeType>;
     using Drawer    = std::unique_ptr<DrawerT>;
 
-    TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
+    AppController(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
@@ -51,9 +49,9 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     {
         InitializeMenu();
     }
-    TasksControllerImplementation(TasksControllerImplementation &&other)           noexcept = default;
-    TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs)  noexcept = default;
-    ~TasksControllerImplementation()                                              = default;
+    AppController(AppController &&other)           noexcept = default;
+    AppController &operator=(AppController &&rhs)  noexcept = default;
+    ~AppController()                                              = default;
 
   protected:
     ////////// tasks ////////////
@@ -65,7 +63,9 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         }
     }
 
-    // initializers
+    /**
+     * @brief Creates pages for navigation through menu
+     */
     void InitializeMenu() noexcept
     {
         // measurements menu
@@ -172,12 +172,12 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
         main_page->InsertChild(measurements_page);
         main_page->InsertChild(calibration_page);
 
-        menu->SetTopLevelItem(main_page);
+        menu->SetRootPage(main_page);
         drawer.SetModel(menu);
     }
 
   private:
-    MenuModelDrawer<DrawerT, Keyboard> drawer;
+    MenuModelHandler<DrawerT, Keyboard> drawer;
 
     // todo: to be deleted from here
     PageDataT valueOne;

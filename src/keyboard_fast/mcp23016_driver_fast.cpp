@@ -42,7 +42,7 @@
 #define assert(empty) ((void)0)
 #endif
 
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 
 static StreamBufferHandle_t SB_pins_status                 = nullptr;
 bool                        MCP23016_driver::isInitialized = false;

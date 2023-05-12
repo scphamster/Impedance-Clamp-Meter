@@ -1,30 +1,26 @@
 #include "asf.h"
 #include "system_init.h"
-#include "system.h"
 #include "twi_pdc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t test_timer;
-uint32_t SystemCoreClock2      = CHIP_FREQ_MAINCK_RC_4MHZ;
 uint32_t switch_to_plla_result = 0;
+uint32_t g_ten_millis;
+
 //
 void master_clock_init(void);
 void periph_clock_init(void);
-void ten_milliseconds_timer_init(void);
-void dacc_set_divider(Dacc *p_dacc, bool set_divider);
 void spi_init(void);
 void twi_init(void);
-void io_init(void);
 
 void
 watchdog_init(void)
 {
     wdt_disable(WDT);
 }
-//
+
 void
 flash_memory_init(void)
 {
@@ -32,11 +28,6 @@ flash_memory_init(void)
     efc_enable_cloe(EFC);
 }
 
-void
-io_init(void)
-{
-    ;
-}
 
 void
 master_clock_init(void)
@@ -73,71 +64,6 @@ periph_clock_init(void)
     pmc_enable_periph_clk(ID_PIOD);
 }
 
-void
-buzzer_timer_init(void)
-{
-    uint32_t clock_source = (3 << 0);
-    uint32_t wavsel       = (2 << 13);
-    uint32_t wavemode     = (1 << 15);
-    uint32_t ACPC_val     = (3 << 18);
-    uint32_t burst        = (3 << 4);   // burst with xc2
-    uint32_t block        = (3 << 4);   // TIOA1 connected to XC2
-
-    pmc_enable_periph_clk(ID_TC2);
-    pmc_enable_periph_clk(ID_TC1);
-    tc_set_block_mode(TC0, block);
-    tc_init(TC0, 1, clock_source | wavsel | wavemode | ACPC_val);
-    tc_init(TC0, 2, clock_source | burst | wavsel | wavemode | ACPC_val);
-    tc_write_rc(TC0, 1, 2000);
-    tc_write_rc(TC0, 2, 5000);
-    tc_start(TC0, 1);
-    // buzzer_enable();
-}
-
-void
-buzzer_enable(void)
-{
-    pio_set_peripheral(PIOA, PIO_PERIPH_B, (1 << BUZZER_PIN));
-    tc_start(BUZZER_TIMER, BUZZER_TIMER_CH);
-}
-
-void
-buzzer_disable(void)
-{
-    pio_set_input(PIOA, (1 << BUZZER_PIN), 0);
-    tc_stop(BUZZER_TIMER, BUZZER_TIMER_CH);
-}
-
-
-
-void
-ten_milliseconds_timer_init(void)
-{
-    uint32_t clock_srce = (3 << 0);    // MCK/128
-    uint32_t wavsel     = (2 << 13);   // upmode with trigger on rc compare
-    uint32_t wavemode   = (1 << 15);
-
-    pmc_enable_periph_clk(ID_TC0);
-
-    tc_init(TC0, 0, clock_srce | wavsel | wavemode);
-    tc_write_rc(TC0, 0, MY_TIMER_RC_VAL);
-    tc_enable_interrupt(TC0, 0, (1 << 4));   // enable rc compare interrupt
-
-    NVIC_ClearPendingIRQ(TC0_IRQn);
-    NVIC_SetPriority(TC0_IRQn, PERFMON_TIMER_INT_PRIO);
-    NVIC_EnableIRQ(TC0_IRQn);
-
-    tc_start(TC0, 0);
-}
-
-
-
-void
-system_tick_init(void)
-{
-    SysTick->LOAD = 0xffffff;
-    SysTick->CTRL = (1 << 0) | (1 << 2);   // enable, clock source = prcsr clock
-}
 
 void
 spi_init(void)
@@ -183,29 +109,9 @@ system_init(void)
     master_clock_init();
     periph_clock_init();
 
-//    external_periph_ctrl_init();
-//    system_tick_init();
-
-//    dacc_init();
     spi_init();
     twi_init();
     twiPdc_init();
-//    ten_milliseconds_timer_init();
-//    buzzer_timer_init();
-
-//    delay_ms(100);
-
-//    keyboard_init();
-//    LCD_init();
-
-//    delay_ms(10);
-
-//    MCP3462_init();
-//    dsp_init();
-
-    //inserted new
-//    recall_coeffs_from_flash_struct();
-
 }
 
 

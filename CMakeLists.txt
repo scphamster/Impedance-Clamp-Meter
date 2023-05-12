@@ -9,11 +9,11 @@ set(EXECUTABLE_NAME ${PROJECT_NAME})
 
 ########################## SOURCES #########################
 set(CXX_SOURCES
-    ${SOURCES_DIRECTORY}/compiler_compatibility_workaround.hpp
+    ${SOURCES_DIRECTORY}/misc/compiler_compatibility_workaround.hpp
     ${SOURCES_DIRECTORY}/main.cpp
 
-    ${SOURCES_DIRECTORY}/project_configs.hpp
-    ${SOURCES_DIRECTORY}/tasks_controller.hpp
+    ${SOURCES_DIRECTORY}/misc/project_configs.hpp
+    ${SOURCES_DIRECTORY}/app_controller.hpp
 
     ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
 
@@ -30,10 +30,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/main_task/main_task.hpp
     ${SOURCES_DIRECTORY}/main_task/main_task.cpp
     ${SOURCES_DIRECTORY}/clamp_meter_drawer/display_drawer.hpp
-    #    ${SOURCES_DIRECTORY}/keyboard/keyboard.hpp
-    #    ${SOURCES_DIRECTORY}/keyboard/keyboard.cpp
-    #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.hpp
-    #    ${SOURCES_DIRECTORY}/keyboard/mcp23016_driver.cpp
+
     ${SOURCES_DIRECTORY}/timer/timer.cpp
     ${SOURCES_DIRECTORY}/timer/timer.hpp
     ${SOURCES_DIRECTORY}/concepts/clamp_meter_concepts.hpp
@@ -44,13 +41,11 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/keyboard_fast/mcp23016_driver_fast.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.cpp
     ${SOURCES_DIRECTORY}/keyboard_fast/button.hpp
-    #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.hpp
-    #    ${SOURCES_DIRECTORY}/keyboard_fast/encoder.cpp
 
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
-    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
-    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_handler.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_handler.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_dialog.hpp
 
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp
@@ -110,8 +105,8 @@ set(CXX_SOURCES
     )
 
 set(C_SOURCES
-    src/freertos_handlers.c
-    src/exception_handlers.c
+    src/misc/freertos_handlers.c
+    src/misc/exception_handlers.c
     )
 
 set(INCLUDE_DIRECTORIES
@@ -127,10 +122,13 @@ set(INCLUDE_DIRECTORIES
     ${SOURCES_DIRECTORY}/keyboard_fast
     ${SOURCES_DIRECTORY}/menu
     ${SOURCES_DIRECTORY}/utilities
+
     ${SOURCES_DIRECTORY}/analog/adc
     ${SOURCES_DIRECTORY}/analog/dsp
     ${SOURCES_DIRECTORY}/analog/generator
     ${SOURCES_DIRECTORY}/analog/sensor
+
+    ${SOURCES_DIRECTORY}/misc
 
     ${SOURCES_DIRECTORY}/peripherals
     ${SOURCES_DIRECTORY}/peripherals/discrete_drivers/DG442
@@ -162,7 +160,7 @@ add_subdirectory(src/asf_lib)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC asf)
 
 
-add_subdirectory(src/clamp_meter)
+add_subdirectory(src/drivers)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC clamp_meter)
 
 display_size(${EXECUTABLE_NAME})

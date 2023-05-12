@@ -1,14 +1,5 @@
 #pragma once
-#ifdef min
-#undef min
-#endif   // max
-#ifdef max
-#undef max
-#endif   // max
-#ifdef printf
-#undef printf
-#endif
-
+#include "compiler_compatibility_workaround.hpp"
 #include <memory>
 
 template<KeyboardC Keyboard>
@@ -26,21 +17,21 @@ class MenuModel {
 
     MenuModel() = default;
 
-    [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return topLevelItem; }
-    [[nodiscard]] std::shared_ptr<Item> GetCurrentPage() const noexcept { return currentItem; }
+    [[nodiscard]] std::shared_ptr<Item> GetTopLevelItem() const noexcept { return rootPage; }
+    [[nodiscard]] std::shared_ptr<Item> GetCurrentPage() const noexcept { return currentPage; }
 
-    void SetTopLevelItem(std::shared_ptr<Item> top_item) noexcept
+    void SetRootPage(std::shared_ptr<Item> root_page) noexcept
     {
-        topLevelItem = top_item;
-        SetCurrentItem(topLevelItem);
+        rootPage = root_page;
+        SetCurrentPage(rootPage);
     }
-    void SetCurrentItem(std::shared_ptr<Item> new_current_item) noexcept
+    void SetCurrentPage(std::shared_ptr<Item> page) noexcept
     {
-        currentItem = new_current_item;
-        currentItem->InvokeEventCallback(Item::Event::Entrance);
+        currentPage = page;
+        currentPage->InvokeEventCallback(Item::Event::Entrance);
     }
 
   private:
-    std::shared_ptr<Item> topLevelItem;
-    std::shared_ptr<Item> currentItem;
+    std::shared_ptr<Item> rootPage;
+    std::shared_ptr<Item> currentPage;
 };

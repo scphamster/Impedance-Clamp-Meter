@@ -1,0 +1,10 @@
+set(SOURCES
+    system_init.c
+    system_init.h
+    MCP23016.c
+    MCP23016.h
+    twi_pdc.c
+    twi_pdc.h
+    encoder.c
+    encoder.h
+    )

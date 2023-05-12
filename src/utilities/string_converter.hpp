@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compiler_compatibility_workaround.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
 #include <string>
 #include <array>
 
@@ -13,10 +13,10 @@ class StringConverter {
     template<size_t Resolution>
     String static ToString(float value) noexcept
     {
-        std::array<char, Resolution + 6> string_buffer;
+        std::string string_buffer(Resolution + 1, 0);
 
         gcvtf(value, Resolution, string_buffer.data());
 
-        return string_buffer.data();
+        return string_buffer;
     }
 };

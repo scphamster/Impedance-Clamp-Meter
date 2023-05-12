@@ -5,7 +5,7 @@
 #define BOARD_OSC_STARTUP_US     15625UL
 
 #include "system_init.h"
-#include "tasks_controller.hpp"
+#include "main_task.hpp"
 
 int
 main()

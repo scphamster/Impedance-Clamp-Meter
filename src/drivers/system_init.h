@@ -50,6 +50,7 @@ extern "C" {
 #endif
 
 extern uint32_t test_timer;
+extern uint32_t g_ten_millis;
 
 void buzzer_enable(void);
 void buzzer_disable(void);

@@ -17,7 +17,7 @@
 #include "dacc.h"
 
 #include "dsp_resources.hpp"
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 
 class OutputGenerator {
   public:
