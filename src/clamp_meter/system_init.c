@@ -1,6 +1,7 @@
 #include "asf.h"
 #include "system_init.h"
 #include "system.h"
+#include "twi_pdc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -188,7 +189,7 @@ system_init(void)
 //    dacc_init();
     spi_init();
     twi_init();
-
+    twiPdc_init();
 //    ten_milliseconds_timer_init();
 //    buzzer_timer_init();
 
