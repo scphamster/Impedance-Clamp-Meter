@@ -67,8 +67,8 @@ class CalibrationData {
     constexpr CalibrationData() = default;
     constexpr CalibrationData(VoltageDataT v_data, ShuntDataT shunt_data, ClampDataT clamp_data)
       : voltage{ std::move(v_data) }
-      , shunt{ shunt_data }
-      , clamp{ clamp_data }
+      , shunt{std::move( shunt_data )}
+      , clamp{std::move( clamp_data )}
     { }
 
     void SetVoltageSensorData(VoltageDataT new_cals) noexcept { voltage = new_cals; }
@@ -159,29 +159,22 @@ class ClampMeterDriver {
     };
 
     struct SharedData {
-        std::shared_ptr<UniversalSafeType> vout;
-        std::shared_ptr<UniversalSafeType> shunt;
-        std::shared_ptr<UniversalSafeType> clamp;
-        std::shared_ptr<UniversalSafeType> v4;
-        std::shared_ptr<UniversalSafeType> v5;
-        std::shared_ptr<UniversalSafeType> v6;
-        std::shared_ptr<UniversalSafeType> v7;
-        std::shared_ptr<UniversalSafeType> v8;
+        std::shared_ptr<UniversalSafeType> value1;
+        std::shared_ptr<UniversalSafeType> value2;
+        std::shared_ptr<UniversalSafeType> value3;
+        std::shared_ptr<UniversalSafeType> value4;
+        std::shared_ptr<UniversalSafeType> value5;
+        std::shared_ptr<UniversalSafeType> value6;
+        std::shared_ptr<UniversalSafeType> value7;
+        std::shared_ptr<UniversalSafeType> value8;
     };
 
-    ClampMeterDriver(const SharedData& sharedData, std::shared_ptr<DialogT> new_msg_box)
-      : value1{ sharedData.vout }
-      , value2{ sharedData.shunt }
-      , value3{ sharedData.clamp }
-      , value4{ sharedData.v4 }
-      , value5{ sharedData.v5 }
-      , value6{ sharedData.v6 }
-      , value7{ sharedData.v7 }
-      , value8{ sharedData.v8 }
+    ClampMeterDriver(const SharedData &shared_data, std::shared_ptr<DialogT> new_msg_box)
+      : sharedData{ shared_data }
       , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength, "sensor") }
-      , sensorDataManagerTask{ [this]() { this->ManageSensorsDataTask(); },
+      , sensorDataManagerTask{ [this]() { this->MeasurementsTask(); },
                                ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::ClampDriverSensor),
                                ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::ClampDriverSensor),
                                "sensors" }
@@ -218,7 +211,9 @@ class ClampMeterDriver {
 
     void StartNormalModeOperation() noexcept
     {
-        messageBox->ShowMsg("Calibrated? " + std::to_string(isCalibrated));
+        if (not isCalibrated) {
+            messageBox->ShowMsg("Device is not calibrated! Stop measurement, go back and proceed with calibration.");
+        }
 
         workMode = Mode::Normal;
         SetAndActivateSensor(Sensor::Voltage);
@@ -604,25 +599,6 @@ class ClampMeterDriver {
             counter = 0;
         }
     }
-    void ShowCalculationsInfo() noexcept
-    {
-        auto msg = std::string{ "sensor: " };
-
-        switch (activeSensor) {
-        case Sensor::Voltage: msg.append("Voltage "); break;
-        case Sensor::Shunt: msg.append("Shunt "); break;
-        case Sensor::Clamp: msg.append("Clamp "); break;
-        }
-
-        //        msg.append(" XOverall=" + StringConverter::ToString<3>(data.XOverall));
-        //        msg.append(" ROverall=" + StringConverter::ToString<3>(data.ROverall));
-        //        msg.append(" XClamp=" + StringConverter::ToString<3>(data.XClamp));
-        //        msg.append(" RClamp=" + StringConverter::ToString<3>(data.RClamp));
-        msg.append(" IClamp=" + StringConverter::ToString<3>(data.clampSensorData.GetAbsolute()));
-
-        messageBox->ShowMsg(std::move(msg));
-    }
-
     /////////////////////// task helpers //////////////////////////////
     void SetBuzzerFreq() noexcept
     {
@@ -648,8 +624,8 @@ class ClampMeterDriver {
         if (workMode == Mode::Calibration)
             return;
 
-        *value1 = data.voltageSensorData.GetAbsolute();
-        *value4 = data.voltageSensorData.GetDegree();
+        *sharedData.value1 = data.voltageSensorData.GetAbsolute();
+        *sharedData.value4 = data.voltageSensorData.GetDegree();
     }
     void CalculateShuntSensor() noexcept
     {
@@ -661,10 +637,10 @@ class ClampMeterDriver {
         auto admitance = (data.shuntSensorData.GetValue() / shuntResistorValue) / data.appliedVoltage;
         data.ZOverall.CalculateFromAdmitance(admitance);
 
-        *value2 = data.ZOverall.GetZParallel();
-        *value4 = data.ZOverall.GetDegreeParalel();
-        *value5 = data.ZOverall.GetX();
-        *value6 = data.ZOverall.GetR();
+        *sharedData.value2 = data.ZOverall.GetZParallel();
+        *sharedData.value4 = data.ZOverall.GetDegreeParalel();
+        *sharedData.value5 = data.ZOverall.GetX();
+        *sharedData.value6 = data.ZOverall.GetR();
     }
     void CalculateClampSensor() noexcept
     {
@@ -674,10 +650,10 @@ class ClampMeterDriver {
         auto q = data.clampSensorData.GetValue() / data.appliedVoltage;
         data.clamp.CalculateFromAdmitance(q);
 
-        *value3 = data.clamp.GetZParallel();
-        *value4 = data.clamp.GetDegreeParalel();
-        *value7 = data.clamp.GetX();
-        *value8 = data.clamp.GetR();
+        *sharedData.value3 = data.clamp.GetZParallel();
+        *sharedData.value4 = data.clamp.GetDegreeParalel();
+        *sharedData.value7 = data.clamp.GetX();
+        *sharedData.value8 = data.clamp.GetR();
         SetBuzzerFreq();
     }
 
@@ -888,7 +864,7 @@ class ClampMeterDriver {
             Stop();
         }
     }
-    [[noreturn]] [[gnu::hot]] void ManageSensorsDataTask() noexcept
+    [[noreturn]] [[gnu::hot]] void MeasurementsTask() noexcept
     {
         while (true) {
             auto sensor_data = fromSensorDataQueue->Receive();
@@ -899,10 +875,10 @@ class ClampMeterDriver {
             CheckDataStability(sensor_data.GetI());
 
             if (workMode == Mode::Calibration) {
-                *value1 = sensor_data.GetI();
-                *value2 = deviationOfDeviation;
-                *value3 = sensor_data.GetAbsolute();
-                *value4 = sensor_data.GetDegree();
+                *sharedData.value1 = sensor_data.GetI();
+                *sharedData.value2 = deviationOfDeviation;
+                *sharedData.value3 = sensor_data.GetAbsolute();
+                *sharedData.value4 = sensor_data.GetDegree();
             }
 
             switch (activeSensor) {
@@ -918,10 +894,6 @@ class ClampMeterDriver {
                 data.clampSensorData = sensor_data;
                 CalculateClampSensor();
                 break;
-            }
-
-            if (workMode == Mode::Normal) {
-                //                ShowCalculationsInfo();
             }
         }
     }
@@ -972,14 +944,7 @@ class ClampMeterDriver {
     };
 
     // todo: compress
-    std::shared_ptr<UniversalSafeType> value1;
-    std::shared_ptr<UniversalSafeType> value2;
-    std::shared_ptr<UniversalSafeType> value3;
-    std::shared_ptr<UniversalSafeType> value4;
-    std::shared_ptr<UniversalSafeType> value5;
-    std::shared_ptr<UniversalSafeType> value6;
-    std::shared_ptr<UniversalSafeType> value7;
-    std::shared_ptr<UniversalSafeType> value8;
+    SharedData sharedData;
 
     PeripheralsController peripherals;
     OutputGenerator       generator;
