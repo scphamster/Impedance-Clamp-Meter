@@ -158,6 +158,17 @@ class ClampMeterDriver {
         Calibration
     };
 
+    struct SharedData {
+        std::shared_ptr<UniversalSafeType> vout;
+        std::shared_ptr<UniversalSafeType> shunt;
+        std::shared_ptr<UniversalSafeType> clamp;
+        std::shared_ptr<UniversalSafeType> v4;
+        std::shared_ptr<UniversalSafeType> v5;
+        std::shared_ptr<UniversalSafeType> v6;
+        std::shared_ptr<UniversalSafeType> v7;
+        std::shared_ptr<UniversalSafeType> v8;
+    };
+
     ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout,
                      std::shared_ptr<UniversalSafeType> shunt,
                      std::shared_ptr<UniversalSafeType> clamp,
@@ -399,19 +410,20 @@ class ClampMeterDriver {
 
         return std::pair{ filterI, filterQ };
     }
-//    void InitializeIO() noexcept
-//    {
-//        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, 0);
-//
-//        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
-//
-//        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
-//
-//        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
-//
-//        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
-//        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
-//    }
+    //    void InitializeIO() noexcept
+    //    {
+    //        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN |
+    //        CLAMP_SENSOR_GAIN_D_PIN, 0);
+    //
+    //        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
+    //
+    //        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
+    //
+    //        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
+    //
+    //        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
+    //        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
+    //    }
     void InitializeSensors() noexcept
     {
         using AGC          = AutomaticGainController<GainController, ValueT>;
@@ -419,7 +431,7 @@ class ClampMeterDriver {
         auto iq_controller = std::make_shared<SynchronousIQCalculator<float>>(sinus_table.size());
 
         // todo: make this initializer part of gain controllers
-//        InitializeIO();
+        //        InitializeIO();
 
         auto [calibs, result] = FlashController2::Recall(COEFFS_FLASH_START_ADDR);
 
