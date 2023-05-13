@@ -7,14 +7,9 @@
 
 #include "asf.h"
 #include "keyboard.h"
-#include "twi_pdc.h"
-//#include "menu.h"
-#include "system.h"
-//#include "DSP_functions.h"
+#include "system_init.h"
 #include "MCP23016.h"
 
-#define ENC_STATE_L_ARM (1 << 0)
-#define ENC_STATE_R_ARM (1 << 1)
 #define ENC_STATE_A_DOWN (1 << 2)
 #define ENC_STATE_B_DOWN (1 << 3)
 

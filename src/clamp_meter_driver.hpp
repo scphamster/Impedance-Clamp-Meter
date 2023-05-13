@@ -464,16 +464,16 @@ class ClampMeterDriver {
         {
             auto sh_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
-            sh_gain_controller->SetGainChangeFunctor(1, [this]() { shunt_sensor_set_gain(0);  adc.SetGain(AdcDriverT::Gain::GAIN_1V3);},  calibs.GetShuntSensorCalData(1));
-            sh_gain_controller->SetGainChangeFunctor(2, [this]() { shunt_sensor_set_gain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(2));
-            sh_gain_controller->SetGainChangeFunctor(3, [this]() { shunt_sensor_set_gain(1); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(3));
-            sh_gain_controller->SetGainChangeFunctor(4, [this]() { shunt_sensor_set_gain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(4));
-            sh_gain_controller->SetGainChangeFunctor(5, [this]() { shunt_sensor_set_gain(3); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(5));
-            sh_gain_controller->SetGainChangeFunctor(6, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(6));
-            sh_gain_controller->SetGainChangeFunctor(7, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  calibs.GetShuntSensorCalData(7));
-            sh_gain_controller->SetGainChangeFunctor(8, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  calibs.GetShuntSensorCalData(8));
-            sh_gain_controller->SetGainChangeFunctor(9, [this]() { shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  calibs.GetShuntSensorCalData(9));
-            sh_gain_controller->SetGainChangeFunctor(10, [this](){ shunt_sensor_set_gain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  calibs.GetShuntSensorCalData(10));
+            sh_gain_controller->SetGainChangeFunctor(1, [this]() { shuntSensor->SetGain(0);  adc.SetGain(AdcDriverT::Gain::GAIN_1V3);},  calibs.GetShuntSensorCalData(1));
+            sh_gain_controller->SetGainChangeFunctor(2, [this]() { shuntSensor->SetGain(0); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(2));
+            sh_gain_controller->SetGainChangeFunctor(3, [this]() { shuntSensor->SetGain(1); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(3));
+            sh_gain_controller->SetGainChangeFunctor(4, [this]() { shuntSensor->SetGain(2); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(4));
+            sh_gain_controller->SetGainChangeFunctor(5, [this]() { shuntSensor->SetGain(3); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(5));
+            sh_gain_controller->SetGainChangeFunctor(6, [this]() { shuntSensor->SetGain(4); adc.SetGain(AdcDriverT::Gain::GAIN_1);}   ,  calibs.GetShuntSensorCalData(6));
+            sh_gain_controller->SetGainChangeFunctor(7, [this]() { shuntSensor->SetGain(4); adc.SetGain(AdcDriverT::Gain::GAIN_2);}   ,  calibs.GetShuntSensorCalData(7));
+            sh_gain_controller->SetGainChangeFunctor(8, [this]() { shuntSensor->SetGain(4); adc.SetGain(AdcDriverT::Gain::GAIN_4);}   ,  calibs.GetShuntSensorCalData(8));
+            sh_gain_controller->SetGainChangeFunctor(9, [this]() { shuntSensor->SetGain(4); adc.SetGain(AdcDriverT::Gain::GAIN_8);}   ,  calibs.GetShuntSensorCalData(9));
+            sh_gain_controller->SetGainChangeFunctor(10, [this](){ shuntSensor->SetGain(4); adc.SetGain(AdcDriverT::Gain::GAIN_16);} ,  calibs.GetShuntSensorCalData(10));
             // clang-format on
             auto sh_agc                  = std::make_unique<AGC>(1, 10, 1e5f, 3e6f, 50, 500);
             auto sh_amplifier_controller = std::make_unique<AmplifierController>(sh_gain_controller, std::move(sh_agc), true);
@@ -493,16 +493,16 @@ class ClampMeterDriver {
         {
             auto clamp_gain_controller = std::make_shared<GainController>(1, 10);
             // clang-format off
-            clamp_gain_controller->SetGainChangeFunctor(1, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}, calibs.GetClampSensorCalData(1));
-            clamp_gain_controller->SetGainChangeFunctor(2, [this]() {clamp_sensor_set_gain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(2));
-            clamp_gain_controller->SetGainChangeFunctor(3, [this]() {clamp_sensor_set_gain(1);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(3));
-            clamp_gain_controller->SetGainChangeFunctor(4, [this]() {clamp_sensor_set_gain(2);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(4));
-            clamp_gain_controller->SetGainChangeFunctor(5, [this]() {clamp_sensor_set_gain(3);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(5));
-            clamp_gain_controller->SetGainChangeFunctor(6, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(6));
-            clamp_gain_controller->SetGainChangeFunctor(7, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_2);}  , calibs.GetClampSensorCalData(7));
-            clamp_gain_controller->SetGainChangeFunctor(8, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_4);}  , calibs.GetClampSensorCalData(8));
-            clamp_gain_controller->SetGainChangeFunctor(9, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_8);}  , calibs.GetClampSensorCalData(9));
-            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {clamp_sensor_set_gain(4);adc.SetGain(AdcDriverT::Gain::GAIN_16);}, calibs.GetClampSensorCalData(10));
+            clamp_gain_controller->SetGainChangeFunctor(1, [this]()  {clampSensor->SetGain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1V3);}, calibs.GetClampSensorCalData(1));
+            clamp_gain_controller->SetGainChangeFunctor(2, [this]()  {clampSensor->SetGain(0);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(2));
+            clamp_gain_controller->SetGainChangeFunctor(3, [this]()  {clampSensor->SetGain(1);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(3));
+            clamp_gain_controller->SetGainChangeFunctor(4, [this]()  {clampSensor->SetGain(2);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(4));
+            clamp_gain_controller->SetGainChangeFunctor(5, [this]()  {clampSensor->SetGain(3);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(5));
+            clamp_gain_controller->SetGainChangeFunctor(6, [this]()  {clampSensor->SetGain(4);adc.SetGain(AdcDriverT::Gain::GAIN_1);}  , calibs.GetClampSensorCalData(6));
+            clamp_gain_controller->SetGainChangeFunctor(7, [this]()  {clampSensor->SetGain(4);adc.SetGain(AdcDriverT::Gain::GAIN_2);}  , calibs.GetClampSensorCalData(7));
+            clamp_gain_controller->SetGainChangeFunctor(8, [this]()  {clampSensor->SetGain(4);adc.SetGain(AdcDriverT::Gain::GAIN_4);}  , calibs.GetClampSensorCalData(8));
+            clamp_gain_controller->SetGainChangeFunctor(9, [this]()  {clampSensor->SetGain(4);adc.SetGain(AdcDriverT::Gain::GAIN_8);}  , calibs.GetClampSensorCalData(9));
+            clamp_gain_controller->SetGainChangeFunctor(10, [this]() {clampSensor->SetGain(4);adc.SetGain(AdcDriverT::Gain::GAIN_16);}, calibs.GetClampSensorCalData(10));
             // clang-format on
             auto clamp_agc = std::make_unique<AGC>(1, 10, 1e5f, 4e6f, 50, 500);
             auto clamp_amplifier_controller =
@@ -1044,8 +1044,8 @@ class ClampMeterDriver {
     ClampMeterData                     data;
     std::shared_ptr<FromSensorQueueT>  fromSensorDataQueue;
 
-//    std::shared_ptr<ShuntSensor> shuntSensor{ ShuntSensor::Get() };
-//    std::shared_ptr<ClampSensor> clampSensor{ ClampSensor::Get() };
+    std::shared_ptr<ShuntSensor> shuntSensor{ ShuntSensor::Get() };
+    std::shared_ptr<ClampSensor> clampSensor{ ClampSensor::Get() };
 
     Task sensorDataManagerTask;
     Task calibrationTask;

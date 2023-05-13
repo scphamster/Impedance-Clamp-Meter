@@ -7,6 +7,8 @@ extern "C" {
 #endif
 
 uint32_t switch_to_plla_result = 0;
+uint32_t g_ten_millis;
+
 //
 void master_clock_init(void);
 void periph_clock_init(void);
