@@ -48,7 +48,7 @@ endif ()
 
 set(C_CXX_COMPILE_FLAGS "${COMPILER_WARNINGS_SETTINGS} ${BOARD_CONFIGS_COMPILE_FLAGS} ${COMPILER_SHOW_HEADERS_CMD} ${C_CXX_CONDITIONAL_COMPILE_FLAGS} ${FPU_SETTINGS_COMPILE_FLAGS} -mthumb --param max-inline-insns-single=500 -ffunction-sections -mlong-calls -c")
 set(C_COMPILE_FLAGS "-x c -std=gnu17")
-set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -D__FPU_PRESENT -mthumb -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=gnu++20")
+set(CXX_COMPILE_FLAGS "${CXX_CONDITIONAL_COMPILE_FLAGS} -D__FPU_PRESENT -mthumb -fconcepts -fconcepts-diagnostics-depth=2 -fno-exceptions -std=c++20")
 
 ####################### LINKER SCRIPT ##########################
 set(LINKER_SCRIPT_DIR "${CMAKE_SOURCE_DIR}/src/asf_lib/src/ASF/sam/utils/linker_scripts/sam4e/sam4e8/gcc")

@@ -50,8 +50,6 @@
 #include "calibrations.hpp"
 // todo: cleanup
 
-extern "C" char *gcvtf(float, int, char *);
-
 extern std::array<std::pair<float, float>, 21> calibration_data;
 extern bool                                    flash_restore_result;
 extern bool                                    flash_save_result;
