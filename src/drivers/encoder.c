@@ -6,9 +6,8 @@
  */
 
 #include "asf.h"
-#include "keyboard.h"
+#include "encoder.h"
 #include "system_init.h"
-#include "MCP23016.h"
 
 #define ENC_STATE_A_DOWN (1 << 2)
 #define ENC_STATE_B_DOWN (1 << 3)
@@ -17,33 +16,9 @@
 extern "C" {
 #endif
 
-uint16_t kbrddd;
-
-uint16_t encoderA_testval;
-uint16_t encoderB_testval;
-uint16_t encoderL_testval;
-uint16_t encoderR_testval;
-
+uint16_t enc_keys_seq;
 uint8_t g_Encoder_state = 0;
-
 Keyboard_t Keyboard;
-
-void keyboard_handler(uint16_t keys)
-{
-	static uint16_t prev_state = 0;
-	static uint32_t last_entry_time	= 0;
-	uint32_t current_time;
-	uint16_t state_changed;
-
-	state_changed = (keys & KEYS_USED_MAP) ^ prev_state;
-
-	if (state_changed) {
-		kbrddd |= prev_state & ((~keys) & KEYS_USED_MAP);
-		prev_state = (keys & KEYS_USED_MAP);
-	}
-
-	Keyboard.keys |= kbrddd;
-}
 
 void encoder_fastmode_helper(uint32_t key)
 {
@@ -89,19 +64,19 @@ void encoder_a_handler(uint32_t id, uint32_t mask)
 		g_Encoder_state |= ENC_STATE_A_DOWN;
 
 		if (g_Encoder_state & ENC_STATE_B_DOWN) {
-			kbrddd |= KEY_ENCL;
+            enc_keys_seq |= KEY_ENCL;
 			encoder_fastmode_helper(KEY_ENCL);
 		}
 	} else {
 		g_Encoder_state &= ~ENC_STATE_A_DOWN;
 
 		if ((~g_Encoder_state) & ENC_STATE_B_DOWN) {
-			kbrddd |= KEY_ENCL;
+            enc_keys_seq |= KEY_ENCL;
 			encoder_fastmode_helper(KEY_ENCL);
 		}
 	}
 	
-	Keyboard.keys |= kbrddd;
+	Keyboard.keys |= enc_keys_seq;
 }
 
 void encoder_b_handler(uint32_t id, uint32_t mask)
@@ -110,19 +85,19 @@ void encoder_b_handler(uint32_t id, uint32_t mask)
 		g_Encoder_state |= ENC_STATE_B_DOWN;
 
 		if (g_Encoder_state & ENC_STATE_A_DOWN) {
-			kbrddd |= KEY_ENCR;
+            enc_keys_seq |= KEY_ENCR;
 			encoder_fastmode_helper(KEY_ENCR);
 		}
 	} else {
 		g_Encoder_state &= ~ENC_STATE_B_DOWN;
 
 		if ((~g_Encoder_state) & ENC_STATE_A_DOWN)
-			kbrddd |= KEY_ENCR;
+            enc_keys_seq |= KEY_ENCR;
 
 		encoder_fastmode_helper(KEY_ENCR);
 	}
 	
-	Keyboard.keys |= kbrddd;
+	Keyboard.keys |= enc_keys_seq;
 }
 
 void keyboard_encoder_init(void)
@@ -144,12 +119,6 @@ void keyboard_encoder_init(void)
 	pio_handler_set(PIOD, ID_PIOD, ENCODER_B_PIN, PIO_IT_EDGE,
 	                encoder_b_handler);
 	pio_enable_interrupt(PIOD, ENCODER_B_PIN);
-}
-
-void keyboard_init(void)
-{
-	keyboard_encoder_init();
-	mcp23016_init();
 }
 
 #ifdef __cplusplus

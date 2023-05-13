@@ -162,7 +162,7 @@ add_subdirectory(src/asf_lib)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC asf)
 
 
-add_subdirectory(src/clamp_meter)
+add_subdirectory(src/drivers)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC clamp_meter)
 
 display_size(${EXECUTABLE_NAME})

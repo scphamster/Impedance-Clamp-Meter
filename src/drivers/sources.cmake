@@ -5,6 +5,6 @@ set(SOURCES
     MCP23016.h
     twi_pdc.c
     twi_pdc.h
-    keyboard.c
-    keyboard.h
+    encoder.c
+    encoder.h
     )

@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-extern uint16_t kbrddd;
+extern uint16_t enc_keys_seq;
 extern uint16_t encoderA_testval;
 extern uint16_t encoderB_testval;
 extern uint16_t encoderL_testval;
@@ -47,7 +47,6 @@ typedef struct {
 
 extern Keyboard_t Keyboard;
 
-void keyboard_handler		(uint16_t keys);
 void keyboard_encoder_init	(void);
 void keyboard_init			(void);
 

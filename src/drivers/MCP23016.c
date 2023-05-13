@@ -8,7 +8,7 @@
 #include "asf.h"
 #include "MCP23016.h"
 #include "twi_pdc.h"
-#include "keyboard.h"
+#include "encoder.h"
 
 #define MCP23016_GP0		0X00
 #define MCP23016_GP1		0X01
