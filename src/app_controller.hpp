@@ -10,7 +10,7 @@
 
 #include "menu_model.hpp"
 #include "menu_model_item.hpp"
-#include "menu_model_drawer.hpp"
+#include "menu_model_handler.hpp"
 
 #include "clamp_meter_driver.hpp"
 #include "task.hpp"
@@ -63,7 +63,9 @@ class AppController : public std::enable_shared_from_this<AppController<DrawerT,
         }
     }
 
-    // initializers
+    /**
+     * @brief Creates pages for navigation through menu
+     */
     void InitializeMenu() noexcept
     {
         // measurements menu
@@ -175,7 +177,7 @@ class AppController : public std::enable_shared_from_this<AppController<DrawerT,
     }
 
   private:
-    MenuModelDrawer<DrawerT, Keyboard> drawer;
+    MenuModelHandler<DrawerT, Keyboard> drawer;
 
     // todo: to be deleted from here
     PageDataT valueOne;

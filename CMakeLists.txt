@@ -44,8 +44,8 @@ set(CXX_SOURCES
 
     ${SOURCES_DIRECTORY}/menu/menu_model.hpp
     ${SOURCES_DIRECTORY}/menu/menu_model_item.hpp
-    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.hpp
-    ${SOURCES_DIRECTORY}/menu/menu_model_drawer.cpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_handler.hpp
+    ${SOURCES_DIRECTORY}/menu/menu_model_handler.cpp
     ${SOURCES_DIRECTORY}/menu/menu_model_dialog.hpp
 
     ${SOURCES_DIRECTORY}/utilities/universal_type.hpp

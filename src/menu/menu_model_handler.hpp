@@ -161,9 +161,8 @@ class PageItemStateStorage {
     DataT                value;
 };
 
-// todo: implement elegant fullRedraw flag
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
-class MenuModelDrawer {
+class MenuModelHandler {
   public:
     using Item        = MenuModelPage<Keyboard>;
     using NameT       = typename Item::NameT;
@@ -175,13 +174,10 @@ class MenuModelDrawer {
     using Rect        = typename Drawer::Rect;
     using ScreenSizeT = typename Drawer::ScreenSizeT;
 
-    explicit MenuModelDrawer(std::unique_ptr<Drawer> &&new_drawer, std::unique_ptr<Keyboard> &&new_keyboard)
+    explicit MenuModelHandler(std::unique_ptr<Drawer> &&new_drawer, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(new_drawer)>(new_drawer) }
       , keyboard{ std::forward<decltype(new_keyboard)>(new_keyboard) }
     {
-        //        keyboard->SetButtonEventCallback(Keyboard::ButtonName::Enter, Keyboard::ButtonEvent::Release, [this]() {
-        //            EnterButtonPushEvent();
-        //        });
         keyboard->SetButtonEventCallback(Keyboard::ButtonName::Back, Keyboard::ButtonEvent::Release, [this]() {
             BackButtonPushEvent();
         });
@@ -193,6 +189,9 @@ class MenuModelDrawer {
     }
 
     // todo: make this function a real freertos task, not just a function called from outside
+    /**
+     * @brief UI drawing loop. Draws items which should be drawn first time, and redraws altered items.
+     */
     void DrawerTask() noexcept
     {
         if (currentPage != model->GetCurrentPage() or fullRedraw) {
@@ -200,11 +199,10 @@ class MenuModelDrawer {
             currentPage          = model->GetCurrentPage();
 
             DrawStaticPageItems();
-            staticPageItemsDrawn = true;
 
             drawnDynamicPageItems.clear();
         }
-        // todo: draw message box
+
         DrawDynamicPageItems();
         DrawMessageDialog();
 
@@ -309,7 +307,7 @@ class MenuModelDrawer {
             DrawPageItemValue(item_index, model->GetCurrentPage()->GetChild(item_index)->GetData()->GetValue());
         }
     }
-    void DrawStaticPageItems() const noexcept
+    void DrawStaticPageItems() noexcept
     {
         drawer->DrawFiledRectangle(screenSettings.usedArea, COLOR_BLACK);   // todo: optimize
 
@@ -317,6 +315,8 @@ class MenuModelDrawer {
         drawer->SetTextColor(COLOR_WHITE, COLOR_BLACK);
 
         drawer->Print(currentPage->GetHeader(), pageHeaderSettings.fontSize);
+
+        staticPageItemsDrawn = true;
     }
     void DrawDynamicPageItems() noexcept
     {
@@ -582,7 +582,7 @@ class MenuModelDrawer {
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 void
-MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
+MenuModelHandler<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 {
     drawnDynamicPageItems.clear();
 
@@ -593,7 +593,7 @@ MenuModelDrawer<Drawer, Keyboard>::StoreCurrentModelData() noexcept
 
 template<DisplayDrawerC Drawer, KeyboardC Keyboard>
 MenuModelPage<Keyboard>
-MenuModelDrawer<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
+MenuModelHandler<Drawer, Keyboard>::GetCurrentModelPageData() noexcept
 {
     // todo: implement
 }
