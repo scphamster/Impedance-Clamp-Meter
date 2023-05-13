@@ -12,9 +12,13 @@
 #include <memory>
 #include "compiler.h"
 #include "clamp_meter_concepts.hpp"
-#include "ILI9486_config.h"
 
 extern "C" char *gcvtf(float, int, char *);
+
+// todo: move to constructor
+#define FONT_HEIGHT 24
+#define FONT_WIDTH  14
+#define FONT_SQUISH 3
 
 template<DisplayDriver Driver>
 class DisplayDrawer {
@@ -443,7 +447,7 @@ DisplayDrawer<Driver>::Print(float number, Byte n_digits, const Byte size) noexc
     char       buffer[buffsize];
 
     // TODO: optimize floating number drawing, its 1000 times slower than integer drawing
-    //test
+    // test
     gcvtf(number, n_digits, &buffer[0]);
 
     Print(buffer, size);

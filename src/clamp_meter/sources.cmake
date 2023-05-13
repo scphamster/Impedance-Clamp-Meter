@@ -9,11 +9,6 @@ set(SOURCES
     twi_pdc.h
     keyboard.c
     keyboard.h
-    LCD1608.c
-    LCD1608.h
-    ILI9486_config.h
     external_periph_ctrl.c
     external_periph_ctrl.h
-    signal_conditioning.c
-    signal_conditioning.h
     )

@@ -9,7 +9,6 @@
 #include "MCP23016.h"
 #include "twi_pdc.h"
 #include "keyboard.h"
-#include "LCD1608.h"
 
 #define MCP23016_GP0		0X00
 #define MCP23016_GP1		0X01
@@ -80,7 +79,7 @@ uint16_t mcp23016_read_pindata (void)
 	
 	twi_master_read(TWI0, &packet);
 	
-	twi_set_speed(TWI0, LCD_TWI_FREQ, cpu_freq);
+//	twi_set_speed(TWI0, LCD_TWI_FREQ, cpu_freq);
 	twiPdc_enable();
 	
 	return (buffer[0] | (buffer[1] << 8));
