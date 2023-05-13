@@ -194,7 +194,7 @@ class MenuModelHandler {
      */
     void DrawerTask() noexcept
     {
-        if (currentPage != model->GetCurrentPage() or fullRedraw) {
+        if (fullRedraw or currentPage != model->GetCurrentPage()) {
             staticPageItemsDrawn = false;
             currentPage          = model->GetCurrentPage();
 
@@ -260,6 +260,7 @@ class MenuModelHandler {
     void DrawPageItemValue(auto item_index, auto const &value) noexcept
     {
         using State = typename PageCursor::State;
+
         ColorT back_color{};
         if (cursor.GetPageCursor().GetPos() == item_index and
             (cursor.GetState() == State::ItemLevel or cursor.GetState() == State::ValueLevel)) {
@@ -334,16 +335,16 @@ class MenuModelHandler {
             prevCursor = cursor;
         }
 
-        for (auto item_index = 0; const auto &child_page : model->GetCurrentPage()->GetChildren()) {
-            if (drawnDynamicPageItems.at(item_index).GetName() != child_page->GetName()) {
-                drawnDynamicPageItems.at(item_index).SetName(child_page->GetName());
+        for (auto item_index = 0; const auto &item : model->GetCurrentPage()->GetChildren()) {
+            if (drawnDynamicPageItems.at(item_index).GetName() != item->GetName()) {
+                drawnDynamicPageItems.at(item_index).SetName(item->GetName());
                 DrawPageItemName(item_index, drawnDynamicPageItems.at(item_index).GetName());
             }
 
-            if (not child_page->IsValueless()) {
-                if (drawnDynamicPageItems.at(item_index).GetValue() != child_page->GetData()->GetValue()) {
-                    drawnDynamicPageItems.at(item_index).SetValue(child_page->GetData()->GetValue());
-                    DrawPageItemValue(item_index, child_page->GetData()->GetValue());
+            if (not item->IsValueless()) {
+                if (drawnDynamicPageItems.at(item_index).GetValue() != item->GetData()->GetValue()) {
+                    drawnDynamicPageItems.at(item_index).SetValue(item->GetData()->GetValue());
+                    DrawPageItemValue(item_index, item->GetData()->GetValue());
                 }
             }
 
