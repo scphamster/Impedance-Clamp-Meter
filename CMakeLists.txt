@@ -13,7 +13,7 @@ set(CXX_SOURCES
     ${SOURCES_DIRECTORY}/main.cpp
 
     ${SOURCES_DIRECTORY}/misc/project_configs.hpp
-    ${SOURCES_DIRECTORY}/tasks_controller.hpp
+    ${SOURCES_DIRECTORY}/app_controller.hpp
 
     ${SOURCES_DIRECTORY}/clamp_meter_driver.hpp
 

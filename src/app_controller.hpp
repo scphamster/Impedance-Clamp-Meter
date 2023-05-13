@@ -21,14 +21,14 @@
 #include "keyboard_fast.hpp"
 
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
-class TasksControllerImplementation : public std::enable_shared_from_this<TasksControllerImplementation<DrawerT, Keyboard>> {
+class AppController : public std::enable_shared_from_this<AppController<DrawerT, Keyboard>> {
   public:
     using Page      = MenuModelPage<Keyboard>;
     using Menu      = MenuModel<Keyboard>;
     using PageDataT = std::shared_ptr<UniversalSafeType>;
     using Drawer    = std::unique_ptr<DrawerT>;
 
-    TasksControllerImplementation(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
+    AppController(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
       , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
       , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
@@ -49,9 +49,9 @@ class TasksControllerImplementation : public std::enable_shared_from_this<TasksC
     {
         InitializeMenu();
     }
-    TasksControllerImplementation(TasksControllerImplementation &&other)           noexcept = default;
-    TasksControllerImplementation &operator=(TasksControllerImplementation &&rhs)  noexcept = default;
-    ~TasksControllerImplementation()                                              = default;
+    AppController(AppController &&other)           noexcept = default;
+    AppController &operator=(AppController &&rhs)  noexcept = default;
+    ~AppController()                                              = default;
 
   protected:
     ////////// tasks ////////////
