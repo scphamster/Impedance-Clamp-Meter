@@ -169,23 +169,15 @@ class ClampMeterDriver {
         std::shared_ptr<UniversalSafeType> v8;
     };
 
-    ClampMeterDriver(std::shared_ptr<UniversalSafeType> vout,
-                     std::shared_ptr<UniversalSafeType> shunt,
-                     std::shared_ptr<UniversalSafeType> clamp,
-                     std::shared_ptr<UniversalSafeType> v4,
-                     std::shared_ptr<UniversalSafeType> v5,
-                     std::shared_ptr<UniversalSafeType> v6,
-                     std::shared_ptr<UniversalSafeType> v7,
-                     std::shared_ptr<UniversalSafeType> v8,
-                     std::shared_ptr<DialogT>           new_msg_box)
-      : value1{ vout }
-      , value2{ shunt }
-      , value3{ clamp }
-      , value4{ v4 }
-      , value5{ v5 }
-      , value6{ v6 }
-      , value7{ v7 }
-      , value8{ v8 }
+    ClampMeterDriver(const SharedData& sharedData, std::shared_ptr<DialogT> new_msg_box)
+      : value1{ sharedData.vout }
+      , value2{ sharedData.shunt }
+      , value3{ sharedData.clamp }
+      , value4{ sharedData.v4 }
+      , value5{ sharedData.v5 }
+      , value6{ sharedData.v6 }
+      , value7{ sharedData.v7 }
+      , value8{ sharedData.v8 }
       , generator{ ProjectConfigs::GeneratorAmplitude }
       , adc{ ProjectConfigs::ADCAddress, ProjectConfigs::ADCStreamBufferCapacity, ProjectConfigs::ADCStreamBufferTriggeringSize }
       , fromSensorDataQueue{ std::make_shared<FromSensorQueueT>(ProjectConfigs::FromSensorOutputQueueLength, "sensor") }
@@ -410,20 +402,6 @@ class ClampMeterDriver {
 
         return std::pair{ filterI, filterQ };
     }
-    //    void InitializeIO() noexcept
-    //    {
-    //        pio_set_input(PIOA, SH_SENSOR_GAIN_A_PIN | CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN |
-    //        CLAMP_SENSOR_GAIN_D_PIN, 0);
-    //
-    //        pio_set_input(PIOD, CLAMP_SENSOR_GAIN_A_PIN | SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, 0);
-    //
-    //        pio_pull_down(PIOA, CLAMP_SENSOR_GAIN_B_PIN | CLAMP_SENSOR_GAIN_C_PIN | CLAMP_SENSOR_GAIN_D_PIN, true);
-    //
-    //        pio_pull_down(PIOD, CLAMP_SENSOR_GAIN_A_PIN, true);
-    //
-    //        pio_pull_up(PIOA, SH_SENSOR_GAIN_A_PIN, true);
-    //        pio_pull_up(PIOD, SH_SENSOR_GAIN_B_PIN | SH_SENSOR_GAIN_C_PIN | SH_SENSOR_GAIN_D_PIN, true);
-    //    }
     void InitializeSensors() noexcept
     {
         using AGC          = AutomaticGainController<GainController, ValueT>;

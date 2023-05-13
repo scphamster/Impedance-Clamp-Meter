@@ -30,28 +30,26 @@ class AppController : public std::enable_shared_from_this<AppController<DrawerT,
 
     AppController(std::unique_ptr<DrawerT> &&display_to_be_used, std::unique_ptr<Keyboard> &&new_keyboard)
       : drawer{ std::forward<decltype(display_to_be_used)>(display_to_be_used), std::forward<decltype(new_keyboard)>(new_keyboard) }
-      , valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
-      , valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
-      , valueThree{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
-      , valueFour{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
-      , valueFive{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }    // test
-      , valueSix{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }     // test
-      , valueSeven{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
-      , valueEight{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) }   // test
       , drawerTask{ [this]() { this->DisplayTask(); },
                     ProjectConfigs::GetTaskStackSize(ProjectConfigs::Tasks::Display),
                     ProjectConfigs::GetTaskPriority(ProjectConfigs::Tasks::Display),
                     "display" }
-      , clampMeter{ valueOne,   valueTwo,   valueThree,
-                    valueFour,  valueFive,  valueSix,
-                    valueSeven, valueEight, drawer.CreateAndGetDialog() }
+      , clampMeter{ ClampMeterDriver::SharedData{ valueOne,
+                                                  valueTwo,
+                                                  valueThree,
+                                                  valueFour,
+                                                  valueFive,
+                                                  valueSix,
+                                                  valueSeven,
+                                                  valueEight },
+                    drawer.CreateAndGetDialog() }
       , menu{ std::make_shared<Menu>() }
     {
         InitializeMenu();
     }
-    AppController(AppController &&other)           noexcept = default;
-    AppController &operator=(AppController &&rhs)  noexcept = default;
-    ~AppController()                                              = default;
+    AppController(AppController &&other) noexcept          = default;
+    AppController &operator=(AppController &&rhs) noexcept = default;
+    ~AppController()                                       = default;
 
   protected:
     ////////// tasks ////////////
@@ -180,14 +178,14 @@ class AppController : public std::enable_shared_from_this<AppController<DrawerT,
     MenuModelHandler<DrawerT, Keyboard> drawer;
 
     // todo: to be deleted from here
-    PageDataT valueOne;
-    PageDataT valueTwo;
-    PageDataT valueThree;
-    PageDataT valueFour;
-    PageDataT valueFive;
-    PageDataT valueSix;
-    PageDataT valueSeven;
-    PageDataT valueEight;
+    PageDataT valueOne{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueTwo{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueThree{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueFour{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueFive{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueSix{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueSeven{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
+    PageDataT valueEight{ std::make_shared<UniversalSafeType>(static_cast<float>(0)) };
 
     Task             drawerTask;
     ClampMeterDriver clampMeter;
