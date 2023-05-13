@@ -1,6 +1,4 @@
 set(SOURCES
-    system.c
-    system.h
     system_init.c
     system_init.h
     MCP23016.c

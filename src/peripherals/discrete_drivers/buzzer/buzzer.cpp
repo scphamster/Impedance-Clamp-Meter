@@ -4,7 +4,6 @@
 #include "tc.h"
 #include "pmc.h"
 #include "pio.h"
-#include "system.h"
 
 #define BUZZER_TIMER    TC0
 #define BUZZER_TIMER_ID ID_TC0
