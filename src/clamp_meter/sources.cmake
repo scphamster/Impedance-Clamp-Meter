@@ -9,6 +9,4 @@ set(SOURCES
     twi_pdc.h
     keyboard.c
     keyboard.h
-    external_periph_ctrl.c
-    external_periph_ctrl.h
     )
