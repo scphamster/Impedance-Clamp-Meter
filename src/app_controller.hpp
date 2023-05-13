@@ -170,7 +170,7 @@ class AppController : public std::enable_shared_from_this<AppController<DrawerT,
         main_page->InsertChild(measurements_page);
         main_page->InsertChild(calibration_page);
 
-        menu->SetTopLevelItem(main_page);
+        menu->SetRootPage(main_page);
         drawer.SetModel(menu);
     }
 

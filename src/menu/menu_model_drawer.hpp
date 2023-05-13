@@ -427,7 +427,7 @@ class MenuModelDrawer {
                     cursor.GetValueCursor().Activate();
                 else {
                     if (model->GetCurrentPage()->HasChild()) {
-                        model->SetCurrentItem(model->GetCurrentPage()->GetChild(cursor.GetPageCursor().GetPos()));
+                        model->SetCurrentPage(model->GetCurrentPage()->GetChild(cursor.GetPageCursor().GetPos()));
                         ModelCurrentItemChangedEvent();
                     }
                 }
@@ -449,7 +449,7 @@ class MenuModelDrawer {
             }
         }
         else {
-            model->SetCurrentItem(model->GetCurrentPage()->GetParent());
+            model->SetCurrentPage(model->GetCurrentPage()->GetParent());
             ModelCurrentItemChangedEvent();
         }
     }
