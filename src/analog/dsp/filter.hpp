@@ -22,7 +22,7 @@
 
 #include "clamp_meter_concepts.hpp"
 #include "semaphore.hpp"
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 #include "task.hpp"
 #include "queue.hpp"
 

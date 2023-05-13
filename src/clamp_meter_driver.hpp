@@ -20,7 +20,7 @@
 #include "pio.h"
 #include "semphr.h"
 
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 #include "mcp3462_driver.hpp"
 #include "HVPowerSupply.hpp"
 #include "OutputRelay.hpp"

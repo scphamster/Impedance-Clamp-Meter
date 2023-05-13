@@ -1,11 +1,11 @@
-#include "compiler_compatibility_workaround.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
 #include "pio.h"
 #include "pio_handler.h"
 #include "pmc.h"
 #include "spi.h"
 #include "FreeRTOS.h"
 
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 
 #include "mcp3462_driver.hpp"
 

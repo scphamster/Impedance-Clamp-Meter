@@ -28,7 +28,7 @@
 #include "iq_calculator.hpp"
 #include "semaphore.hpp"
 #include "task.hpp"
-#include "project_configs.hpp"
+#include "misc/project_configs.hpp"
 #include "queue.hpp"
 #include "mcp3462_driver.hpp"
 #include "filter.hpp"

@@ -1,5 +1,5 @@
 #pragma once
-#include "compiler_compatibility_workaround.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
 #include "gain_controller.hpp"
 #include "automatic_gain_controller.hpp"
 #include "menu_model_item.hpp"

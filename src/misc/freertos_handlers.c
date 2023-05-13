@@ -4,7 +4,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include <asf.h>
+#include "asf_lib/src/asf.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,7 +1,7 @@
 #pragma once
-#include <type_traits>
-#include "FreeRTOS.h"
-#include "FreeRTOSConfig.h"
+#include "../../../../../tools/arm_gcc_toolchain/10 2021.10/arm-none-eabi/include/c++/10.3.1/type_traits"
+#include "../asf_lib/src/ASF/thirdparty/FreeRTOS/include/FreeRTOS.h"
+#include "../asf_lib/src/ASF/thirdparty/FreeRTOS/FreeRTOSConfig.h"
 
 namespace ProjectConfigs
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "compiler_compatibility_workaround.hpp"
-#include "project_configs.hpp"
+#include "misc/compiler_compatibility_workaround.hpp"
+#include "misc/project_configs.hpp"
 
 #include "FreeRTOS.h"
 
