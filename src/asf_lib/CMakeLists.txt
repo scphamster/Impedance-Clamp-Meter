@@ -35,6 +35,6 @@ target_include_directories(${LIB_NAME}
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                            PUBLIC ${ASF_INCLUDE_DIRECTORIES}
                            PUBLIC ${FREERTOS_INCLUDE_DIRS}
-                           PUBLIC "${PACKS_REPO}/atmel/${ATMEL_ARCHITECTURE}_DFP/1.1.57/ic.sam4e/include"
-                           PUBLIC "${PACKS_REPO}/arm/CMSIS/5.4.0/CMSIS/Core/Include"
+#                           PUBLIC "${PACKS_REPO}/atmel/${ATMEL_ARCHITECTURE}_DFP/1.1.57/ic.sam4e/include"
+#                           PUBLIC "${PACKS_REPO}/arm/CMSIS/5.4.0/CMSIS/Core/Include"
                            )

@@ -11,7 +11,7 @@ set(CMAKE_EXECUTABLE_SUFFIX_ASM .elf)
 #set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 #set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-set(PACKS_REPO "C:/Program Files (x86)/Atmel/Studio/7.0/packs")
+set(PACKS_REPO "/home/scphamster/dev/libraries/microchip/packs")
 
 message(DEBUG " use external tools? ${USE_EXTERNAL_TOOLSET} :: toolsdir: ${TOOLSDIR}")
 if (USE_EXTERNAL_TOOLSET)
@@ -23,16 +23,19 @@ endif ()
 set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_CXX_COMPILER_WORKS 1)
 
-find_program(CMAKE_C_COMPILER NAMES arm-none-eabi-gcc HINTS ${TOOLSDIR})
-find_program(CMAKE_CXX_COMPILER NAMES arm-none-eabi-g++ HINTS ${TOOLSDIR})
-find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy HINTS ${TOOLSDIR})
-message(DEBUG "Use compiler executable as linker? ${USE_COMPILER_EXECUTABLE_AS_LINKER}")
-if (USE_COMPILER_EXECUTABLE_AS_LINKER)
-    find_program(CMAKE_LINKER NAMES arm-none-eabi-g++ HINTS ${TOOLSDIR})
-else ()
-    find_program(CMAKE_LINKER NAMES arm-none-eabi-ld HINTS ${TOOLSDIR})
-endif ()
-find_program(CMAKE_SIZE NAMES arm-none-eabi-size HINTS ${TOOLSDIR})
+set(CMAKE_C_COMPILER /usr/bin/arm-none-eabi-gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/arm-none-eabi-g++)
+
+#find_program(CMAKE_C_COMPILER NAMES arm-none-eabi-gcc HINTS ${TOOLSDIR})
+#find_program(CMAKE_CXX_COMPILER NAMES arm-none-eabi-g++ HINTS ${TOOLSDIR})
+#find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy HINTS ${TOOLSDIR})
+#message(DEBUG "Use compiler executable as linker? ${USE_COMPILER_EXECUTABLE_AS_LINKER}")
+#if (USE_COMPILER_EXECUTABLE_AS_LINKER)
+#    find_program(CMAKE_LINKER NAMES arm-none-eabi-g++ HINTS ${TOOLSDIR})
+#else ()
+#    find_program(CMAKE_LINKER NAMES arm-none-eabi-ld HINTS ${TOOLSDIR})
+#endif ()
+#find_program(CMAKE_SIZE NAMES arm-none-eabi-size HINTS ${TOOLSDIR})
 
 if (NOT ARM_CPU)
     set(
@@ -83,8 +86,8 @@ function(generate_binary_file MYTARGET)
 endfunction(generate_binary_file)
 
 function(add_sam_executable EXECUTABLE_NAME)
-    set(additional_source_files ${ARGN})
-    list(LENGTH additional_source_files num_of_source_files)
+    set(SOURCES ${ARGN})
+    list(LENGTH SOURCES num_of_source_files)
 
     if (num_of_source_files LESS 1)
         message(FATAL_ERROR "No source files provided for ${EXECUTABLE_NAME}")
@@ -95,7 +98,7 @@ function(add_sam_executable EXECUTABLE_NAME)
     set(UF2_OUTPUT_FILE "${EXECUTABLE_NAME}.uf2")
     set(MAP_OUTPUT_FILE "${EXECUTABLE_NAME}.map")
 
-    add_executable(${EXECUTABLE_NAME} ${additional_source_files})
+    add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
     set_target_properties(${EXECUTABLE_NAME}
                           PROPERTIES

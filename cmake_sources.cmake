@@ -1,4 +1,4 @@
-set(PACKS_REPO "C:/Program Files (x86)/Atmel/Studio/7.0/packs")
+set(PACKS_REPO "/home/scphamster/dev/libraries/microchip/packs")
 
 set(ASF_INCLUDE_DIRS
     src

@@ -151,6 +151,7 @@ set_source_files_properties(${CXX_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COM
 set_source_files_properties(${C_SOURCES} PROPERTIES COMPILE_FLAGS "${C_CXX_COMPILE_FLAGS} ${C_COMPILE_FLAGS}")
 
 
+
 add_sam_executable(${EXECUTABLE_NAME} ${CXX_SOURCES} ${C_SOURCES})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
                            ${INCLUDE_DIRECTORIES}
@@ -159,8 +160,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
 add_subdirectory(src/asf_lib)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC asf)
 
-
 add_subdirectory(src/drivers)
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC clamp_meter)
 
-display_size(${EXECUTABLE_NAME})
+#display_size(${EXECUTABLE_NAME})

@@ -17,7 +17,7 @@
 #include "FreeRTOS.h"
 #include "FreeRTOS/include/task.h"
 #include "FreeRTOS/include/stream_buffer.h"
-#include "mcp23016.h"
+#include "mcp23016_driver_fast.hpp"
 
 #define MCP23016_GP0     0X00
 #define MCP23016_GP1     0X01
@@ -31,6 +31,16 @@
 #define MCP23016_INTCAP1 0X09
 #define MCP23016_IOCON0  0X0A
 #define MCP23016_IOCON1  0X0B
+
+#define MCP23016_TWI_ADDR		0b00100000	//SLA+W
+#define MCP23016_INT_PIN		11
+#define MCP23016_INT_PORT		PIOD
+#define MCP23016_INT_PORT_ID	ID_PIOD
+#define MCP23016_IRQ_ID			PIOD_IRQn
+#define MCP23016_INT_PIN_NUM	MCP23016_INT_PIN + 32 * 3
+#define MCP23016_INTERRUPT_PRIO	3
+#define MCP23016_TWI_FREQ		200000UL
+
 
 #ifdef assert
 #undef assert
