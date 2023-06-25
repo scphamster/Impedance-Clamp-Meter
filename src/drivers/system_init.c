@@ -101,6 +101,9 @@ twi_init(void)
     twi_master_init(TWI0, &twi_params);
 }
 
+/**
+ * @brief initialize all the peripherals and clocks
+ */
 void
 system_init(void)
 {

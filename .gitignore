@@ -5,3 +5,4 @@
 tools_configs.cmake
 /build*/
 /documentation/
+/build-debug/

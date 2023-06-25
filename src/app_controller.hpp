@@ -20,6 +20,12 @@
 #include "mcp23016_driver_fast.hpp"
 #include "keyboard_fast.hpp"
 
+
+/**
+ * @brief Main class for management of the whole system. Singletone.
+ * @tparam DrawerT the interface to the display unit used in the system.
+ * @tparam Keyboard the interface to the keyboard used in the system.
+ */
 template<typename DrawerT, KeyboardC Keyboard = Keyboard<MCP23016_driver, TimerFreeRTOS, MCP23016Button>>
 class AppController : public std::enable_shared_from_this<AppController<DrawerT, Keyboard>> {
   public:
